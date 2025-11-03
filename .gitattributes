@@ -1,0 +1,19 @@
+# Normalizar saltos de línea
+* text=auto eol=lf
+
+# Archivos binarios
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.tar binary
+
+# Archivos de fuente
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
