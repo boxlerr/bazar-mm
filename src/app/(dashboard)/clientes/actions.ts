@@ -1,11 +1,10 @@
 'use server';
 
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
 export async function crearCliente(formData: FormData) {
-  const supabase = createServerComponentClient({ cookies });
+  const supabase = await createClient();
 
   const clienteData = {
     nombre: formData.get('nombre'),
@@ -26,7 +25,7 @@ export async function crearCliente(formData: FormData) {
 }
 
 export async function actualizarCliente(id: string, formData: FormData) {
-  const supabase = createServerComponentClient({ cookies });
+  const supabase = await createClient();
 
   const clienteData = {
     nombre: formData.get('nombre'),

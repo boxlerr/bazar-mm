@@ -1,11 +1,10 @@
 'use server';
 
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
 export async function crearVenta(formData: FormData) {
-  const supabase = createServerComponentClient({ cookies });
+  const supabase = await createClient();
 
   // Extraer datos del formulario
   const clienteId = formData.get('cliente_id');
@@ -62,7 +61,7 @@ export async function crearVenta(formData: FormData) {
 }
 
 export async function actualizarStock(productoId: string, cantidad: number) {
-  const supabase = createServerComponentClient({ cookies });
+  const supabase = await createClient();
 
   try {
     const { error } = await supabase.rpc('actualizar_stock', {

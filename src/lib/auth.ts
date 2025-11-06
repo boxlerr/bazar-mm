@@ -1,9 +1,8 @@
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { createClient } from './supabase/server';
 
 export async function getSession() {
-  const supabase = createServerComponentClient({ cookies });
+  const supabase = await createClient();
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -19,7 +18,7 @@ export async function requireAuth() {
 }
 
 export async function getUserProfile(userId: string) {
-  const supabase = createServerComponentClient({ cookies });
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from('usuarios')
     .select('*')

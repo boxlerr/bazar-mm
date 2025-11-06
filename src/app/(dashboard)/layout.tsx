@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation';
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { createClient } from '@/lib/supabase/server';
 import Sidebar from '@/components/layout/Sidebar';
 import Header from '@/components/layout/Header';
 
@@ -9,21 +8,22 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = createServerComponentClient({ cookies });
+  // TODO: Descomentar cuando las tablas estén creadas en Supabase
+  // const supabase = await createClient();
+  // const {
+  //   data: { session },
+  // } = await supabase.auth.getSession();
+  // if (!session) {
+  //   redirect('/login');
+  // }
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session) {
-    redirect('/login');
-  }
+  const mockUser = { email: 'admin@bazar-mm.com', id: '1' };
 
   return (
     <div className="flex h-screen bg-gray-100">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Header user={session.user} />
+        <Header user={mockUser} />
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
           {children}
         </main>
