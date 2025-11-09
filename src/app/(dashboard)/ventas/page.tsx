@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
+import { BotonPruebaImpresion } from '@/components/printer/BotonPruebaImpresion';
 
 export const metadata: Metadata = {
   title: 'Ventas | Bazar M&M',
@@ -28,6 +29,9 @@ export default async function VentasPage() {
           + Nueva Venta
         </Link>
       </div>
+
+      {/* Componente de prueba de impresión */}
+      <BotonPruebaImpresion />
 
       <div className="bg-white rounded-lg shadow">
         <div className="px-6 py-4 border-b border-gray-200">
