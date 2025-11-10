@@ -23,3 +23,6 @@
 //     );
 //   }
 // }
+export async function POST() {
+  return Response.json({ message: "Resend desactivado temporalmente" });
+}
