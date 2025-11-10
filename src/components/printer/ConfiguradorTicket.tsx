@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Save, Eye, Building2, Ruler, Package, CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface TicketConfig {
@@ -48,17 +48,26 @@ const CONFIG_DEFAULT: TicketConfig = {
 };
 
 export function ConfiguradorTicket() {
-  const [config, setConfig] = useState<TicketConfig>(() => {
-    const configGuardada = localStorage.getItem('ticket_config');
-    return configGuardada ? JSON.parse(configGuardada) : CONFIG_DEFAULT;
-  });
+  const [config, setConfig] = useState<TicketConfig>(CONFIG_DEFAULT);
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState<{ tipo: 'success' | 'error'; texto: string } | null>(null);
+
+  // Inicializar config desde localStorage solo en el cliente
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const configGuardada = localStorage.getItem('ticket_config');
+      if (configGuardada) {
+        setConfig(JSON.parse(configGuardada));
+      }
+    }
+  }, []);
 
   const guardarConfiguracion = async () => {
     setGuardando(true);
     
-    localStorage.setItem('ticket_config', JSON.stringify(config));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('ticket_config', JSON.stringify(config));
+    }
     
     try {
       const response = await fetch('http://localhost:3001/configuracion/ticket', {
