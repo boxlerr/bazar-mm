@@ -1,21 +1,11 @@
 {
   "empresa": {
-    "nombre": "SE MODIFICA??",
+    "nombre": "BAZAR M&M",
     "direccion": "Calle Principal 123, Buenos Aires",
     "telefono": "(011) 1234-5678",
     "cuit": "20-12345678-9"
   },
   "formato": {
-    "anchoLinea": 48,
-    "alinearEncabezado": "centro",
-    "mostrarCuit": true,
-    "separadorPrincipal": "=",
-    "separadorSecundario": "-"
-  },
-  "productos": {
-    "anchoNombre": 20,
-    "anchoCantidad": 6,
-    "anchoPrecio": 12,
-    "mostrarPrecioUnitario": false
+    "anchoLinea": 42
   }
 }

@@ -1,7 +1,9 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { BotonPruebaImpresion } from '@/components/printer/BotonPruebaImpresion';
+
+// 🔥 IMPORT CORRECTO (default export)
+import BotonPruebaImpresion from '@/components/printer/BotonPruebaImpresion';
 
 export const metadata: Metadata = {
   title: 'Ventas | Bazar M&M',
@@ -22,6 +24,7 @@ export default async function VentasPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Ventas</h1>
+
         <Link
           href="/ventas/nueva"
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition"
@@ -30,13 +33,16 @@ export default async function VentasPage() {
         </Link>
       </div>
 
-      {/* Componente de prueba de impresión */}
+      {/* 🔥 Botón de prueba de impresión */}
       <BotonPruebaImpresion />
 
       <div className="bg-white rounded-lg shadow">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Ventas Recientes</h2>
+          <h2 className="text-lg font-semibold text-gray-900">
+            Ventas Recientes
+          </h2>
         </div>
+
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50">
@@ -61,10 +67,14 @@ export default async function VentasPage() {
                 </th>
               </tr>
             </thead>
+
             <tbody className="bg-white divide-y divide-gray-200">
               {ventas?.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                  <td
+                    colSpan={6}
+                    className="px-6 py-4 text-center text-gray-500"
+                  >
                     No hay ventas registradas
                   </td>
                 </tr>
@@ -95,6 +105,7 @@ export default async function VentasPage() {
                       >
                         Ver
                       </Link>
+
                       <Link
                         href={`/ventas/${venta.id}/recibo`}
                         className="text-green-600 hover:text-green-900"
