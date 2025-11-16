@@ -13,7 +13,7 @@ export default function LoginPage() {
         <div className="bg-white rounded-lg shadow-xl p-8">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900">Bazar M&M</h1>
-            <p className="text-gray-600 mt-2">Sistema de Gestión</p>
+            <p className="text-gray-900 mt-2 font-medium">Sistema de Gestión</p>
           </div>
           <LoginForm />
         </div>

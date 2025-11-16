@@ -15,18 +15,18 @@ export default function ReciboVenta({ venta }: { venta: any }) {
       <div className="bg-white rounded-lg shadow-lg p-8 print:shadow-none">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Bazar M&M</h1>
-          <p className="text-gray-600">Recibo de Venta</p>
+          <p className="text-gray-900 font-medium">Recibo de Venta</p>
         </div>
 
         <div className="border-t border-b border-gray-200 py-4 mb-6">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-sm text-gray-600">Recibo #</p>
-              <p className="font-semibold">{venta?.id}</p>
+              <p className="text-sm font-bold text-gray-900">Recibo #</p>
+              <p className="font-semibold text-gray-900">{venta?.id}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Fecha</p>
-              <p className="font-semibold">
+              <p className="text-sm font-bold text-gray-900">Fecha</p>
+              <p className="font-semibold text-gray-900">
                 {venta?.created_at ? new Date(venta.created_at).toLocaleDateString() : '-'}
               </p>
             </div>

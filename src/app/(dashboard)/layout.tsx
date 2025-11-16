@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+// import { redirect } from 'next/navigation';
+// import { createClient } from '@/lib/supabase/server';
 import Sidebar from '@/components/layout/Sidebar';
 import Header from '@/components/layout/Header';
 
@@ -17,13 +17,11 @@ export default async function DashboardLayout({
   //   redirect('/login');
   // }
 
-  const mockUser = { email: 'admin@bazar-mm.com', id: '1' };
-
   return (
     <div className="flex h-screen bg-gray-100">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Header user={mockUser} />
+        <Header />
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
           {children}
         </main>

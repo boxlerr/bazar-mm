@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import {
   ShoppingCart,
   Package,
@@ -52,7 +53,19 @@ const menuItems: MenuItem[] = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const supabase = createClientComponentClient();
   const [expandedMenus, setExpandedMenus] = useState<string[]>(['Configuración']);
+  const [userEmail, setUserEmail] = useState<string>('admin@bazar-mm.com');
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.email) {
+        setUserEmail(user.email);
+      }
+    };
+    getUser();
+  }, [supabase]);
 
   const toggleSubmenu = (menuName: string) => {
     setExpandedMenus(prev => 
@@ -74,7 +87,7 @@ export default function Sidebar() {
         <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
           Bazar M&M
         </h1>
-        <p className="text-sm text-slate-400 mt-1">Sistema de Gestión</p>
+        <p className="text-sm text-slate-300 font-medium mt-1">Sistema de Gestión</p>
       </div>
 
       {/* Navigation */}
@@ -144,7 +157,7 @@ export default function Sidebar() {
                         className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group ${
                           isSubActive
                             ? 'bg-blue-500/20 text-blue-400 border-l-2 border-blue-400'
-                            : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+                            : 'text-slate-300 hover:bg-slate-800/50 hover:text-white'
                         }`}
                       >
                         <SubIcon 
@@ -167,11 +180,11 @@ export default function Sidebar() {
       <div className="p-4 border-t border-slate-700/50">
         <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-800/50">
           <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-400 to-cyan-400 flex items-center justify-center text-slate-900 font-bold text-sm">
-            A
+            {userEmail.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white truncate">Admin</p>
-            <p className="text-xs text-slate-400 truncate">admin@bazar-mm.com</p>
+            <p className="text-sm font-bold text-white truncate">Admin</p>
+            <p className="text-xs text-slate-300 truncate font-medium">{userEmail}</p>
           </div>
         </div>
       </div>

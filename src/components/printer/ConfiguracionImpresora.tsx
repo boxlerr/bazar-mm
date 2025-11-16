@@ -62,8 +62,8 @@ export function ConfiguracionImpresora() {
         {/* Estado del servidor */}
         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
           <div>
-            <h3 className="font-semibold text-gray-700">Servidor de Impresión</h3>
-            <p className="text-sm text-gray-500">http://localhost:3001</p>
+            <h3 className="font-semibold text-gray-900">Servidor de Impresión</h3>
+            <p className="text-sm text-gray-900">http://localhost:3001</p>
           </div>
           <div className="flex items-center gap-2">
             <span
@@ -82,8 +82,8 @@ export function ConfiguracionImpresora() {
         {/* Estado de la impresora */}
         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
           <div>
-            <h3 className="font-semibold text-gray-700">Impresora Gadnic TP-450s</h3>
-            <p className="text-sm text-gray-500">
+            <h3 className="font-semibold text-gray-900">Impresora Gadnic TP-450s</h3>
+            <p className="text-sm text-gray-900">
               {mensaje || 'Impresora térmica 80mm'}
             </p>
           </div>

@@ -266,7 +266,7 @@ export function ConfiguradorTicket() {
                     onChange={(e) => setConfig({...config, formato: {...config.formato, anchoLinea: parseInt(e.target.value)}})}
                     className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer slider"
                   />
-                  <div className="flex justify-between text-xs text-slate-500 mt-1">
+                  <div className="flex justify-between text-xs text-gray-900 mt-1 font-medium">
                     <span>32</span>
                     <span>48</span>
                     <span>64</span>

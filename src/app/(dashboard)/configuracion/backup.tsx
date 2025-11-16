@@ -8,7 +8,7 @@ export default function BackupComponent() {
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <h3 className="text-lg font-semibold mb-4">Backup de Datos</h3>
-      <p className="text-gray-600 mb-4">
+      <p className="text-gray-900 mb-4 font-medium">
         Descarga una copia de seguridad de todos los datos del sistema
       </p>
       <button

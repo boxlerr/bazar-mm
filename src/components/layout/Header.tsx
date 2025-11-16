@@ -3,7 +3,7 @@
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { useRouter } from 'next/navigation';
 
-export default function Header({ user }: { user: any }) {
+export default function Header() {
   const router = useRouter();
   const supabase = createClientComponentClient();
 
@@ -15,17 +15,11 @@ export default function Header({ user }: { user: any }) {
 
   return (
     <header className="bg-white shadow-sm">
-      <div className="flex justify-between items-center px-6 py-4">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-800">
-            Bienvenido, {user?.user_metadata?.full_name || user?.email}
-          </h2>
-        </div>
-
+      <div className="flex justify-end items-center px-6 py-4">
         <div className="flex items-center gap-4">
           <button
             onClick={handleLogout}
-            className="text-gray-600 hover:text-gray-900 transition"
+            className="text-gray-900 hover:text-blue-600 font-medium transition"
           >
             Cerrar Sesión
           </button>

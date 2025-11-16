@@ -1,0 +1,296 @@
+import { PDFParseResult, ProductoExtraido } from '@/types/compra';
+
+// pdf-parse v2.x usa una nueva API de clases completamente diferente
+const pdfModule = require('pdf-parse');
+const { PDFParse } = pdfModule;
+
+console.log('✅ PDFParse v2.x cargado');
+
+/**
+ * Servicio para extraer información de PDFs de órdenes de compra
+ * Soporta formato de D&G y otros proveedores similares
+ */
+export class PDFService {
+  
+  /**
+   * Extrae productos y datos del PDF
+   */
+  static async extractDataFromPDF(buffer: Buffer): Promise<PDFParseResult> {
+    try {
+      console.log('🔄 Iniciando parseo de PDF v2.x...');
+      console.log('🔍 Buffer recibido, tamaño:', buffer.length);
+      
+      // Crear instancia del parser
+      const parser = new PDFParse({
+        verbosity: 0,
+      });
+      
+      // pdf-parse v2.x: primero load() luego getText()
+      console.log('📘 Cargando PDF con load()...');
+      await parser.load(buffer);
+      
+      console.log('📘 Extrayendo texto con getText()...');
+      const text = await parser.getText();
+      
+      console.log('📄 PDF procesado exitosamente');
+      console.log('📝 Texto extraído, longitud:', text.length);
+      console.log('📝 Primeros 500 caracteres:', text.substring(0, 500));
+      
+      // Investigar qué métodos tiene realmente
+      const prototype = Object.getPrototypeOf(parser);
+      const methods = Object.getOwnPropertyNames(prototype);
+      console.log('🔍 Métodos disponibles en parser:', methods);
+      
+      // pdf-parse v2.x usa fromBuffer() en lugar de parse()
+      let data: any;
+      
+      if (typeof (parser as any).fromBuffer === 'function') {
+        console.log('📘 Usando fromBuffer()');
+        data = await (parser as any).fromBuffer(buffer);
+      } else if (typeof (parser as any).parseBuffer === 'function') {
+        console.log('📘 Usando parseBuffer()');
+        data = await (parser as any).parseBuffer(buffer);
+      } else if (typeof (parser as any).parse === 'function') {
+        console.log('� Usando parse()');
+        data = await (parser as any).parse(buffer);
+      } else {
+        console.error('❌ No se encontró método de parseo. Métodos:', methods);
+        throw new Error('No se encontró el método correcto para parsear el PDF');
+      }
+      
+      console.log('📄 PDF parseado exitosamente');
+      console.log('📄 Claves del resultado:', Object.keys(data));
+      
+      // Extraer texto del resultado
+      const text = data.text || data.content || '';
+      console.log('📝 Texto extraído, longitud:', text.length);
+      
+      // Extraer información
+      const numero_orden = this.extractNumeroOrden(text);
+      const fecha = this.extractFecha(text);
+      const proveedor = this.extractProveedor(text);
+      const productos = this.extractProductos(text);
+      const total = this.extractTotal(text);
+      
+      return {
+        numero_orden,
+        fecha,
+        proveedor,
+        productos,
+        total,
+      };
+    } catch (error) {
+      console.error('Error al parsear PDF:', error);
+      throw new Error('No se pudo procesar el PDF. Verifica que sea un archivo válido.');
+    }
+  }
+  
+  /**
+   * Extrae el número de orden del PDF
+   */
+  private static extractNumeroOrden(text: string): string | undefined {
+    // Buscar patrones como "Orden #2527", "Order #123", "N° 456"
+    const patterns = [
+      /Orden\s*#?(\d+)/i,
+      /Order\s*#?(\d+)/i,
+      /N[°º]\s*(\d+)/i,
+      /Pedido\s*#?(\d+)/i,
+    ];
+    
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match) return match[1];
+    }
+    
+    return undefined;
+  }
+  
+  /**
+   * Extrae la fecha de la orden
+   */
+  private static extractFecha(text: string): string | undefined {
+    // Buscar patrones de fecha
+    const patterns = [
+      /Realizada\s+el\s+(\d{2}\/\d{2}\/\d{4})/i,
+      /Fecha:\s*(\d{2}\/\d{2}\/\d{4})/i,
+      /(\d{2}\/\d{2}\/\d{4})/,
+    ];
+    
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match) return match[1];
+    }
+    
+    return undefined;
+  }
+  
+  /**
+   * Extrae el nombre del proveedor
+   */
+  private static extractProveedor(text: string): string | undefined {
+    // Buscar logos o nombres de empresa en las primeras líneas
+    const firstLines = text.split('\n').slice(0, 10).join('\n');
+    
+    // Patrones comunes
+    if (firstLines.includes('D&G')) return 'D&G';
+    if (firstLines.includes('D & G')) return 'D&G';
+    
+    return undefined;
+  }
+  
+  /**
+   * Extrae los productos del PDF
+   * Este es el método más importante y complejo
+   */
+  private static extractProductos(text: string): ProductoExtraido[] {
+    const productos: ProductoExtraido[] = [];
+    const lines = text.split('\n');
+    
+    // Buscar la sección de productos
+    let inProductSection = false;
+    let productoActual: Partial<ProductoExtraido> | null = null;
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // Detectar inicio de tabla de productos
+      if (line.includes('Producto') && line.includes('Cantidad') && line.includes('Precio')) {
+        inProductSection = true;
+        continue;
+      }
+      
+      // Si estamos en la sección de productos
+      if (inProductSection) {
+        // Detectar fin de tabla (líneas vacías o totales)
+        if (line.length === 0 || line.match(/^Total|Subtotal|TOTAL/i)) {
+          if (productoActual && productoActual.nombre) {
+            productos.push(productoActual as ProductoExtraido);
+            productoActual = null;
+          }
+          if (line.match(/^Total|TOTAL/i)) {
+            break;
+          }
+          continue;
+        }
+        
+        // Intentar parsear línea de producto
+        // Formato esperado: Nombre del producto + cantidades y precios
+        
+        // Si encontramos un SKU, es parte del producto actual
+        if (line.startsWith('SKU:')) {
+          if (productoActual) {
+            const sku = line.replace('SKU:', '').trim();
+            productoActual.sku = sku;
+          }
+          continue;
+        }
+        
+        // Buscar líneas con patrón de cantidad y precios
+        // Ejemplo: "10 x     $ 6.933,00     $ 69.330,00"
+        const cantidadPrecioMatch = line.match(/(\d+)\s*x?\s*\$?\s*([\d.,]+)\s*\$?\s*([\d.,]+)/);
+        
+        if (cantidadPrecioMatch) {
+          if (productoActual && productoActual.nombre) {
+            // Completar producto anterior
+            productoActual.cantidad = parseInt(cantidadPrecioMatch[1]);
+            productoActual.precio_unitario = this.parsePrice(cantidadPrecioMatch[2]);
+            productoActual.total = this.parsePrice(cantidadPrecioMatch[3]);
+            
+            productos.push(productoActual as ProductoExtraido);
+            productoActual = null;
+          }
+        } else if (line.length > 0 && !line.match(/^\d+\s*$/) && !line.startsWith('$')) {
+          // Es posiblemente el inicio de un nuevo producto
+          if (productoActual && productoActual.nombre) {
+            // Guardar el anterior si existe
+            productos.push(productoActual as ProductoExtraido);
+          }
+          
+          // Iniciar nuevo producto
+          productoActual = {
+            nombre: line,
+            cantidad: 0,
+            precio_unitario: 0,
+            total: 0,
+          };
+        }
+      }
+    }
+    
+    // Agregar último producto si quedó pendiente
+    if (productoActual && productoActual.nombre && productoActual.cantidad && productoActual.cantidad > 0) {
+      productos.push(productoActual as ProductoExtraido);
+    }
+    
+    return productos;
+  }
+  
+  /**
+   * Extrae el total de la orden
+   */
+  private static extractTotal(text: string): number | undefined {
+    const patterns = [
+      /Total[:\s]+\$?\s*([\d.,]+)/i,
+      /TOTAL[:\s]+\$?\s*([\d.,]+)/i,
+    ];
+    
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match) {
+        return this.parsePrice(match[1]);
+      }
+    }
+    
+    return undefined;
+  }
+  
+  /**
+   * Convierte string de precio a número
+   * Maneja formatos: "1.234,56" o "1234.56"
+   */
+  private static parsePrice(price: string): number {
+    // Remover espacios
+    let cleaned = price.replace(/\s/g, '');
+    
+    // Si tiene punto y coma, asumir formato argentino (1.234,56)
+    if (cleaned.includes('.') && cleaned.includes(',')) {
+      cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+    } 
+    // Si solo tiene coma, asumir formato argentino (1234,56)
+    else if (cleaned.includes(',')) {
+      cleaned = cleaned.replace(',', '.');
+    }
+    
+    return parseFloat(cleaned) || 0;
+  }
+  
+  /**
+   * Valida que los datos extraídos sean correctos
+   */
+  static validateExtractedData(data: PDFParseResult): { valid: boolean; errors: string[] } {
+    const errors: string[] = [];
+    
+    if (!data.productos || data.productos.length === 0) {
+      errors.push('No se encontraron productos en el PDF');
+    }
+    
+    if (data.productos) {
+      data.productos.forEach((producto, index) => {
+        if (!producto.nombre) {
+          errors.push(`Producto ${index + 1}: falta el nombre`);
+        }
+        if (!producto.cantidad || producto.cantidad <= 0) {
+          errors.push(`Producto ${index + 1}: cantidad inválida`);
+        }
+        if (!producto.precio_unitario || producto.precio_unitario <= 0) {
+          errors.push(`Producto ${index + 1}: precio unitario inválido`);
+        }
+      });
+    }
+    
+    return {
+      valid: errors.length === 0,
+      errors,
+    };
+  }
+}

@@ -7,20 +7,20 @@ export default function ClienteDetalle({ cliente }: { cliente: any }) {
         <h2 className="text-2xl font-bold text-gray-900 mb-4">{cliente.nombre}</h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-sm text-gray-600">Email</p>
-            <p className="font-semibold">{cliente.email}</p>
+            <p className="text-sm font-bold text-gray-900">Email</p>
+            <p className="font-semibold text-gray-900">{cliente.email}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-600">Teléfono</p>
-            <p className="font-semibold">{cliente.telefono}</p>
+            <p className="text-sm font-bold text-gray-900">Teléfono</p>
+            <p className="font-semibold text-gray-900">{cliente.telefono}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-600">DNI/CUIT</p>
-            <p className="font-semibold">{cliente.dni}</p>
+            <p className="text-sm font-bold text-gray-900">DNI/CUIT</p>
+            <p className="font-semibold text-gray-900">{cliente.dni}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-600">Saldo Cuenta Corriente</p>
-            <p className="font-semibold text-lg">
+            <p className="text-sm font-bold text-gray-900">Saldo Cuenta Corriente</p>
+            <p className="font-semibold text-lg text-gray-900">
               ${cliente.saldo_cuenta_corriente?.toFixed(2) || '0.00'}
             </p>
           </div>

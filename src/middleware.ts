@@ -6,9 +6,15 @@ export async function middleware(req: NextRequest) {
   const res = NextResponse.next();
   const supabase = createMiddlewareClient({ req, res });
 
+  // Refrescar la sesión si es necesario
   const {
     data: { session },
   } = await supabase.auth.getSession();
+  
+  // Intentar refrescar si no hay sesión pero hay cookies
+  if (!session && req.cookies.get('sb-access-token')) {
+    await supabase.auth.refreshSession();
+  }
 
   // Rutas protegidas (dashboard)
   if (req.nextUrl.pathname.startsWith('/ventas') ||

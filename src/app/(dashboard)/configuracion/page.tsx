@@ -51,7 +51,7 @@ export default function ConfiguracionPage() {
             </div>
             <div>
               <h1 className="text-3xl font-bold text-slate-900">Configuración</h1>
-              <p className="text-slate-600">Personaliza y gestiona tu sistema</p>
+              <p className="text-gray-900 font-medium">Personaliza y gestiona tu sistema</p>
             </div>
           </div>
         </div>
@@ -86,7 +86,7 @@ export default function ConfiguracionPage() {
                       <h3 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors">
                         {section.title}
                       </h3>
-                      <p className="text-sm text-slate-600 leading-relaxed">
+                      <p className="text-sm text-gray-900 leading-relaxed">
                         {section.description}
                       </p>
                     </div>
@@ -107,7 +107,7 @@ export default function ConfiguracionPage() {
           </div>
           
           <div className="p-6">
-            <p className="text-slate-600 mb-4">
+            <p className="text-gray-900 mb-4 font-medium">
               Descarga una copia de seguridad completa de tu base de datos. 
               Se recomienda realizar backups periódicos para proteger tu información.
             </p>

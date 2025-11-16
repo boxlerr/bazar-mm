@@ -1,6 +1,7 @@
 export interface Producto {
   id: string;
   codigo: string;
+  codigo_barra?: string; // SKU del proveedor para lector de código
   nombre: string;
   descripcion?: string;
   categoria: string;
@@ -8,6 +9,7 @@ export interface Producto {
   precio_venta: number;
   stock_actual: number;
   stock_minimo: number;
+  proveedor_id?: string;
   proveedor?: string;
   activo: boolean;
   created_at: string;

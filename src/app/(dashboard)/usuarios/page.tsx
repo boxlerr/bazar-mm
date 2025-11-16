@@ -11,7 +11,7 @@ export default function UsuariosPage() {
       <h1 className="text-3xl font-bold text-gray-900 mb-6">Gestión de Usuarios</h1>
 
       <div className="bg-white rounded-lg shadow p-6">
-        <p className="text-gray-600">Módulo de administración de usuarios y permisos</p>
+        <p className="text-gray-900 font-medium">Módulo de administración de usuarios y permisos</p>
       </div>
     </div>
   );

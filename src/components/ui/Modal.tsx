@@ -1,7 +1,5 @@
 'use client';
 
-import { Fragment } from 'react';
-
 export default function Modal({
   isOpen,
   onClose,
@@ -25,7 +23,7 @@ export default function Modal({
             <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition"
+              className="text-gray-900 hover:text-gray-700 transition text-2xl font-bold"
             >
               ✕
             </button>

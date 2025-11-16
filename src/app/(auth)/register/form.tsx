@@ -52,7 +52,7 @@ export default function RegisterForm() {
           router.push('/login');
         }, 2000);
       }
-    } catch (err) {
+    } catch {
       setError('Ocurrió un error al registrarse. Inténtalo nuevamente.');
     } finally {
       setLoading(false);
@@ -76,7 +76,7 @@ export default function RegisterForm() {
       )}
 
       <div>
-        <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-2">
+        <label htmlFor="fullName" className="block text-sm font-bold text-gray-900 mb-2">
           Nombre Completo
         </label>
         <input
@@ -85,13 +85,13 @@ export default function RegisterForm() {
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
           required
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-4 py-3 text-gray-900 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
           placeholder="Juan Pérez"
         />
       </div>
 
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+        <label htmlFor="email" className="block text-sm font-bold text-gray-900 mb-2">
           Correo Electrónico
         </label>
         <input
@@ -100,13 +100,13 @@ export default function RegisterForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-4 py-3 text-gray-900 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
           placeholder="tu@email.com"
         />
       </div>
 
       <div>
-        <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+        <label htmlFor="password" className="block text-sm font-bold text-gray-900 mb-2">
           Contraseña
         </label>
         <input
@@ -115,13 +115,13 @@ export default function RegisterForm() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-4 py-3 text-gray-900 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
           placeholder="••••••••"
         />
       </div>
 
       <div>
-        <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+        <label htmlFor="confirmPassword" className="block text-sm font-bold text-gray-900 mb-2">
           Confirmar Contraseña
         </label>
         <input
@@ -130,7 +130,7 @@ export default function RegisterForm() {
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           required
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-4 py-3 text-gray-900 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
           placeholder="••••••••"
         />
       </div>
@@ -138,14 +138,14 @@ export default function RegisterForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
       >
         {loading ? 'Registrando...' : 'Crear Cuenta'}
       </button>
 
-      <p className="text-center text-sm text-gray-600">
+      <p className="text-center text-sm text-gray-900">
         ¿Ya tienes cuenta?{' '}
-        <Link href="/login" className="text-blue-600 hover:text-blue-700 font-medium">
+        <Link href="/login" className="text-blue-600 hover:text-blue-700 font-bold">
           Inicia sesión aquí
         </Link>
       </p>

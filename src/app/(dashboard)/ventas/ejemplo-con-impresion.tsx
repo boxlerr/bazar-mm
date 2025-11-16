@@ -6,7 +6,7 @@
  */
 
 import { useState } from 'react';
-import { BotonImprimirTicket } from '@/components/printer/BotonImprimirTicket';
+import BotonImprimirTicket from '@/components/printer/BotonImprimirTicket';
 import type { VentaParaImprimir } from '@/lib/printer/PrinterService';
 
 export default function EjemploVentasConImpresion() {
