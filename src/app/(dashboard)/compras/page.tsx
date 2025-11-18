@@ -114,19 +114,24 @@ export default async function ComprasPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {compra.pdf_url && (
-                        <a
-                          href={compra.pdf_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-800 font-medium mr-3"
+                      <div className="flex gap-2">
+                        {compra.pdf_url && (
+                          <a
+                            href={compra.pdf_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 font-medium"
+                          >
+                            Ver PDF
+                          </a>
+                        )}
+                        <Link
+                          href={`/compras/${compra.id}`}
+                          className="text-gray-900 hover:text-blue-600 font-medium"
                         >
-                          Ver PDF
-                        </a>
-                      )}
-                      <button className="text-gray-900 hover:text-blue-600 font-medium">
-                        Ver Detalle
-                      </button>
+                          Ver Detalle
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}

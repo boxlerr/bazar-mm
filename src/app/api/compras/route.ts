@@ -1,29 +1,32 @@
-'use server';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { NextRequest, NextResponse } from 'next/server';
 
-import { createActionClient } from '@/lib/supabase/action';
-import { createClient } from '@/lib/supabase/server';
-import { revalidatePath } from 'next/cache';
-import { CompraItemForm } from '@/types/compra';
-
-export async function crearCompra(formData: FormData) {
-  console.log('🚀 crearCompra: Iniciando server action...');
+export async function POST(request: NextRequest) {
+  console.log('🚀 API /api/compras: Iniciando...');
   
-  try {
-    // Crear cliente compatible con server actions
-    const supabase = await createActionClient();
-    console.log('✅ crearCompra: Cliente Supabase creado');
+  const cookieStore = cookies();
+  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
 
-    // Obtener usuario autenticado
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+  try {
+    // Obtener sesión
+    const { data: { session } } = await supabase.auth.getSession();
+    console.log('🔐 API /api/compras: Session obtenida:', session ? 'Sí' : 'No');
     
-    if (userError || !user) {
-      console.error('❌ crearCompra: Error obteniendo usuario:', userError);
-      return { success: false, error: 'Usuario no autenticado' };
+    if (!session?.user) {
+      console.error('❌ API /api/compras: Usuario no autenticado');
+      return NextResponse.json(
+        { success: false, error: 'Usuario no autenticado' },
+        { status: 401 }
+      );
     }
     
-    console.log('✅ crearCompra: Usuario autenticado:', user.email, 'ID:', user.id);
+    const user = session.user;
+    console.log('👤 API /api/compras: Usuario autenticado:', user.email);
 
-    // Extraer datos del FormData
+    // Obtener FormData
+    const formData = await request.formData();
+    
     const proveedor_id = formData.get('proveedor_id') as string;
     const numero_orden = formData.get('numero_orden') as string;
     const metodo_pago = formData.get('metodo_pago') as string;
@@ -32,22 +35,26 @@ export async function crearCompra(formData: FormData) {
     const itemsJson = formData.get('items') as string;
     const pdfFile = formData.get('pdf') as File | null;
     
-    console.log('📋 crearCompra: Datos extraídos:', { proveedor_id, numero_orden, metodo_pago, total });
+    console.log('📋 API /api/compras: Datos extraídos:', { proveedor_id, numero_orden, metodo_pago, total });
     
-    const items: CompraItemForm[] = JSON.parse(itemsJson);
-    console.log('📦 crearCompra: Items parseados:', items.length);
+    const items = JSON.parse(itemsJson);
+    console.log('📦 API /api/compras: Items parseados:', items.length);
 
     // Validaciones
     if (!proveedor_id || items.length === 0) {
-      console.error('❌ crearCompra: Validación fallida:', { proveedor_id, items_count: items.length });
-      return { success: false, error: 'Datos incompletos' };
+      console.error('❌ API /api/compras: Validación fallida:', { proveedor_id, items_count: items.length });
+      return NextResponse.json(
+        { success: false, error: 'Datos incompletos' },
+        { status: 400 }
+      );
     }
     
-    console.log('✅ crearCompra: Validaciones pasadas');
+    console.log('✅ API /api/compras: Validaciones pasadas');
 
     // Subir PDF si existe
     let pdf_url: string | null = null;
-    if (pdfFile) {
+    if (pdfFile && pdfFile.size > 0) {
+      console.log('📄 API /api/compras: Subiendo PDF...');
       const fileName = `compras/${Date.now()}-${pdfFile.name}`;
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('documentos')
@@ -58,11 +65,14 @@ export async function crearCompra(formData: FormData) {
           .from('documentos')
           .getPublicUrl(fileName);
         pdf_url = urlData.publicUrl;
+        console.log('✅ API /api/compras: PDF subido');
+      } else {
+        console.error('⚠️ API /api/compras: Error subiendo PDF:', uploadError);
       }
     }
 
-    // Iniciar transacción: crear compra
-    console.log('💾 crearCompra: Insertando en DB...');
+    // Crear compra
+    console.log('💾 API /api/compras: Insertando compra en DB...');
     const { data: compra, error: compraError } = await supabase
       .from('compras')
       .insert({
@@ -79,13 +89,19 @@ export async function crearCompra(formData: FormData) {
       .single();
 
     if (compraError || !compra) {
-      console.error('❌ crearCompra: Error en DB:', compraError);
-      return { success: false, error: 'Error al crear la compra' };
+      console.error('❌ API /api/compras: Error en DB:', compraError);
+      return NextResponse.json(
+        { success: false, error: 'Error al crear la compra' },
+        { status: 500 }
+      );
     }
     
-    console.log('✅ crearCompra: Compra creada con ID:', compra.id);
+    console.log('✅ API /api/compras: Compra creada con ID:', compra.id);
 
     // Procesar cada item
+    console.log('🔄 API /api/compras: Procesando items...');
+    let itemsCreados = 0;
+    
     for (const item of items) {
       let producto_id = item.producto_id;
 
@@ -120,7 +136,7 @@ export async function crearCompra(formData: FormData) {
             .single();
 
           if (productError || !newProduct) {
-            console.error('Error creando producto:', productError);
+            console.error('⚠️ API /api/compras: Error creando producto:', productError);
             continue;
           }
 
@@ -140,7 +156,7 @@ export async function crearCompra(formData: FormData) {
         });
 
       if (itemError) {
-        console.error('Error creando item de compra:', itemError);
+        console.error('⚠️ API /api/compras: Error creando item:', itemError);
         continue;
       }
 
@@ -161,61 +177,26 @@ export async function crearCompra(formData: FormData) {
           })
           .eq('id', producto_id);
       }
+      
+      itemsCreados++;
     }
 
-    revalidatePath('/compras');
-    revalidatePath('/stock');
+    console.log(`✅ API /api/compras: Proceso completado! Items creados: ${itemsCreados}/${items.length}`);
     
-    console.log('✅ crearCompra: Proceso completado exitosamente!');
-    return { success: true, compra_id: compra.id };
+    return NextResponse.json({
+      success: true,
+      compra_id: compra.id,
+      items_creados: itemsCreados
+    });
     
   } catch (error) {
-    console.error('❌ crearCompra: Error capturado:', error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Error desconocido' 
-    };
+    console.error('❌ API /api/compras: Error capturado:', error);
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Error desconocido' 
+      },
+      { status: 500 }
+    );
   }
-}
-
-export async function obtenerCompras() {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from('compras')
-    .select(`
-      *,
-      proveedor:proveedores(nombre),
-      items:compra_items(
-        cantidad,
-        precio_unitario,
-        subtotal,
-        producto:productos(nombre, codigo)
-      )
-    `)
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    console.error('Error obteniendo compras:', error);
-    return [];
-  }
-
-  return data || [];
-}
-
-export async function obtenerProveedores() {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from('proveedores')
-    .select('id, nombre, razon_social')
-    .eq('activo', true)
-    .order('nombre');
-
-  if (error) {
-    console.error('Error obteniendo proveedores:', error);
-    return [];
-  }
-
-  return data || [];
 }

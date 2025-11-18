@@ -18,6 +18,8 @@ export default function CompraForm() {
   const [loading, setLoading] = useState(false);
   const [processingPDF, setProcessingPDF] = useState(false);
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
+  const [showProveedorModal, setShowProveedorModal] = useState(false);
+  const [nuevoProveedor, setNuevoProveedor] = useState({ nombre: '', razon_social: '', cuit: '', telefono: '', email: '' });
   
   // Datos del formulario
   const [proveedor_id, setProveedorId] = useState('');
@@ -47,6 +49,43 @@ export default function CompraForm() {
       }
     } catch (error) {
       console.error('Error cargando proveedores:', error);
+    }
+  };
+
+  const handleCrearProveedor = async () => {
+    try {
+      const response = await fetch('/api/proveedores', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(nuevoProveedor),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        await loadProveedores();
+        setProveedorId(data.id);
+        setShowProveedorModal(false);
+        setNuevoProveedor({ nombre: '', razon_social: '', cuit: '', telefono: '', email: '' });
+      }
+    } catch (error) {
+      console.error('Error creando proveedor:', error);
+    }
+  };
+
+  const handleEliminarProveedor = async (id: string) => {
+    if (!confirm('¿Estás seguro de eliminar este proveedor?')) return;
+    
+    try {
+      const response = await fetch(`/api/proveedores?id=${id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        await loadProveedores();
+        if (proveedor_id === id) {
+          setProveedorId('');
+        }
+      }
+    } catch (error) {
+      console.error('Error eliminando proveedor:', error);
     }
   };
 
@@ -150,12 +189,21 @@ export default function CompraForm() {
     return items.reduce((sum, item) => sum + (item.cantidad * item.precio_costo), 0);
   };
 
+  const formatNumber = (num: number) => {
+    return new Intl.NumberFormat('es-AR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(num);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     
     try {
+      console.log('🔄 Iniciando guardado de compra...');
+      
       // Validaciones
       if (!proveedor_id) {
         throw new Error('Selecciona un proveedor');
@@ -164,6 +212,10 @@ export default function CompraForm() {
       if (items.length === 0) {
         throw new Error('Agrega al menos un producto');
       }
+      
+      console.log('✅ Validaciones pasadas');
+      console.log('📦 Items:', items.length);
+      console.log('💰 Total:', calculateTotal());
       
       // Crear FormData
       const formData = new FormData();
@@ -176,11 +228,15 @@ export default function CompraForm() {
       
       if (pdfFile) {
         formData.append('pdf', pdfFile);
+        console.log('📄 PDF adjunto:', pdfFile.name);
       }
       
+      console.log('🚀 Enviando a server action...');
       const result = await crearCompra(formData);
+      console.log('📥 Resultado:', result);
       
       if (result.success) {
+        console.log('✅ Compra creada exitosamente');
         // Usar push en lugar de back para evitar problemas de sesión
         router.push('/compras');
         router.refresh();
@@ -222,7 +278,7 @@ export default function CompraForm() {
       {/* Carga de PDF */}
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Cargar PDF de Orden</h2>
+          <h2 className="text-xl font-bold text-gray-900">Cargar PDF de Orden</h2>
           <span className="text-sm text-blue-600 font-medium">(Opcional)</span>
         </div>
         
@@ -283,46 +339,69 @@ export default function CompraForm() {
       <div className="bg-white rounded-lg shadow p-6">
         <h2 className="text-xl font-bold text-gray-900 mb-4">Información de la Compra</h2>
         
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">
+            <label className="block text-sm font-bold text-gray-900 mb-2">
               Proveedor *
             </label>
-            <select
-              value={proveedor_id}
-              onChange={(e) => setProveedorId(e.target.value)}
-              required
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">Seleccionar proveedor</option>
-              {proveedores.map(p => (
-                <option key={p.id} value={p.id}>{p.nombre}</option>
-              ))}
-            </select>
+            <div className="flex gap-2">
+              <div className="flex-1 relative">
+                <select
+                  value={proveedor_id}
+                  onChange={(e) => setProveedorId(e.target.value)}
+                  required
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="" className="text-gray-500">Seleccionar proveedor</option>
+                  {proveedores.map(p => (
+                    <option key={p.id} value={p.id} className="text-gray-900">{p.nombre}</option>
+                  ))}
+                </select>
+                {proveedor_id && (
+                  <button
+                    type="button"
+                    onClick={() => handleEliminarProveedor(proveedor_id)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-red-600 hover:text-red-700 bg-white px-2"
+                    title="Eliminar proveedor seleccionado"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowProveedorModal(true)}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2 whitespace-nowrap"
+                title="Agregar nuevo proveedor"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline">Nuevo</span>
+              </button>
+            </div>
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">
+            <label className="block text-sm font-bold text-gray-900 mb-2">
               N° de Orden
             </label>
             <input
               type="text"
               value={numero_orden}
               onChange={(e) => setNumeroOrden(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Ej: #2527"
             />
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">
+            <label className="block text-sm font-bold text-gray-900 mb-2">
               Método de Pago *
             </label>
             <select
               value={metodo_pago}
               onChange={(e) => setMetodoPago(e.target.value)}
               required
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="efectivo">Efectivo</option>
               <option value="transferencia">Transferencia</option>
@@ -332,15 +411,15 @@ export default function CompraForm() {
             </select>
           </div>
           
-          <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">
+          <div className="md:col-span-2">
+            <label className="block text-sm font-bold text-gray-900 mb-2">
               Observaciones
             </label>
             <input
               type="text"
               value={observaciones}
               onChange={(e) => setObservaciones(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Notas adicionales"
             />
           </div>
@@ -368,24 +447,24 @@ export default function CompraForm() {
         ) : (
           <div className="space-y-4">
             {items.map((item, index) => (
-              <div key={index} className="border border-gray-200 rounded-lg p-4">
-                <div className="grid grid-cols-12 gap-3">
-                  <div className="col-span-3">
-                    <label className="block text-xs font-medium text-gray-900 mb-1">
-                      Nombre *
+              <div key={index} className="border-2 border-gray-300 rounded-lg p-4 bg-gray-50 hover:border-blue-400 transition">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                  <div className="md:col-span-4">
+                    <label className="block text-xs font-bold text-gray-900 mb-1">
+                      Nombre del Producto *
                     </label>
                     <input
                       type="text"
                       value={item.nombre}
                       onChange={(e) => handleItemChange(index, 'nombre', e.target.value)}
                       required
-                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                      className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 font-medium bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Nombre del producto"
                     />
                   </div>
                   
-                  <div className="col-span-2">
-                    <label className="block text-xs font-medium text-gray-900 mb-1">
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-bold text-gray-900 mb-1">
                       SKU / Código
                     </label>
                     <input
@@ -395,30 +474,31 @@ export default function CompraForm() {
                         handleItemChange(index, 'sku', e.target.value);
                         handleItemChange(index, 'codigo', e.target.value);
                       }}
-                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                      placeholder="SKU"
+                      className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 font-medium bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="SKU123"
                     />
                   </div>
                   
-                  <div className="col-span-2">
-                    <label className="block text-xs font-medium text-gray-900 mb-1">
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-bold text-gray-900 mb-1">
                       Categoría
                     </label>
                     <select
                       value={item.categoria}
                       onChange={(e) => handleItemChange(index, 'categoria', e.target.value)}
-                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                      className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 font-medium bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                       <option value="Almacén">Almacén</option>
                       <option value="Bebidas">Bebidas</option>
                       <option value="Limpieza">Limpieza</option>
                       <option value="Librería">Librería</option>
+                      <option value="Bazar">Bazar</option>
                       <option value="Otros">Otros</option>
                     </select>
                   </div>
                   
-                  <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-900 mb-1">
+                  <div className="md:col-span-1">
+                    <label className="block text-xs font-bold text-gray-900 mb-1">
                       Cant. *
                     </label>
                     <input
@@ -427,13 +507,13 @@ export default function CompraForm() {
                       onChange={(e) => handleItemChange(index, 'cantidad', parseInt(e.target.value))}
                       required
                       min="1"
-                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                      className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 font-bold bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                   
-                  <div className="col-span-2">
-                    <label className="block text-xs font-medium text-gray-900 mb-1">
-                      P. Costo *
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-bold text-gray-900 mb-1">
+                      Precio Costo *
                     </label>
                     <input
                       type="number"
@@ -442,13 +522,14 @@ export default function CompraForm() {
                       required
                       min="0"
                       step="0.01"
-                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                      className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 font-bold bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="0.00"
                     />
                   </div>
                   
-                  <div className="col-span-2">
-                    <label className="block text-xs font-medium text-gray-900 mb-1">
-                      P. Venta *
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-bold text-gray-900 mb-1">
+                      Precio Venta *
                     </label>
                     <input
                       type="number"
@@ -457,23 +538,28 @@ export default function CompraForm() {
                       required
                       min="0"
                       step="0.01"
-                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                      className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 font-bold bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="0.00"
                     />
                   </div>
                   
-                  <div className="col-span-1 flex items-end">
+                  <div className="md:col-span-1 flex items-end">
                     <button
                       type="button"
                       onClick={() => handleRemoveItem(index)}
-                      className="w-full bg-red-600 hover:bg-red-700 text-white p-2 rounded transition"
+                      className="w-full bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg transition shadow-md hover:shadow-lg"
+                      title="Eliminar producto"
                     >
                       <Trash2 className="w-4 h-4 mx-auto" />
                     </button>
                   </div>
                 </div>
                 
-                <div className="mt-2 text-right text-sm font-medium">
-                  Subtotal: ${(item.cantidad * item.precio_costo).toFixed(2)}
+                <div className="mt-3 pt-3 border-t border-gray-300 flex justify-between items-center">
+                  <span className="text-xs text-gray-600">Producto #{index + 1}</span>
+                  <span className="text-sm font-bold text-gray-900">
+                    Subtotal: <span className="text-blue-600">${formatNumber(item.cantidad * item.precio_costo)}</span>
+                  </span>
                 </div>
               </div>
             ))}
@@ -483,8 +569,8 @@ export default function CompraForm() {
         {items.length > 0 && (
           <div className="mt-6 pt-4 border-t border-gray-200">
             <div className="text-right">
-              <span className="text-xl font-bold">
-                Total: ${calculateTotal().toFixed(2)}
+              <span className="text-2xl font-bold text-gray-900">
+                Total: <span className="text-green-600">${formatNumber(calculateTotal())}</span>
               </span>
             </div>
           </div>
@@ -492,22 +578,109 @@ export default function CompraForm() {
       </div>
 
       {/* Botones */}
-      <div className="flex justify-end gap-4">
+      <div className="flex flex-col sm:flex-row justify-end gap-4">
         <button
           type="button"
-          onClick={() => router.back()}
-          className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+          onClick={() => router.push('/compras')}
+          className="px-6 py-2 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition text-gray-900 font-medium"
         >
           Cancelar
         </button>
         <button
           type="submit"
           disabled={loading || items.length === 0}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed font-bold shadow-md hover:shadow-lg"
         >
           {loading ? 'Guardando...' : 'Guardar Compra'}
         </button>
       </div>
+
+      {/* Modal Nuevo Proveedor */}
+      {showProveedorModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Nuevo Proveedor</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-gray-900 mb-2">Nombre *</label>
+                <input
+                  type="text"
+                  value={nuevoProveedor.nombre}
+                  onChange={(e) => setNuevoProveedor({...nuevoProveedor, nombre: e.target.value})}
+                  className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 text-gray-900 font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Nombre del proveedor"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-bold text-gray-900 mb-2">Razón Social</label>
+                <input
+                  type="text"
+                  value={nuevoProveedor.razon_social}
+                  onChange={(e) => setNuevoProveedor({...nuevoProveedor, razon_social: e.target.value})}
+                  className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 text-gray-900 font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Razón Social S.A."
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-bold text-gray-900 mb-2">CUIT</label>
+                <input
+                  type="text"
+                  value={nuevoProveedor.cuit}
+                  onChange={(e) => setNuevoProveedor({...nuevoProveedor, cuit: e.target.value})}
+                  className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 text-gray-900 font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="20-12345678-9"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-bold text-gray-900 mb-2">Teléfono</label>
+                <input
+                  type="text"
+                  value={nuevoProveedor.telefono}
+                  onChange={(e) => setNuevoProveedor({...nuevoProveedor, telefono: e.target.value})}
+                  className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 text-gray-900 font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="+54 11 1234-5678"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-bold text-gray-900 mb-2">Email</label>
+                <input
+                  type="email"
+                  value={nuevoProveedor.email}
+                  onChange={(e) => setNuevoProveedor({...nuevoProveedor, email: e.target.value})}
+                  className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 text-gray-900 font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="proveedor@email.com"
+                />
+              </div>
+            </div>
+            
+            <div className="flex gap-3 mt-6">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowProveedorModal(false);
+                  setNuevoProveedor({ nombre: '', razon_social: '', cuit: '', telefono: '', email: '' });
+                }}
+                className="flex-1 px-4 py-2 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition text-gray-900 font-medium"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleCrearProveedor}
+                disabled={!nuevoProveedor.nombre}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed font-bold"
+              >
+                Crear Proveedor
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 }
