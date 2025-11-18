@@ -96,7 +96,7 @@ export default async function ComprasPage() {
                       <div className="flex items-center gap-2">
                         <DollarSign className="w-4 h-4 text-green-600" />
                         <span className="text-sm font-semibold text-gray-900">
-                          ${compra.total.toFixed(2)}
+                          ${compra.total.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       </div>
                     </td>
@@ -151,7 +151,7 @@ export default async function ComprasPage() {
           <div className="bg-white rounded-lg shadow p-4">
             <p className="text-sm text-gray-900 font-medium">Total Invertido</p>
             <p className="text-2xl font-bold text-green-600">
-              ${compras.reduce((sum, c) => sum + c.total, 0).toFixed(2)}
+              ${compras.reduce((sum, c) => sum + c.total, 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
           </div>
           <div className="bg-white rounded-lg shadow p-4">

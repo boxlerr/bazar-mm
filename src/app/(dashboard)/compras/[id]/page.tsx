@@ -1,8 +1,9 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowLeft, Calendar, DollarSign, Package, FileText, User } from 'lucide-react';
+import { ArrowLeft, Calendar, DollarSign, FileText, User } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
+import TablaProductosEditable from './TablaProductosEditable';
 
 export const metadata: Metadata = {
   title: 'Detalle de Compra | Bazar M&M',
@@ -10,12 +11,13 @@ export const metadata: Metadata = {
 };
 
 interface Props {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default async function DetalleCompraPage({ params }: Props) {
+  const { id } = await params;
   const supabase = await createClient();
   
   // Obtener compra con items y proveedor
@@ -26,14 +28,13 @@ export default async function DetalleCompraPage({ params }: Props) {
       proveedor:proveedores(nombre, razon_social, cuit, telefono, email),
       items:compra_items(
         id,
-        producto:productos(nombre, codigo, sku, categoria),
+        producto:productos(nombre, codigo, codigo_barra, categoria),
         cantidad,
-        precio_costo,
-        precio_venta,
+        precio_unitario,
         subtotal
       )
     `)
-    .eq('id', params.id)
+    .eq('id', id)
     .single();
   
   if (error || !compra) {
@@ -183,86 +184,12 @@ export default async function DetalleCompraPage({ params }: Props) {
         </div>
       )}
 
-      {/* Lista de Productos */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <Package className="w-5 h-5" />
-            Productos de la Compra
-          </h2>
-        </div>
-        
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">
-                  Producto
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">
-                  SKU / Código
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">
-                  Categoría
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-bold text-gray-900 uppercase tracking-wider">
-                  Cantidad
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-bold text-gray-900 uppercase tracking-wider">
-                  P. Costo
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-bold text-gray-900 uppercase tracking-wider">
-                  P. Venta
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-bold text-gray-900 uppercase tracking-wider">
-                  Subtotal
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {compra.items?.map((item: any, index: number) => (
-                <tr key={item.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <div className="text-sm font-bold text-gray-900">{item.producto.nombre}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900 font-medium">
-                      {item.producto.sku || item.producto.codigo || '-'}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                      {item.producto.categoria}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <div className="text-sm font-bold text-gray-900">{item.cantidad}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <div className="text-sm font-bold text-gray-900">${formatNumber(item.precio_costo)}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <div className="text-sm font-bold text-gray-900">${formatNumber(item.precio_venta)}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <div className="text-sm font-bold text-blue-600">${formatNumber(item.subtotal)}</div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot className="bg-gray-50">
-              <tr>
-                <td colSpan={6} className="px-6 py-4 text-right text-sm font-bold text-gray-900">
-                  TOTAL:
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <div className="text-xl font-bold text-green-600">${formatNumber(compra.total)}</div>
-                </td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      </div>
+      {/* Lista de Productos - Editable */}
+      <TablaProductosEditable 
+        items={compra.items || []}
+        compraId={compra.id}
+        total={compra.total}
+      />
     </div>
   );
 }
