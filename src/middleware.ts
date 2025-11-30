@@ -1,53 +1,73 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
+import { type NextRequest, NextResponse } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
 
-export async function middleware(req: NextRequest) {
-  const res = NextResponse.next();
-  const supabase = createMiddlewareClient({ req, res });
+export async function middleware(request: NextRequest) {
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  })
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            request.cookies.set(name, value)
+          )
+          response = NextResponse.next({
+            request,
+          })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          )
+        },
+      },
+    }
+  )
 
   // Refrescar la sesión si es necesario
   const {
     data: { session },
-  } = await supabase.auth.getSession();
-  
-  // Intentar refrescar si no hay sesión pero hay cookies
-  if (!session && req.cookies.get('sb-access-token')) {
-    await supabase.auth.refreshSession();
-  }
+  } = await supabase.auth.getSession()
 
   // Rutas protegidas (dashboard)
-  if (req.nextUrl.pathname.startsWith('/ventas') ||
-      req.nextUrl.pathname.startsWith('/compras') ||
-      req.nextUrl.pathname.startsWith('/stock') ||
-      req.nextUrl.pathname.startsWith('/clientes') ||
-      req.nextUrl.pathname.startsWith('/caja') ||
-      req.nextUrl.pathname.startsWith('/reportes') ||
-      req.nextUrl.pathname.startsWith('/usuarios') ||
-      req.nextUrl.pathname.startsWith('/configuracion')) {
+  if (request.nextUrl.pathname.startsWith('/ventas') ||
+    request.nextUrl.pathname.startsWith('/compras') ||
+    request.nextUrl.pathname.startsWith('/stock') ||
+    request.nextUrl.pathname.startsWith('/clientes') ||
+    request.nextUrl.pathname.startsWith('/caja') ||
+    request.nextUrl.pathname.startsWith('/reportes') ||
+    request.nextUrl.pathname.startsWith('/usuarios') ||
+    request.nextUrl.pathname.startsWith('/configuracion')) {
     if (!session) {
-      return NextResponse.redirect(new URL('/login', req.url));
+      return NextResponse.redirect(new URL('/login', request.url))
     }
   }
 
   // Redirigir usuarios autenticados desde login/register a dashboard
-  if ((req.nextUrl.pathname === '/login' || req.nextUrl.pathname === '/register') && session) {
-    return NextResponse.redirect(new URL('/ventas', req.url));
+  if ((request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/register') && session) {
+    return NextResponse.redirect(new URL('/ventas', request.url))
   }
 
   // Redirigir desde raíz a ventas si está autenticado
-  if (req.nextUrl.pathname === '/' && session) {
-    return NextResponse.redirect(new URL('/ventas', req.url));
+  if (request.nextUrl.pathname === '/' && session) {
+    return NextResponse.redirect(new URL('/ventas', request.url))
   }
 
   // Redirigir desde raíz a login si no está autenticado
-  if (req.nextUrl.pathname === '/' && !session) {
-    return NextResponse.redirect(new URL('/login', req.url));
+  if (request.nextUrl.pathname === '/' && !session) {
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  return res;
+  return response
 }
 
 export const config = {
   matcher: ['/', '/ventas/:path*', '/compras/:path*', '/stock/:path*', '/clientes/:path*', '/caja/:path*', '/reportes/:path*', '/usuarios/:path*', '/configuracion/:path*', '/login', '/register'],
-};
+}

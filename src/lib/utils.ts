@@ -1,3 +1,10 @@
+import { type ClassValue, clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
 // Formatear moneda (pesos argentinos)
 export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('es-AR', {
@@ -48,14 +55,14 @@ export function generateId(): string {
 // Validar CUIT/CUIL
 export function validateCUIT(cuit: string): boolean {
   if (!/^\d{11}$/.test(cuit)) return false;
-  
+
   const multiplicadores = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
   const digits = cuit.split('').map(Number);
   const verificador = digits.pop()!;
-  
+
   const suma = digits.reduce((acc, digit, i) => acc + digit * multiplicadores[i], 0);
   const resto = suma % 11;
   const digitoVerificador = resto === 0 ? 0 : resto === 1 ? 9 : 11 - resto;
-  
+
   return digitoVerificador === verificador;
 }
