@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Package, Edit2, Save, X, Trash2 } from 'lucide-react';
+import { Package, Edit2, Save, X, Trash2, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface ProductoItem {
   id: string;
@@ -134,164 +135,209 @@ export default function TablaProductosEditable({ items, compraId, total }: Props
   };
 
   return (
-    <div className="bg-white rounded-lg shadow">
-      <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-        <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-          <Package className="w-5 h-5" />
-          Productos de la Compra
-        </h2>
-        {!editando ? (
-          <button
-            onClick={() => setEditando(true)}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition font-medium"
-          >
-            <Edit2 className="w-4 h-4" />
-            Editar
-          </button>
-        ) : (
-          <div className="flex gap-2">
-            <button
-              onClick={handleCancelar}
-              disabled={loading}
-              className="flex items-center gap-2 bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition font-medium disabled:opacity-50"
-            >
-              <X className="w-4 h-4" />
-              Cancelar
-            </button>
-            <button
-              onClick={handleGuardar}
-              disabled={loading}
-              className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition font-medium disabled:opacity-50"
-            >
-              <Save className="w-4 h-4" />
-              {loading ? 'Guardando...' : 'Guardar'}
-            </button>
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-gray-50 to-white">
+        <h2 className="text-xl font-bold text-gray-900 flex items-center gap-3">
+          <div className="bg-blue-50 p-2 rounded-lg">
+            <Package className="w-5 h-5 text-blue-600" />
           </div>
-        )}
+          Productos de la Compra
+          <span className="bg-gray-100 text-gray-600 text-sm px-2 py-1 rounded-full font-medium">
+            {productos.length}
+          </span>
+        </h2>
+
+        <AnimatePresence mode="wait">
+          {!editando ? (
+            <motion.button
+              key="edit"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              onClick={() => setEditando(true)}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-all font-medium shadow-sm hover:shadow"
+            >
+              <Edit2 className="w-4 h-4" />
+              Editar
+            </motion.button>
+          ) : (
+            <motion.div
+              key="actions"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="flex gap-2"
+            >
+              <button
+                onClick={handleCancelar}
+                disabled={loading}
+                className="flex items-center gap-2 bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-all font-medium disabled:opacity-50 shadow-sm"
+              >
+                <X className="w-4 h-4" />
+                Cancelar
+              </button>
+              <button
+                onClick={handleGuardar}
+                disabled={loading}
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-all font-medium disabled:opacity-50 shadow-sm hover:shadow"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Guardando...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    Guardar
+                  </>
+                )}
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-gray-50">
+          <thead className="bg-gray-50/50 border-b border-gray-100">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 Producto
               </th>
-              <th className="px-6 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 SKU / Código
               </th>
-              <th className="px-6 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 Categoría
               </th>
-              <th className="px-6 py-3 text-right text-xs font-bold text-gray-900 uppercase tracking-wider">
+              <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 Cantidad
               </th>
-              <th className="px-6 py-3 text-right text-xs font-bold text-gray-900 uppercase tracking-wider">
+              <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 Precio Unitario
               </th>
-              <th className="px-6 py-3 text-right text-xs font-bold text-gray-900 uppercase tracking-wider">
+              <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 Subtotal
               </th>
               {editando && (
-                <th className="px-6 py-3 text-center text-xs font-bold text-gray-900 uppercase tracking-wider">
+                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Acciones
                 </th>
               )}
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {productos.map((item, index) => (
-              <tr key={item.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4">
-                  {editando ? (
-                    <input
-                      type="text"
-                      value={item.producto.nombre}
-                      onChange={(e) => handleNombreChange(index, e.target.value)}
-                      className="w-full px-2 py-1 border-2 border-blue-500 rounded text-sm font-bold text-gray-900"
-                    />
-                  ) : (
-                    <div className="text-sm font-bold text-gray-900">{item.producto.nombre}</div>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {editando ? (
-                    <input
-                      type="text"
-                      value={item.producto.codigo_barra || item.producto.codigo || ''}
-                      onChange={(e) => handleCodigoChange(index, e.target.value)}
-                      className="w-full px-2 py-1 border-2 border-blue-500 rounded text-sm font-medium text-gray-900"
-                      placeholder="SKU"
-                    />
-                  ) : (
-                    <div className="text-sm text-gray-900 font-medium">
-                      {item.producto.codigo_barra || item.producto.codigo || '-'}
-                    </div>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {editando ? (
-                    <input
-                      type="text"
-                      value={item.producto.categoria}
-                      onChange={(e) => handleCategoriaChange(index, e.target.value)}
-                      className="w-full px-2 py-1 border-2 border-blue-500 rounded text-xs font-semibold text-gray-900"
-                    />
-                  ) : (
-                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                      {item.producto.categoria}
-                    </span>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right">
-                  {editando ? (
-                    <input
-                      type="number"
-                      min="1"
-                      value={item.cantidad}
-                      onChange={(e) => handleCantidadChange(index, e.target.value)}
-                      className="w-20 px-2 py-1 border-2 border-blue-500 rounded text-sm font-bold text-gray-900 text-right"
-                    />
-                  ) : (
-                    <div className="text-sm font-bold text-gray-900">{item.cantidad}</div>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right">
-                  {editando ? (
-                    <input
-                      type="text"
-                      value={formatNumber(item.precio_unitario)}
-                      onChange={(e) => handlePrecioChange(index, e.target.value)}
-                      className="w-32 px-2 py-1 border-2 border-blue-500 rounded text-sm font-bold text-gray-900 text-right"
-                    />
-                  ) : (
-                    <div className="text-sm font-bold text-gray-900">${formatNumber(item.precio_unitario)}</div>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right">
-                  <div className="text-sm font-bold text-green-600">${formatNumber(item.subtotal)}</div>
-                </td>
-                {editando && (
-                  <td className="px-6 py-4 text-center">
-                    <button
-                      onClick={() => handleEliminarItem(index)}
-                      className="text-red-600 hover:text-red-800 transition"
-                      title="Eliminar producto"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
+          <tbody className="divide-y divide-gray-100">
+            <AnimatePresence mode="popLayout">
+              {productos.map((item, index) => (
+                <motion.tr
+                  key={item.id}
+                  layout
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className={`hover:bg-gray-50/50 transition-colors ${editando ? 'bg-blue-50/20' : ''}`}
+                >
+                  <td className="px-6 py-4">
+                    {editando ? (
+                      <input
+                        type="text"
+                        value={item.producto.nombre}
+                        onChange={(e) => handleNombreChange(index, e.target.value)}
+                        className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm font-medium text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    ) : (
+                      <div className="text-sm font-bold text-gray-900">{item.producto.nombre}</div>
+                    )}
                   </td>
-                )}
-              </tr>
-            ))}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {editando ? (
+                      <input
+                        type="text"
+                        value={item.producto.codigo_barra || item.producto.codigo || ''}
+                        onChange={(e) => handleCodigoChange(index, e.target.value)}
+                        className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm font-medium text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="SKU"
+                      />
+                    ) : (
+                      <div className="text-sm text-gray-700 font-mono">
+                        {item.producto.codigo_barra || item.producto.codigo || '-'}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {editando ? (
+                      <select
+                        value={item.producto.categoria}
+                        onChange={(e) => handleCategoriaChange(index, e.target.value)}
+                        className="w-full px-3 py-2 border border-blue-300 rounded-lg text-xs font-semibold text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="Almacén">Almacén</option>
+                        <option value="Bebidas">Bebidas</option>
+                        <option value="Limpieza">Limpieza</option>
+                        <option value="Librería">Librería</option>
+                        <option value="Bazar">Bazar</option>
+                        <option value="Otros">Otros</option>
+                      </select>
+                    ) : (
+                      <span className="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-blue-100 text-blue-700">
+                        {item.producto.categoria}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right">
+                    {editando ? (
+                      <input
+                        type="number"
+                        min="1"
+                        value={item.cantidad}
+                        onChange={(e) => handleCantidadChange(index, e.target.value)}
+                        className="w-20 px-3 py-2 border border-blue-300 rounded-lg text-sm font-bold text-gray-900 text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    ) : (
+                      <div className="text-sm font-bold text-gray-900">{item.cantidad}</div>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right">
+                    {editando ? (
+                      <div className="relative">
+                        <span className="absolute left-3 top-2 text-gray-400">$</span>
+                        <input
+                          type="text"
+                          value={formatNumber(item.precio_unitario)}
+                          onChange={(e) => handlePrecioChange(index, e.target.value)}
+                          className="w-32 pl-6 pr-3 py-2 border border-blue-300 rounded-lg text-sm font-bold text-gray-900 text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                    ) : (
+                      <div className="text-sm font-bold text-gray-900">${formatNumber(item.precio_unitario)}</div>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right">
+                    <div className="text-sm font-bold text-green-600">${formatNumber(item.subtotal)}</div>
+                  </td>
+                  {editando && (
+                    <td className="px-6 py-4 text-center">
+                      <button
+                        onClick={() => handleEliminarItem(index)}
+                        className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition-colors"
+                        title="Eliminar producto"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </td>
+                  )}
+                </motion.tr>
+              ))}
+            </AnimatePresence>
           </tbody>
-          <tfoot className="bg-gray-50">
+          <tfoot className="bg-gradient-to-r from-gray-50 to-white border-t-2 border-gray-200">
             <tr>
-              <td colSpan={editando ? 6 : 5} className="px-6 py-4 text-right text-sm font-bold text-gray-900">
-                TOTAL:
+              <td colSpan={editando ? 6 : 5} className="px-6 py-5 text-right text-sm font-bold text-gray-500 uppercase tracking-wider">
+                TOTAL DE LA COMPRA:
               </td>
-              <td className="px-6 py-4 text-right">
-                <div className="text-xl font-bold text-green-600">${formatNumber(calcularTotal())}</div>
+              <td className="px-6 py-5 text-right">
+                <div className="text-2xl font-bold text-green-600">${formatNumber(calcularTotal())}</div>
               </td>
               {editando && <td></td>}
             </tr>

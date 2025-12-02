@@ -1,167 +1,135 @@
-import { Metadata } from 'next';
+'use client';
+
 import Link from 'next/link';
 import { obtenerCompras } from './actions';
-import { FileText, Calendar, DollarSign, Package } from 'lucide-react';
+import {
+  FileText,
+  Calendar,
+  DollarSign,
+  Package,
+  Plus,
+  TrendingUp,
+  ShoppingCart,
+  Loader2
+} from 'lucide-react';
+import { useEffect, useState } from 'react';
+import TablaCompras from './tabla';
+import { motion } from 'framer-motion';
 
-export const metadata: Metadata = {
-  title: 'Compras | Bazar M&M',
-  description: 'Gestión de compras y reposición de stock',
-};
+export default function ComprasPage() {
+  const [compras, setCompras] = useState<any[]>([]);
+  const [cargando, setCargando] = useState(true);
 
-export default async function ComprasPage() {
-  const compras = await obtenerCompras();
+  useEffect(() => {
+    const cargarDatos = async () => {
+      const data = await obtenerCompras();
+      setCompras(data);
+      setCargando(false);
+    };
+    cargarDatos();
+  }, []);
+
+  const stats = [
+    {
+      label: 'Total Compras',
+      value: compras.length,
+      icon: ShoppingCart,
+      color: 'text-blue-600',
+      bg: 'bg-blue-50',
+      border: 'border-blue-100'
+    },
+    {
+      label: 'Total Invertido',
+      value: `$${compras.reduce((sum, c) => sum + c.total, 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      icon: DollarSign,
+      color: 'text-green-600',
+      bg: 'bg-green-50',
+      border: 'border-green-100'
+    },
+    {
+      label: 'Productos Ingresados',
+      value: compras.reduce((sum, c) => sum + (c.items?.length || 0), 0),
+      icon: Package,
+      color: 'text-purple-600',
+      bg: 'bg-purple-50',
+      border: 'border-purple-100'
+    },
+  ];
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Compras</h1>
-        <Link
-          href="/compras/nueva"
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition"
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      className="p-6 max-w-7xl mx-auto"
+    >
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Compras</h1>
+          <p className="text-gray-500 mt-1 text-lg">
+            Gestión de compras y reposición de stock
+          </p>
+        </div>
+        <motion.div
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
         >
-          + Nueva Compra
-        </Link>
-      </div>
-
-      <div className="bg-white rounded-lg shadow">
-        {compras.length === 0 ? (
-          <div className="p-12 text-center">
-            <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-900 mb-4 font-medium">No hay compras registradas</p>
-            <Link
-              href="/compras/nueva"
-              className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition"
-            >
-              Registrar Primera Compra
-            </Link>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
-                    N° Orden
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
-                    Proveedor
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
-                    Fecha
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
-                    Items
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
-                    Total
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
-                    Estado
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
-                    Acciones
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {compras.map((compra) => (
-                  <tr key={compra.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm font-medium text-gray-900">
-                          {compra.numero_orden || '-'}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-900">
-                        {compra.proveedor?.nombre || 'N/A'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-blue-600" />
-                        <span className="text-sm text-gray-900">
-                          {new Date(compra.created_at).toLocaleDateString('es-AR')}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-900 font-medium">
-                        {compra.items?.length || 0} productos
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <DollarSign className="w-4 h-4 text-green-600" />
-                        <span className="text-sm font-semibold text-gray-900">
-                          ${compra.total.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          compra.estado === 'completada'
-                            ? 'bg-green-100 text-green-800'
-                            : compra.estado === 'pendiente'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}
-                      >
-                        {compra.estado}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <div className="flex gap-2">
-                        {compra.pdf_url && (
-                          <a
-                            href={compra.pdf_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-800 font-medium"
-                          >
-                            Ver PDF
-                          </a>
-                        )}
-                        <Link
-                          href={`/compras/${compra.id}`}
-                          className="text-gray-900 hover:text-blue-600 font-medium"
-                        >
-                          Ver Detalle
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+          <Link
+            href="/compras/nueva"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl transition-all flex items-center space-x-2 shadow-lg shadow-blue-600/20 font-medium"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Nueva Compra</span>
+          </Link>
+        </motion.div>
       </div>
 
       {/* Estadísticas rápidas */}
-      {compras.length > 0 && (
-        <div className="grid grid-cols-3 gap-4 mt-6">
-          <div className="bg-white rounded-lg shadow p-4">
-            <p className="text-sm text-gray-900 font-medium">Total Compras</p>
-            <p className="text-2xl font-bold text-gray-900">{compras.length}</p>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <p className="text-sm text-gray-900 font-medium">Total Invertido</p>
-            <p className="text-2xl font-bold text-green-600">
-              ${compras.reduce((sum, c) => sum + c.total, 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </p>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <p className="text-sm text-gray-900 font-medium">Productos Ingresados</p>
-            <p className="text-2xl font-bold text-blue-600">
-              {compras.reduce((sum, c) => sum + (c.items?.length || 0), 0)}
-            </p>
-          </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {stats.map((stat, index) => (
+          <motion.div
+            key={stat.label}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: index * 0.1 }}
+            className={`bg-white rounded-xl shadow-sm p-6 border ${stat.border} hover:shadow-md transition-shadow`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <div className={`text-3xl font-bold ${stat.color}`}>
+                  {stat.value}
+                </div>
+                <div className="text-gray-600 text-sm mt-1 font-medium">{stat.label}</div>
+              </div>
+              <div className={`p-3 rounded-lg ${stat.bg}`}>
+                <stat.icon className={`w-6 h-6 ${stat.color}`} />
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Tabla de compras */}
+      {cargando ? (
+        <div className="bg-white rounded-xl shadow-sm p-12 text-center border border-gray-100">
+          <Loader2 className="h-12 w-12 text-blue-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-500 font-medium">Cargando compras...</p>
         </div>
+      ) : compras.length === 0 ? (
+        <div className="bg-white rounded-xl shadow-sm p-12 text-center border border-gray-100">
+          <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <p className="text-gray-900 mb-4 font-medium text-lg">No hay compras registradas</p>
+          <Link
+            href="/compras/nueva"
+            className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl transition font-medium shadow-lg shadow-blue-600/20"
+          >
+            Registrar Primera Compra
+          </Link>
+        </div>
+      ) : (
+        <TablaCompras compras={compras} />
       )}
-    </div>
+    </motion.div>
   );
 }
