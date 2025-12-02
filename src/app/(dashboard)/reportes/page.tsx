@@ -1,46 +1,35 @@
 import { Metadata } from 'next';
+import ReportesStats from '@/components/reportes/ReportesStats';
+import SalesChart from '@/components/reportes/SalesChart';
+import ReportesGenerator from '@/components/reportes/ReportesGenerator';
+import { getDashboardStats, getWeeklySales } from './actions';
 
 export const metadata: Metadata = {
   title: 'Reportes | Bazar M&M',
   description: 'Panel de reportes y exportaciones',
 };
 
-export default function ReportesPage() {
+// Forzar renderizado dinámico para tener datos frescos
+export const dynamic = 'force-dynamic';
+
+export default async function ReportesPage() {
+  const [stats, weeklySales] = await Promise.all([
+    getDashboardStats(),
+    getWeeklySales()
+  ]);
+
   return (
-    <div>
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">Reportes</h1>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            Reporte de Ventas
-          </h3>
-          <p className="text-gray-900 mb-4 font-medium">Exportar ventas por período</p>
-          <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition">
-            Generar
-          </button>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            Reporte de Stock
-          </h3>
-          <p className="text-gray-900 mb-4 font-medium">Estado actual del inventario</p>
-          <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition">
-            Generar
-          </button>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            Cuentas Corrientes
-          </h3>
-          <p className="text-gray-900 mb-4 font-medium">Saldos de clientes</p>
-          <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition">
-            Generar
-          </button>
-        </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Panel de Reportes</h1>
+        <p className="text-gray-500 mt-2">Análisis de ventas y generación de informes</p>
       </div>
+
+      <ReportesStats stats={stats} />
+
+      <SalesChart data={weeklySales} />
+
+      <ReportesGenerator />
     </div>
   );
 }
