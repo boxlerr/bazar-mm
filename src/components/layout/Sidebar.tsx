@@ -18,6 +18,8 @@ import {
   Sliders,
   TrendingUp,
   PanelLeftClose,
+  Building2,
+  Bell,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
@@ -49,6 +51,8 @@ const menuItems: MenuItem[] = [
     icon: Settings,
     submenu: [
       { name: 'General', href: '/configuracion', icon: Sliders },
+      { name: 'Negocio', href: '/configuracion/empresa', icon: Building2 },
+      { name: 'Notificaciones', href: '/configuracion/notificaciones', icon: Bell },
       { name: 'Tickets', href: '/configuracion/ticket', icon: Receipt },
     ]
   },
