@@ -50,16 +50,7 @@ export default function TablaStock({ productos }: TablaStockProps) {
     }).format(num);
   };
 
-  const getStockPercentage = (actual: number, minimo: number) => {
-    if (minimo === 0) return 100;
-    return Math.min((actual / (minimo * 2)) * 100, 100);
-  };
 
-  const getStockColor = (actual: number, minimo: number) => {
-    if (actual <= minimo * 0.5) return 'bg-red-500';
-    if (actual <= minimo) return 'bg-yellow-500';
-    return 'bg-green-500';
-  };
 
   const getCategoryColor = (categoria: string) => {
     const colors: { [key: string]: string } = {
@@ -239,18 +230,11 @@ export default function TablaStock({ productos }: TablaStockProps) {
                           <div className="flex-1 max-w-[120px]">
                             <div className="flex items-center justify-between mb-1">
                               <span className={`text-sm font-bold ${producto.stock_actual <= producto.stock_minimo
-                                  ? 'text-red-600'
-                                  : 'text-gray-900'
+                                ? 'text-red-600'
+                                : 'text-gray-900'
                                 }`}>
                                 {producto.stock_actual}
                               </span>
-                              <span className="text-xs text-gray-400">/ {producto.stock_minimo}</span>
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
-                              <div
-                                className={`h-full transition-all ${getStockColor(producto.stock_actual, producto.stock_minimo)}`}
-                                style={{ width: `${getStockPercentage(producto.stock_actual, producto.stock_minimo)}%` }}
-                              />
                             </div>
                           </div>
                         </div>

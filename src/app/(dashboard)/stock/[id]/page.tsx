@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Save, X, Trash2, Package, DollarSign, TrendingUp, AlertTriangle, Plus, Minus, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, X, Trash2, Package, DollarSign, TrendingUp, Plus, Minus, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
 import { Producto } from '@/types/producto';
@@ -108,18 +108,7 @@ export default function ProductoDetallePage({ params }: Props) {
         return ((producto.precio_venta - producto.precio_costo) / producto.precio_costo) * 100;
     };
 
-    const getStockPercentage = () => {
-        if (!producto) return 0;
-        if (producto.stock_minimo === 0) return 100;
-        return Math.min((producto.stock_actual / (producto.stock_minimo * 2)) * 100, 100);
-    };
 
-    const getStockColor = () => {
-        if (!producto) return 'bg-gray-500';
-        if (producto.stock_actual <= producto.stock_minimo * 0.5) return 'bg-red-500';
-        if (producto.stock_actual <= producto.stock_minimo) return 'bg-yellow-500';
-        return 'bg-green-500';
-    };
 
     const formatNumber = (num: number) => {
         return new Intl.NumberFormat('es-AR', {
@@ -179,8 +168,8 @@ export default function ProductoDetallePage({ params }: Props) {
                             </h1>
                             <span
                                 className={`px-3 py-1 text-sm font-bold rounded-full border ${producto.activo
-                                        ? 'bg-green-50 text-green-700 border-green-200'
-                                        : 'bg-gray-100 text-gray-600 border-gray-200'
+                                    ? 'bg-green-50 text-green-700 border-green-200'
+                                    : 'bg-gray-100 text-gray-600 border-gray-200'
                                     }`}
                             >
                                 {producto.activo ? 'ACTIVO' : 'INACTIVO'}
@@ -469,9 +458,9 @@ export default function ProductoDetallePage({ params }: Props) {
                             )}
                         </div>
 
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Stock Mínimo</label>
-                            {editando ? (
+                        {editando && (
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Stock Mínimo</label>
                                 <input
                                     type="number"
                                     value={producto.stock_minimo}
@@ -479,27 +468,8 @@ export default function ProductoDetallePage({ params }: Props) {
                                     min="0"
                                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 />
-                            ) : (
-                                <p className="text-lg font-bold text-gray-700">{producto.stock_minimo}</p>
-                            )}
-                        </div>
-
-                        {/* Stock Gauge */}
-                        <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                            <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Nivel de Stock</p>
-                            <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden mb-3">
-                                <div
-                                    className={`h-full transition-all ${getStockColor()}`}
-                                    style={{ width: `${getStockPercentage()}%` }}
-                                />
                             </div>
-                            {producto.stock_actual <= producto.stock_minimo && (
-                                <div className="flex items-center gap-2 text-red-600 bg-red-50 rounded-lg p-2 border border-red-200">
-                                    <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                                    <p className="text-xs font-bold">¡Stock bajo! Necesitas reponer</p>
-                                </div>
-                            )}
-                        </div>
+                        )}
                     </div>
                 </motion.div>
             </div>
