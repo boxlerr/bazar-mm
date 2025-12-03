@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, Mail, Lock, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Loader2, Mail, Lock, ArrowRight, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function LoginForm() {
@@ -13,6 +13,7 @@ export default function LoginForm() {
   const supabase = createClient();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [focusedField, setFocusedField] = useState<string | null>(null);
@@ -132,15 +133,26 @@ export default function LoginForm() {
             </div>
             <input
               id="password"
-              type="password"
+              type={showPassword ? "text" : "password"}
               value={password}
               onFocus={() => setFocusedField('password')}
               onBlur={() => setFocusedField(null)}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full pl-12 pr-4 py-3.5 bg-neutral-50 border-2 border-transparent rounded-2xl focus:bg-white focus:border-red-600/10 focus:ring-4 focus:ring-red-600/10 transition-all outline-none text-neutral-900 placeholder-neutral-400 font-medium"
+              className="w-full pl-12 pr-12 py-3.5 bg-neutral-50 border-2 border-transparent rounded-2xl focus:bg-white focus:border-red-600/10 focus:ring-4 focus:ring-red-600/10 transition-all outline-none text-neutral-900 placeholder-neutral-400 font-medium"
               placeholder="••••••••"
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors focus:outline-none"
+            >
+              {showPassword ? (
+                <EyeOff className="w-5 h-5" />
+              ) : (
+                <Eye className="w-5 h-5" />
+              )}
+            </button>
           </div>
         </motion.div>
       </div>
