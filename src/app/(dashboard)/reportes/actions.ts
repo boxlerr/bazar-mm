@@ -101,45 +101,50 @@ export async function getDashboardStats() {
 
 export async function getWeeklySales() {
     const supabase = await createClient();
+
+    // Helper to get date string in Argentina timezone (YYYY-MM-DD)
+    const getArgDateString = (date: Date) => {
+        return date.toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
+    };
+
     const now = new Date();
-    const sevenDaysAgo = new Date(now);
-    sevenDaysAgo.setDate(now.getDate() - 6);
-    sevenDaysAgo.setHours(0, 0, 0, 0);
+
+    // Calculate 7 days ago range
+    // We fetch a bit more data (from 8 days ago) to avoid timezone edge cases at the boundary
+    const queryDate = new Date(now);
+    queryDate.setDate(now.getDate() - 8);
 
     const { data: ventas } = await supabase
         .from('ventas')
         .select('created_at, total')
-        .gte('created_at', sevenDaysAgo.toISOString());
+        .gte('created_at', queryDate.toISOString());
 
-    // Agrupar por día
     const dailySales = new Map<string, number>();
+    const last7Days = [];
 
-    // Inicializar últimos 7 días con 0
-    for (let i = 0; i < 7; i++) {
-        const d = new Date(sevenDaysAgo);
-        d.setDate(d.getDate() + i);
-        const dayName = d.toLocaleDateString('es-AR', { weekday: 'short' });
-        // Usamos el nombre del día como clave simple, cuidado con duplicados si cruzamos semanas (ej 2 lunes), 
-        // pero para 7 dias está bien. Mejor usar fecha completa para sort y luego formatear.
-        dailySales.set(d.toISOString().split('T')[0], 0);
+    // Initialize map with last 7 days (including today)
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - i);
+        const dateKey = getArgDateString(d);
+        dailySales.set(dateKey, 0);
+        last7Days.push({ date: d, key: dateKey });
     }
 
     ventas?.forEach(v => {
-        const dateKey = v.created_at.split('T')[0];
+        const date = new Date(v.created_at);
+        const dateKey = getArgDateString(date);
         if (dailySales.has(dateKey)) {
             dailySales.set(dateKey, dailySales.get(dateKey)! + v.total);
         }
     });
 
-    // Convertir a array formato para el chart
-    const chartData = Array.from(dailySales.entries()).map(([date, value]) => {
-        const d = new Date(date);
-        // Ajustar zona horaria si es necesario, pero split T00:00 asume UTC o local consistente
-        // Para visualización simple:
+    // Format for chart
+    const chartData = last7Days.map(({ date, key }) => {
         return {
-            day: d.toLocaleDateString('es-AR', { weekday: 'short' }), // Lun, Mar...
-            value,
-            fullDate: date
+            day: date.toLocaleDateString('es-AR', { weekday: 'short', timeZone: 'America/Argentina/Buenos_Aires' }),
+            value: dailySales.get(key) || 0,
+            fullDate: key
         };
     });
 

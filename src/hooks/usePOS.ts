@@ -19,13 +19,34 @@ export function usePOS() {
     const [searchTerm, setSearchTerm] = useState('');
     const [searchResults, setSearchResults] = useState<Producto[]>([]);
     const [isSearching, setIsSearching] = useState(false);
+    const [isInitialized, setIsInitialized] = useState(false);
+
+    // Cargar carrito desde localStorage al inicio
+    useEffect(() => {
+        const savedCart = localStorage.getItem('pos_cart');
+        if (savedCart) {
+            try {
+                setCart(JSON.parse(savedCart));
+            } catch (e) {
+                console.error('Error parsing saved cart:', e);
+            }
+        }
+        setIsInitialized(true);
+    }, []);
+
+    // Guardar carrito en localStorage cada vez que cambia
+    useEffect(() => {
+        if (isInitialized) {
+            localStorage.setItem('pos_cart', JSON.stringify(cart));
+        }
+    }, [cart, isInitialized]);
 
     // Totales
     const subtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
     const total = subtotal; // Aquí se podrían aplicar descuentos globales
 
     // Buscar productos
-    const search = useCallback(async (term: string) => {
+    const search = useCallback(async (term: string, autoAdd: boolean = false) => {
         if (!term.trim()) {
             setSearchResults([]);
             return;
@@ -35,12 +56,14 @@ export function usePOS() {
             const results = await searchProducts(term);
             setSearchResults(results);
 
-            // Si es coincidencia exacta de código de barra, agregar directo
-            const exactMatch = results.find(p => p.codigo_barra === term || p.codigo === term);
-            if (exactMatch) {
-                addToCart(exactMatch);
-                setSearchTerm(''); // Limpiar para siguiente escaneo
-                setSearchResults([]);
+            // Si es coincidencia exacta de código de barra
+            if (autoAdd) {
+                const exactMatch = results.find(p => p.codigo_barra === term || p.codigo === term);
+                if (exactMatch) {
+                    addToCart(exactMatch);
+                    setSearchTerm(''); // Limpiar para siguiente escaneo
+                    setSearchResults([]);
+                }
             }
         } catch (error) {
             console.error('Error searching:', error);
@@ -95,6 +118,7 @@ export function usePOS() {
                     cantidad: item.cantidad,
                     precio_unitario: item.precio_venta
                 })),
+                subtotal, // Pasamos el subtotal calculado
                 total,
                 metodo_pago: paymentMethod
             };
@@ -137,6 +161,7 @@ export function usePOS() {
                 }
 
                 setCart([]); // Limpiar carrito
+                localStorage.removeItem('pos_cart'); // Limpiar persistencia
                 return { success: true, ventaId: result.venta.id };
             } else {
                 throw new Error(result.error || 'Error desconocido');
@@ -146,6 +171,23 @@ export function usePOS() {
             return { success: false, error };
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Verificar estado de caja
+    const [isCajaOpen, setIsCajaOpen] = useState(false);
+
+    useEffect(() => {
+        checkCajaStatus();
+    }, []);
+
+    const checkCajaStatus = async () => {
+        try {
+            const { getCajaState } = await import('@/app/(dashboard)/caja/actions');
+            const caja = await getCajaState();
+            setIsCajaOpen(!!caja);
+        } catch (error) {
+            console.error('Error checking caja status:', error);
         }
     };
 
@@ -162,6 +204,8 @@ export function usePOS() {
         addToCart,
         removeFromCart,
         updateQuantity,
-        checkout
+        checkout,
+        isCajaOpen,
+        checkCajaStatus
     };
 }

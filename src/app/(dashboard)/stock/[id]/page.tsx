@@ -284,6 +284,11 @@ export default function ProductoDetallePage({ params }: Props) {
                                         type="text"
                                         value={producto.codigo_barra || ''}
                                         onChange={(e) => setProducto({ ...producto, codigo_barra: e.target.value })}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                e.preventDefault();
+                                            }
+                                        }}
                                         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     />
                                 ) : (
@@ -432,23 +437,32 @@ export default function ProductoDetallePage({ params }: Props) {
                         <div>
                             <label className="block text-xs font-semibold text-gray-500 uppercase mb-3">Stock Actual</label>
                             {editando ? (
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-2 w-full">
                                     <button
                                         onClick={() => adjustStock(-1)}
-                                        className="p-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
+                                        className="p-3 bg-red-100 hover:bg-red-200 text-red-700 rounded-xl transition-colors shrink-0"
+                                        type="button"
                                     >
                                         <Minus className="w-5 h-5" />
                                     </button>
                                     <input
                                         type="number"
-                                        value={producto.stock_actual}
-                                        onChange={(e) => setProducto({ ...producto, stock_actual: parseInt(e.target.value) || 0 })}
+                                        value={producto.stock_actual === 0 ? '' : producto.stock_actual}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setProducto({
+                                                ...producto,
+                                                stock_actual: val === '' ? 0 : parseInt(val)
+                                            });
+                                        }}
                                         min="0"
-                                        className="flex-1 border border-gray-200 rounded-lg px-4 py-2 text-center text-2xl font-bold focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        placeholder="0"
+                                        className="flex-1 min-w-0 border border-gray-200 rounded-xl px-2 py-3 text-center text-2xl font-bold focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     />
                                     <button
                                         onClick={() => adjustStock(1)}
-                                        className="p-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition-colors"
+                                        className="p-3 bg-green-100 hover:bg-green-200 text-green-700 rounded-xl transition-colors shrink-0"
+                                        type="button"
                                     >
                                         <Plus className="w-5 h-5" />
                                     </button>

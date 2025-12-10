@@ -1,14 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import CajaStats from '@/components/caja/CajaStats';
 import CajaActions from '@/components/caja/CajaActions';
 import MovimientosList from '@/components/caja/MovimientosList';
 import CajaModal from '@/components/caja/CajaModal';
 import { CajaEstado, CajaMovimiento } from '@/types';
+import { getCajaState, getMovimientos, abrirCaja, cerrarCaja, registrarMovimiento } from './actions';
+import { toast } from 'sonner';
 
-// Estado inicial simulado
 const INITIAL_STATE: CajaEstado = {
   abierta: false,
   saldoInicial: 0,
@@ -22,51 +23,94 @@ export default function CajaPage() {
   const [movimientos, setMovimientos] = useState<CajaMovimiento[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'ABRIR' | 'CERRAR' | 'INGRESO' | 'EGRESO'>('ABRIR');
+  const [loading, setLoading] = useState(true);
+  const [cajaId, setCajaId] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      const caja = await getCajaState();
+
+      if (caja) {
+        setCajaId(caja.id);
+        setEstado({
+          abierta: true,
+          saldoInicial: caja.saldo_inicial,
+          totalIngresos: caja.totalIngresos,
+          totalEgresos: caja.totalEgresos,
+          saldoActual: caja.saldoActual,
+          fechaApertura: new Date(caja.fecha_apertura),
+        });
+
+        const movs = await getMovimientos(caja.id);
+        setMovimientos(movs.map((m: any) => ({
+          id: m.id,
+          fecha: new Date(m.created_at),
+          tipo: m.tipo.toUpperCase(),
+          monto: m.monto,
+          descripcion: m.concepto + (m.ventas ? ` (Ticket #${m.ventas.nro_ticket})` : ''),
+          usuario: 'Usuario' // Idealmente traer nombre
+        })));
+      } else {
+        setEstado(INITIAL_STATE);
+        setMovimientos([]);
+        setCajaId(null);
+      }
+    } catch (error) {
+      console.error('Error loading caja data:', error);
+      toast.error('Error al cargar datos de caja');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleOpenModal = (type: 'ABRIR' | 'CERRAR' | 'INGRESO' | 'EGRESO') => {
     setModalType(type);
     setModalOpen(true);
   };
 
-  const handleModalSubmit = (data: any) => {
-    if (modalType === 'ABRIR') {
-      const saldoInicial = data.monto;
-      setEstado({
-        ...estado,
-        abierta: true,
-        saldoInicial,
-        saldoActual: saldoInicial,
-        fechaApertura: new Date(),
-      });
-    } else if (modalType === 'CERRAR') {
-      setEstado({
-        ...INITIAL_STATE,
-        abierta: false,
-        fechaCierre: new Date(),
-      });
-      setMovimientos([]);
-    } else {
-      const nuevoMovimiento: CajaMovimiento = {
-        id: Math.random().toString(36).substr(2, 9),
-        fecha: new Date(),
-        tipo: modalType,
-        monto: data.monto,
-        descripcion: data.descripcion,
-        usuario: 'Usuario Actual', // Esto debería venir del contexto de auth
-      };
+  const handleModalSubmit = async (data: any) => {
+    try {
+      let result;
 
-      setMovimientos([nuevoMovimiento, ...movimientos]);
+      if (modalType === 'ABRIR') {
+        result = await abrirCaja(data.monto);
+      } else if (modalType === 'CERRAR') {
+        if (!cajaId) return;
+        result = await cerrarCaja(cajaId, data.monto, data.descripcion || '');
+      } else {
+        if (!cajaId) return;
+        result = await registrarMovimiento(
+          cajaId,
+          modalType === 'INGRESO' ? 'ingreso' : 'egreso',
+          data.monto,
+          data.descripcion
+        );
+      }
 
-      setEstado(prev => ({
-        ...prev,
-        totalIngresos: modalType === 'INGRESO' ? prev.totalIngresos + data.monto : prev.totalIngresos,
-        totalEgresos: modalType === 'EGRESO' ? prev.totalEgresos + data.monto : prev.totalEgresos,
-        saldoActual: modalType === 'INGRESO'
-          ? prev.saldoActual + data.monto
-          : prev.saldoActual - data.monto,
-      }));
+      if (result.success) {
+        toast.success('Operación realizada con éxito');
+        await loadData(); // Recargar datos frescos
+        setModalOpen(false);
+      } else {
+        toast.error(result.error || 'Error al realizar la operación');
+      }
+    } catch (error) {
+      console.error('Error submitting modal:', error);
+      toast.error('Ocurrió un error inesperado');
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-96">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Package, AlertTriangle, DollarSign, Grid3x3, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import TablaStock from './table';
@@ -11,6 +12,9 @@ import { createClient } from '@/lib/supabase/client';
 export default function StockPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [loading, setLoading] = useState(true);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const filter = searchParams.get('filter');
 
   useEffect(() => {
     loadProductos();
@@ -47,6 +51,18 @@ export default function StockPage() {
     }).format(num);
   };
 
+  const handleStatClick = (statTitle: string) => {
+    if (statTitle === 'Stock Bajo') {
+      router.push('/stock?filter=low_stock');
+    } else if (statTitle === 'Total Productos') {
+      router.push('/stock');
+    }
+  };
+
+  const filteredProductos = filter === 'low_stock'
+    ? productos.filter(p => p.stock_actual <= p.stock_minimo)
+    : productos;
+
   const estadisticas = [
     {
       titulo: 'Total Productos',
@@ -56,16 +72,18 @@ export default function StockPage() {
       bgColor: 'bg-blue-50',
       iconColor: 'text-blue-600',
       valorColor: 'text-blue-700',
+      clickable: true,
     },
     {
       titulo: 'Stock Bajo',
       valor: stats.stockBajo,
       icon: AlertTriangle,
       color: 'red',
-      bgColor: 'bg-red-50',
+      bgColor: filter === 'low_stock' ? 'bg-red-100 ring-2 ring-red-500' : 'bg-red-50',
       iconColor: 'text-red-600',
       valorColor: 'text-red-700',
       alerta: stats.stockBajo > 0,
+      clickable: true,
     },
     {
       titulo: 'Valor Inventario',
@@ -148,10 +166,11 @@ export default function StockPage() {
         {estadisticas.map((stat, index) => (
           <motion.div
             key={stat.titulo}
+            onClick={() => stat.clickable && handleStatClick(stat.titulo)}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 + index * 0.1 }}
-            className={`${stat.bgColor} rounded-xl p-6 border border-${stat.color}-100 hover:shadow-md transition-all cursor-pointer group`}
+            className={`${stat.bgColor} rounded-xl p-6 border border-${stat.color}-100 hover:shadow-md transition-all ${stat.clickable ? 'cursor-pointer' : ''} group`}
           >
             <div className="flex items-center justify-between mb-4">
               <div className={`${stat.bgColor} p-3 rounded-lg group-hover:scale-110 transition-transform`}>
@@ -181,7 +200,7 @@ export default function StockPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.5 }}
       >
-        <TablaStock productos={productos} />
+        <TablaStock productos={filteredProductos} />
       </motion.div>
     </motion.div>
   );

@@ -20,83 +20,119 @@ export default function CartSummary({
     onRemove,
     onCheckout
 }: CartSummaryProps) {
+    const formatPrice = (amount: number) => {
+        return new Intl.NumberFormat('es-AR', {
+            style: 'currency',
+            currency: 'ARS',
+            minimumFractionDigits: 2
+        }).format(amount);
+    };
+
+    const capitalize = (str: string) => {
+        return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+    };
+
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 h-full flex flex-col">
-            <div className="p-4 border-b border-gray-100 flex items-center gap-2">
-                <ShoppingCart className="w-5 h-5 text-gray-500" />
-                <h2 className="text-lg font-bold text-gray-900">Carrito de Compra</h2>
-                <span className="ml-auto bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                    {cart.reduce((acc, item) => acc + item.cantidad, 0)} items
-                </span>
+        <div className="h-full flex flex-col">
+            {/* Header de la Tabla */}
+            <div className="bg-gray-50 border-b border-gray-200 px-6 py-3 grid grid-cols-12 gap-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <div className="col-span-5">Producto</div>
+                <div className="col-span-2 text-right">Precio Unit.</div>
+                <div className="col-span-2 text-center">Cantidad</div>
+                <div className="col-span-2 text-right">Subtotal</div>
+                <div className="col-span-1 text-center"></div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {/* Cuerpo de la Tabla */}
+            <div className="flex-1 overflow-y-auto bg-gray-50 p-4">
                 {cart.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-gray-400 text-center">
-                        <ShoppingCart className="w-12 h-12 mb-2 opacity-20" />
-                        <p>El carrito está vacío</p>
+                    <div className="h-full flex flex-col items-center justify-center text-gray-400">
+                        <ShoppingCart className="w-16 h-16 mb-4 opacity-20" />
+                        <p className="text-lg font-medium text-gray-500">El carrito está vacío</p>
                         <p className="text-sm">Escanea un producto para comenzar</p>
                     </div>
                 ) : (
-                    cart.map((item) => (
-                        <div key={item.id} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg group">
-                            <div className="flex-1 min-w-0 mr-4">
-                                <p className="text-sm font-medium text-gray-900 truncate">{item.nombre}</p>
-                                <p className="text-xs text-gray-500">${item.precio_venta.toFixed(2)} x {item.cantidad}</p>
-                            </div>
-
-                            <div className="flex items-center gap-3">
-                                <div className="flex items-center bg-white rounded-lg border border-gray-200">
-                                    <button
-                                        onClick={() => onUpdateQuantity(item.id, item.cantidad - 1)}
-                                        className="p-1 hover:bg-gray-100 text-gray-600 rounded-l-lg transition-colors"
-                                    >
-                                        <Minus className="w-3 h-3" />
-                                    </button>
-                                    <span className="w-8 text-center text-sm font-medium">{item.cantidad}</span>
-                                    <button
-                                        onClick={() => onUpdateQuantity(item.id, item.cantidad + 1)}
-                                        className="p-1 hover:bg-gray-100 text-gray-600 rounded-r-lg transition-colors"
-                                    >
-                                        <Plus className="w-3 h-3" />
-                                    </button>
+                    <div className="space-y-2">
+                        {cart.map((item) => (
+                            <div key={item.id} className="bg-white rounded-xl shadow-sm border border-gray-100 px-6 py-4 grid grid-cols-12 gap-4 items-center hover:shadow-md transition-all group">
+                                {/* Producto */}
+                                <div className="col-span-5 pr-4">
+                                    <p className="text-base font-bold text-gray-900 truncate" title={item.nombre}>
+                                        {capitalize(item.nombre)}
+                                    </p>
+                                    <p className="text-xs text-gray-500 font-mono mt-0.5">
+                                        {item.codigo_barra || item.codigo}
+                                    </p>
                                 </div>
 
-                                <span className="text-sm font-bold text-gray-900 w-20 text-right">
-                                    ${item.subtotal.toFixed(2)}
-                                </span>
+                                {/* Precio Unitario */}
+                                <div className="col-span-2 text-right font-medium text-gray-600">
+                                    {formatPrice(item.precio_venta)}
+                                </div>
 
-                                <button
-                                    onClick={() => onRemove(item.id)}
-                                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
+                                {/* Cantidad */}
+                                <div className="col-span-2 flex justify-center">
+                                    <div className="flex items-center bg-gray-50 rounded-lg border border-gray-200">
+                                        <button
+                                            onClick={() => onUpdateQuantity(item.id, item.cantidad - 1)}
+                                            className="p-2 hover:bg-gray-200 text-gray-600 rounded-l-lg transition-colors"
+                                        >
+                                            <Minus className="w-4 h-4" />
+                                        </button>
+                                        <span className="w-12 text-center font-bold text-gray-900">{item.cantidad}</span>
+                                        <button
+                                            onClick={() => onUpdateQuantity(item.id, item.cantidad + 1)}
+                                            className="p-2 hover:bg-gray-200 text-gray-600 rounded-r-lg transition-colors"
+                                        >
+                                            <Plus className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Subtotal */}
+                                <div className="col-span-2 text-right font-bold text-gray-900 text-lg">
+                                    {formatPrice(item.subtotal)}
+                                </div>
+
+                                {/* Acciones */}
+                                <div className="col-span-1 text-center">
+                                    <button
+                                        onClick={() => onRemove(item.id)}
+                                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                        title="Eliminar"
+                                    >
+                                        <Trash2 className="w-5 h-5" />
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                    ))
+                        ))}
+                    </div>
                 )}
             </div>
 
-            <div className="p-4 border-t border-gray-100 bg-gray-50 rounded-b-xl">
-                <div className="space-y-2 mb-4">
-                    <div className="flex justify-between text-sm text-gray-600">
-                        <span>Subtotal</span>
-                        <span>${subtotal.toFixed(2)}</span>
+            {/* Footer de Totales */}
+            <div className="bg-gray-50 border-t border-gray-200 p-4 px-6">
+                <div className="flex items-center justify-between gap-8">
+                    <div className="flex items-center gap-2 text-gray-500">
+                        <ShoppingCart className="w-5 h-5" />
+                        <span className="font-medium">{cart.reduce((acc, item) => acc + item.cantidad, 0)} artículos</span>
                     </div>
-                    <div className="flex justify-between text-xl font-bold text-gray-900">
-                        <span>Total</span>
-                        <span>${total.toFixed(2)}</span>
+
+                    <div className="flex items-center gap-6 flex-1 justify-end">
+                        <div className="text-right">
+                            <p className="text-sm text-gray-500 font-medium uppercase">Total a Pagar</p>
+                            <p className="text-3xl font-black text-gray-900 leading-none mt-1">{formatPrice(total)}</p>
+                        </div>
+
+                        <button
+                            onClick={onCheckout}
+                            disabled={cart.length === 0}
+                            className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-12 py-4 rounded-xl font-bold text-xl shadow-lg shadow-emerald-600/20 hover:shadow-xl hover:scale-[1.02] transition-all"
+                        >
+                            Cobrar
+                        </button>
                     </div>
                 </div>
-
-                <button
-                    onClick={onCheckout}
-                    disabled={cart.length === 0}
-                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-3 rounded-lg font-bold text-lg shadow-sm hover:shadow transition-all active:scale-[0.98]"
-                >
-                    Cobrar ${total.toFixed(2)}
-                </button>
             </div>
         </div>
     );

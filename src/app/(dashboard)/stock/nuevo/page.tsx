@@ -162,6 +162,11 @@ export default function NuevoProductoPage() {
                                 type="text"
                                 value={formData.codigo_barra}
                                 onChange={(e) => setFormData({ ...formData, codigo_barra: e.target.value })}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                    }
+                                }}
                                 className="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
                                 placeholder="7790001234567"
                             />
@@ -254,8 +259,8 @@ export default function NuevoProductoPage() {
                             <div className="flex items-center justify-between mb-3">
                                 <p className="text-sm font-semibold text-gray-700">Sugerir precio de venta</p>
                                 <div className={`text-lg font-bold ${calcularMargen() >= 30 ? 'text-green-600' :
-                                        calcularMargen() >= 15 ? 'text-yellow-600' :
-                                            'text-red-600'
+                                    calcularMargen() >= 15 ? 'text-yellow-600' :
+                                        'text-red-600'
                                     }`}>
                                     Margen: {calcularMargen().toFixed(1)}%
                                 </div>

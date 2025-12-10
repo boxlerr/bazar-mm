@@ -35,6 +35,14 @@ export default function PaymentModal({
         await onConfirm(method);
     };
 
+    const formatPrice = (amount: number) => {
+        return new Intl.NumberFormat('es-AR', {
+            style: 'currency',
+            currency: 'ARS',
+            minimumFractionDigits: 2
+        }).format(amount);
+    };
+
     return (
         <AnimatePresence>
             {isOpen && (
@@ -66,7 +74,7 @@ export default function PaymentModal({
                             <div className="p-6 space-y-6">
                                 <div className="text-center">
                                     <p className="text-sm text-gray-500 mb-1">Total a Pagar</p>
-                                    <p className="text-4xl font-bold text-gray-900">${total.toFixed(2)}</p>
+                                    <p className="text-4xl font-bold text-gray-900">{formatPrice(total)}</p>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-3">
@@ -75,8 +83,8 @@ export default function PaymentModal({
                                             key={m.id}
                                             onClick={() => setMethod(m.id)}
                                             className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${method === m.id
-                                                    ? 'border-blue-500 bg-blue-50'
-                                                    : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50'
+                                                ? 'border-blue-500 bg-blue-50'
+                                                : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50'
                                                 }`}
                                         >
                                             <div className={`p-2 rounded-full ${m.bg}`}>
@@ -108,7 +116,7 @@ export default function PaymentModal({
                                         {vuelto > 0 && (
                                             <div className="flex justify-between items-center pt-2 border-t border-gray-200">
                                                 <span className="font-medium text-gray-600">Su Vuelto:</span>
-                                                <span className="font-bold text-xl text-green-600">${vuelto.toFixed(2)}</span>
+                                                <span className="font-bold text-xl text-green-600">{formatPrice(vuelto)}</span>
                                             </div>
                                         )}
                                     </div>
