@@ -7,5 +7,5 @@ import { cookies } from 'next/headers';
  */
 export async function createActionClient() {
   const cookieStore = await cookies();
-  return createRouteHandlerClient({ cookies: () => cookieStore });
+  return createRouteHandlerClient({ cookies: () => Promise.resolve(cookieStore) });
 }

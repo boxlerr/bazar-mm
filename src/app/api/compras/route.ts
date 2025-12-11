@@ -4,15 +4,15 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   console.log('🚀 API /api/compras: Iniciando...');
-  
-  const cookieStore = cookies();
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+
+  const cookieStore = await cookies();
+  const supabase = createRouteHandlerClient({ cookies: () => Promise.resolve(cookieStore) });
 
   try {
     // Obtener sesión
     const { data: { session } } = await supabase.auth.getSession();
     console.log('🔐 API /api/compras: Session obtenida:', session ? 'Sí' : 'No');
-    
+
     if (!session?.user) {
       console.error('❌ API /api/compras: Usuario no autenticado');
       return NextResponse.json(
@@ -20,13 +20,13 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
-    
+
     const user = session.user;
     console.log('👤 API /api/compras: Usuario autenticado:', user.email);
 
     // Obtener FormData
     const formData = await request.formData();
-    
+
     const proveedor_id = formData.get('proveedor_id') as string;
     const numero_orden = formData.get('numero_orden') as string;
     const metodo_pago = formData.get('metodo_pago') as string;
@@ -34,9 +34,9 @@ export async function POST(request: NextRequest) {
     const total = parseFloat(formData.get('total') as string);
     const itemsJson = formData.get('items') as string;
     const pdfFile = formData.get('pdf') as File | null;
-    
+
     console.log('📋 API /api/compras: Datos extraídos:', { proveedor_id, numero_orden, metodo_pago, total });
-    
+
     const items = JSON.parse(itemsJson);
     console.log('📦 API /api/compras: Items parseados:', items.length);
 
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     console.log('✅ API /api/compras: Validaciones pasadas');
 
     // Subir PDF si existe
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('documentos')
         .upload(fileName, pdfFile);
-      
+
       if (!uploadError && uploadData) {
         const { data: urlData } = supabase.storage
           .from('documentos')
@@ -95,13 +95,13 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-    
+
     console.log('✅ API /api/compras: Compra creada con ID:', compra.id);
 
     // Procesar cada item
     console.log('🔄 API /api/compras: Procesando items...');
     let itemsCreados = 0;
-    
+
     for (const item of items) {
       let producto_id = item.producto_id;
 
@@ -177,24 +177,24 @@ export async function POST(request: NextRequest) {
           })
           .eq('id', producto_id);
       }
-      
+
       itemsCreados++;
     }
 
     console.log(`✅ API /api/compras: Proceso completado! Items creados: ${itemsCreados}/${items.length}`);
-    
+
     return NextResponse.json({
       success: true,
       compra_id: compra.id,
       items_creados: itemsCreados
     });
-    
+
   } catch (error) {
     console.error('❌ API /api/compras: Error capturado:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Error desconocido' 
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
       },
       { status: 500 }
     );

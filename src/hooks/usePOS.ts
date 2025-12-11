@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Producto } from '@/types';
 import { processSale, searchProducts } from '@/app/(dashboard)/ventas/actions';
-import { printTicket } from '@/lib/printer/PrinterService'; // Asumimos que existe o lo crearemos
+
 // Si no existe PrinterService, usaremos la lógica directa por ahora y luego refactorizamos.
 // Revisando archivos anteriores, vi BotonImprimirTicket que usa PrinterService.
 // Vamos a crear un servicio simple de impresión si no lo encuentro fácil, pero mejor uso fetch directo al 3001.

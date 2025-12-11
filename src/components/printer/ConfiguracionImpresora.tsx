@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { PrinterService } from '@/lib/printer/PrinterService';
+import * as PrinterService from '@/lib/printer/PrinterService';
 
 export function ConfiguracionImpresora() {
   const [servidorConectado, setServidorConectado] = useState(false);
@@ -11,11 +11,11 @@ export function ConfiguracionImpresora() {
 
   const verificarConexiones = async () => {
     setCargando(true);
-    
+
     // Verificar servidor
     const serverStatus = await PrinterService.checkConnection();
     setServidorConectado(serverStatus);
-    
+
     if (serverStatus) {
       // Verificar impresora
       const printerStatus = await PrinterService.checkPrinterStatus();
@@ -25,13 +25,13 @@ export function ConfiguracionImpresora() {
       setImpresoraConectada(false);
       setMensaje('Servidor de impresión no disponible');
     }
-    
+
     setCargando(false);
   };
 
   const imprimirPrueba = async () => {
     const resultado = await PrinterService.imprimirTest();
-    
+
     if (resultado.success) {
       alert('✅ Ticket de prueba impreso correctamente');
     } else {
@@ -67,13 +67,11 @@ export function ConfiguracionImpresora() {
           </div>
           <div className="flex items-center gap-2">
             <span
-              className={`w-3 h-3 rounded-full ${
-                servidorConectado ? 'bg-green-500' : 'bg-red-500'
-              }`}
+              className={`w-3 h-3 rounded-full ${servidorConectado ? 'bg-green-500' : 'bg-red-500'
+                }`}
             />
-            <span className={`font-medium ${
-              servidorConectado ? 'text-green-600' : 'text-red-600'
-            }`}>
+            <span className={`font-medium ${servidorConectado ? 'text-green-600' : 'text-red-600'
+              }`}>
               {servidorConectado ? 'Conectado' : 'Desconectado'}
             </span>
           </div>
@@ -89,13 +87,11 @@ export function ConfiguracionImpresora() {
           </div>
           <div className="flex items-center gap-2">
             <span
-              className={`w-3 h-3 rounded-full ${
-                impresoraConectada ? 'bg-green-500' : 'bg-red-500'
-              }`}
+              className={`w-3 h-3 rounded-full ${impresoraConectada ? 'bg-green-500' : 'bg-red-500'
+                }`}
             />
-            <span className={`font-medium ${
-              impresoraConectada ? 'text-green-600' : 'text-red-600'
-            }`}>
+            <span className={`font-medium ${impresoraConectada ? 'text-green-600' : 'text-red-600'
+              }`}>
               {impresoraConectada ? 'Detectada' : 'No detectada'}
             </span>
           </div>

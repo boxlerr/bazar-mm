@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Package, AlertTriangle, DollarSign, Grid3x3, Plus } from 'lucide-react';
@@ -9,7 +9,7 @@ import TablaStock from './table';
 import { Producto } from '@/types/producto';
 import { createClient } from '@/lib/supabase/client';
 
-export default function StockPage() {
+function StockContent() {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [loading, setLoading] = useState(true);
   const searchParams = useSearchParams();
@@ -203,5 +203,20 @@ export default function StockPage() {
         <TablaStock productos={filteredProductos} />
       </motion.div>
     </motion.div>
+  );
+}
+
+export default function StockPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-96">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+          <p className="text-gray-500 font-medium">Cargando...</p>
+        </div>
+      </div>
+    }>
+      <StockContent />
+    </Suspense>
   );
 }
