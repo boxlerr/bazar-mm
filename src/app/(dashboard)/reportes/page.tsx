@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import ReportesStats from '@/components/reportes/ReportesStats';
 import SalesChart from '@/components/reportes/SalesChart';
 import ReportesGenerator from '@/components/reportes/ReportesGenerator';
-import { getDashboardStats, getWeeklySales } from './actions';
+import { getDashboardStats, getSalesChartData } from './actions';
 
 export const metadata: Metadata = {
   title: 'Reportes | Bazar M&M',
@@ -12,10 +12,17 @@ export const metadata: Metadata = {
 // Forzar renderizado dinámico para tener datos frescos
 export const dynamic = 'force-dynamic';
 
-export default async function ReportesPage() {
-  const [stats, weeklySales] = await Promise.all([
+interface ReportesPageProps {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
+
+export default async function ReportesPage({ searchParams }: ReportesPageProps) {
+  const resolvedParams = await searchParams;
+  const range = (resolvedParams.range as any) || '7d';
+
+  const [stats, salesData] = await Promise.all([
     getDashboardStats(),
-    getWeeklySales()
+    getSalesChartData(range)
   ]);
 
   return (
@@ -27,7 +34,7 @@ export default async function ReportesPage() {
 
       <ReportesStats stats={stats} />
 
-      <SalesChart data={weeklySales} />
+      <SalesChart data={salesData} currentRange={range} />
 
       <ReportesGenerator />
     </div>

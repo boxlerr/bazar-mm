@@ -99,54 +99,144 @@ export async function getDashboardStats() {
     };
 }
 
-export async function getWeeklySales() {
+export type TimeRange = '7d' | '30d' | '60d' | '90d' | '12m';
+
+export async function getSalesChartData(range: TimeRange = '7d') {
     const supabase = await createClient();
-
-    // Helper to get date string in Argentina timezone (YYYY-MM-DD)
-    const getArgDateString = (date: Date) => {
-        return date.toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
-    };
-
     const now = new Date();
+    const timeZone = 'America/Argentina/Buenos_Aires';
 
-    // Calculate 7 days ago range
-    // We fetch a bit more data (from 8 days ago) to avoid timezone edge cases at the boundary
-    const queryDate = new Date(now);
-    queryDate.setDate(now.getDate() - 8);
+    let startDate = new Date(now);
+    let aggregation: 'daily' | 'weekly' | 'monthly' = 'daily';
+    let daysToSubtract = 7;
+
+    switch (range) {
+        case '7d':
+            daysToSubtract = 7;
+            startDate.setDate(now.getDate() - 7);
+            aggregation = 'daily';
+            break;
+        case '30d':
+            daysToSubtract = 30;
+            startDate.setDate(now.getDate() - 30);
+            aggregation = 'daily';
+            break;
+        case '60d':
+            daysToSubtract = 60;
+            startDate.setDate(now.getDate() - 60);
+            aggregation = 'weekly';
+            break;
+        case '90d':
+            daysToSubtract = 90;
+            startDate.setDate(now.getDate() - 90);
+            aggregation = 'weekly';
+            break;
+        case '12m':
+            daysToSubtract = 365;
+            startDate.setFullYear(now.getFullYear() - 1);
+            aggregation = 'monthly';
+            break;
+    }
+
+    // Adjust start date to be slightly earlier to ensure we cover the edge of the first bucket in UTC
+    const queryDate = new Date(startDate);
+    queryDate.setDate(queryDate.getDate() - (aggregation === 'weekly' ? 7 : 2));
 
     const { data: ventas } = await supabase
         .from('ventas')
         .select('created_at, total')
         .gte('created_at', queryDate.toISOString());
 
-    const dailySales = new Map<string, number>();
-    const last7Days = [];
+    const chartDataMap = new Map<string, { day: string, value: number, fullDate: string, sortOrder: number }>();
 
-    // Initialize map with last 7 days (including today)
-    for (let i = 6; i >= 0; i--) {
-        const d = new Date(now);
-        d.setDate(d.getDate() - i);
-        const dateKey = getArgDateString(d);
-        dailySales.set(dateKey, 0);
-        last7Days.push({ date: d, key: dateKey });
+    // Helper functions for formatting
+    const getDailyKey = (d: Date) => d.toLocaleDateString('en-CA', { timeZone });
+    const getWeeklyKey = (d: Date) => {
+        // Get start of week (Sunday)
+        const date = new Date(d);
+        const day = date.getDay(); // 0 is Sunday
+        date.setDate(date.getDate() - day);
+        return date.toLocaleDateString('en-CA', { timeZone });
+    };
+    const getMonthlyKey = (d: Date) => {
+        // First day of month
+        return d.toLocaleDateString('en-CA', { year: 'numeric', month: '2-digit', timeZone }).slice(0, 7); // YYYY-MM
+    };
+
+    const formatLabel = (d: Date, type: typeof aggregation) => {
+        if (type === 'monthly') {
+            return d.toLocaleDateString('es-AR', { month: 'short', timeZone });
+        } else if (type === 'weekly') {
+            const endOfWeek = new Date(d);
+            endOfWeek.setDate(d.getDate() + 6);
+            return `${d.getDate()}/${d.getMonth() + 1}`;
+        } else {
+            return d.toLocaleDateString('es-AR', { weekday: 'short', timeZone });
+        }
+    };
+
+    // Initialize buckets
+    if (aggregation === 'daily') {
+        for (let i = daysToSubtract - 1; i >= 0; i--) {
+            const d = new Date(now);
+            d.setDate(d.getDate() - i);
+            const key = getDailyKey(d);
+            chartDataMap.set(key, {
+                day: formatLabel(d, 'daily'),
+                value: 0,
+                fullDate: key,
+                sortOrder: d.getTime()
+            });
+        }
+    } else if (aggregation === 'weekly') {
+        // Start from current week and go back
+        let current = new Date(now);
+        // Align to start of week (Sunday) for consistency
+        current.setDate(current.getDate() - current.getDay());
+
+        const limitDate = new Date(startDate);
+
+        while (current >= limitDate) {
+            const key = getWeeklyKey(current);
+            chartDataMap.set(key, {
+                day: formatLabel(current, 'weekly'),
+                value: 0,
+                fullDate: key,
+                sortOrder: current.getTime()
+            });
+            current.setDate(current.getDate() - 7);
+        }
+    } else if (aggregation === 'monthly') {
+        let current = new Date(now);
+        current.setDate(1); // Start of current month
+
+        for (let i = 0; i < 12; i++) {
+            const key = getMonthlyKey(current);
+            chartDataMap.set(key, {
+                day: formatLabel(current, 'monthly'),
+                value: 0,
+                fullDate: key,
+                sortOrder: current.getTime()
+            });
+            current.setMonth(current.getMonth() - 1);
+        }
     }
 
+    // Fill buckets with data
     ventas?.forEach(v => {
         const date = new Date(v.created_at);
-        const dateKey = getArgDateString(date);
-        if (dailySales.has(dateKey)) {
-            dailySales.set(dateKey, dailySales.get(dateKey)! + v.total);
+        let key = '';
+        if (aggregation === 'daily') key = getDailyKey(date);
+        else if (aggregation === 'weekly') key = getWeeklyKey(date);
+        else if (aggregation === 'monthly') key = getMonthlyKey(date);
+
+        if (chartDataMap.has(key)) {
+            chartDataMap.get(key)!.value += v.total;
         }
     });
 
-    // Format for chart
-    const chartData = last7Days.map(({ date, key }) => {
-        return {
-            day: date.toLocaleDateString('es-AR', { weekday: 'short', timeZone: 'America/Argentina/Buenos_Aires' }),
-            value: dailySales.get(key) || 0,
-            fullDate: key
-        };
-    });
-
-    return chartData;
+    // Sort and return array
+    return Array.from(chartDataMap.values())
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .map(({ day, value, fullDate }) => ({ day, value, fullDate }));
 }
