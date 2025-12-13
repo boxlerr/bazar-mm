@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Package, AlertTriangle, DollarSign, Grid3x3, Plus } from 'lucide-react';
+import { Package, AlertTriangle, DollarSign, Grid3x3, Plus, ArrowRightLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import TablaStock from './table';
 import { Producto } from '@/types/producto';
@@ -150,7 +150,15 @@ function StockContent() {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, delay: 0.3 }}
+          className="flex gap-3"
         >
+          <Link
+            href="/stock/ajustes"
+            className="inline-flex items-center gap-2 bg-purple-100 hover:bg-purple-200 text-purple-700 px-5 py-2.5 rounded-xl transition-all font-medium"
+          >
+            <ArrowRightLeft className="w-5 h-5" />
+            Ajustes
+          </Link>
           <Link
             href="/stock/nuevo"
             className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl transition-all font-medium shadow-lg shadow-blue-600/20 hover:shadow-xl hover:scale-105"

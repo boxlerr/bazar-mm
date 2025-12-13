@@ -15,8 +15,8 @@ export default function Button({
   type?: 'button' | 'submit' | 'reset';
   className?: string;
 }) {
-  const baseClasses = 'font-medium rounded-lg transition focus:outline-none focus:ring-2';
-  
+  const baseClasses = 'inline-flex items-center justify-center font-medium rounded-lg transition focus:outline-none focus:ring-2';
+
   const variantClasses = {
     primary: 'bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500',
     secondary: 'bg-gray-200 hover:bg-gray-300 text-gray-800 focus:ring-gray-500',
@@ -35,9 +35,8 @@ export default function Button({
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${
-        disabled ? 'opacity-50 cursor-not-allowed' : ''
-      } ${className}`}
+      className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${disabled ? 'opacity-50 cursor-not-allowed' : ''
+        } ${className}`}
     >
       {children}
     </button>

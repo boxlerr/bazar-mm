@@ -20,6 +20,7 @@ import {
   PanelLeftClose,
   Building2,
   Bell,
+  Truck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
@@ -40,6 +41,7 @@ interface SubMenuItem {
 const menuItems: MenuItem[] = [
   { name: 'Ventas', href: '/ventas', icon: TrendingUp },
   { name: 'Compras', href: '/compras', icon: ShoppingCart },
+  { name: 'Proveedores', href: '/proveedores', icon: Truck },
   { name: 'Stock', href: '/stock', icon: Package },
   { name: 'Clientes', href: '/clientes', icon: Users },
   { name: 'Caja', href: '/caja', icon: Wallet },
