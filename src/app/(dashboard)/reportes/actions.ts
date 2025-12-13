@@ -3,6 +3,127 @@
 import { createClient } from '@/lib/supabase/server';
 import { Venta, Producto, Cliente } from '@/types';
 
+export interface VentaPorUsuario {
+    usuario: string;
+    total_ventas: number;
+    cantidad_tickets: number;
+}
+
+export interface RentabilidadItem {
+    fecha: string;
+    venta_total: number;
+    costo_total: number;
+    ganancia: number;
+    margen: number;
+}
+
+export async function getVentasPorVendedor(startDate?: Date, endDate?: Date) {
+    const supabase = await createClient();
+
+    let query = supabase
+        .from('ventas')
+        .select('total, usuario:usuarios(nombre)')
+        .eq('estado', 'completada');
+
+    if (startDate) query = query.gte('created_at', startDate.toISOString());
+    if (endDate) query = query.lte('created_at', endDate.toISOString());
+
+    const { data, error } = await query;
+
+    if (error) {
+        console.error('Error fetching ventas por vendedor:', error);
+        return [];
+    }
+
+    // Agrupar por usuario
+    const agrupado: Record<string, VentaPorUsuario> = {};
+
+    data?.forEach((venta: any) => {
+        const nombre = venta.usuario?.nombre || 'Desconocido';
+        if (!agrupado[nombre]) {
+            agrupado[nombre] = { usuario: nombre, total_ventas: 0, cantidad_tickets: 0 };
+        }
+        agrupado[nombre].total_ventas += venta.total;
+        agrupado[nombre].cantidad_tickets += 1;
+    });
+
+    return Object.values(agrupado).sort((a, b) => b.total_ventas - a.total_ventas);
+}
+
+export async function getRentabilidadReport(startDate?: Date, endDate?: Date) {
+    const supabase = await createClient();
+
+    // Necesitamos los items de venta para saber el costo en el momento de la venta
+    // Pero si no guardamos historial de costo en venta_items, usamos el precio_costo actual (aproximación)
+    // O mejor: venta_items tiene precio_unitario (venta).
+    // ¿Tiene costo? Veo la tabla venta_items en init_schema:
+    // producto_id, cantidad, precio_unitario, subtotal. NO TIENE COSTO HISTÓRICO.
+    // Esto es un fallo común. Para rentabilidad exacta necesitamos el costo al momento de venta.
+    // Asumiremos el costo actual del producto como aproximación, o modificamos la tabla.
+    // Dado que NO puedo modificar "todo" el sistema histórico, usaré el costo actual del producto.
+
+    let query = supabase
+        .from('venta_items')
+        .select(`
+            cantidad,
+            subtotal,
+            created_at,
+            producto:productos(precio_costo)
+        `);
+
+    if (startDate) query = query.gte('created_at', startDate.toISOString());
+    if (endDate) query = query.lte('created_at', endDate.toISOString());
+
+    const { data, error } = await query;
+
+    if (error) return [];
+
+    // Agrupar por día
+    const porDia: Record<string, RentabilidadItem> = {};
+
+    data?.forEach((item: any) => {
+        const fecha = new Date(item.created_at).toISOString().split('T')[0];
+        const costoUnitario = item.producto?.precio_costo || 0;
+        const costoTotalItem = costoUnitario * item.cantidad;
+
+        if (!porDia[fecha]) {
+            porDia[fecha] = { fecha, venta_total: 0, costo_total: 0, ganancia: 0, margen: 0 };
+        }
+
+        porDia[fecha].venta_total += item.subtotal;
+        porDia[fecha].costo_total += costoTotalItem;
+    });
+
+    // Calcular ganancia y margen final
+    return Object.values(porDia).map(d => ({
+        ...d,
+        ganancia: d.venta_total - d.costo_total,
+        margen: d.venta_total > 0 ? ((d.venta_total - d.costo_total) / d.venta_total) * 100 : 0
+    })).sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+}
+
+export async function getMovimientosCajaReport(startDate?: Date, endDate?: Date) {
+    const supabase = await createClient();
+
+    let query = supabase
+        .from('movimientos_caja')
+        .select(`
+            *,
+            caja:caja(usuario:usuarios(nombre))
+        `)
+        .order('created_at', { ascending: false });
+
+    if (startDate) query = query.gte('created_at', startDate.toISOString());
+    if (endDate) query = query.lte('created_at', endDate.toISOString());
+
+    const { data, error } = await query;
+
+    if (error) return [];
+
+    return data;
+}
+
+
 export async function getVentasReport(startDate?: Date, endDate?: Date) {
     const supabase = await createClient();
 
