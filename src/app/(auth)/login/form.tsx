@@ -192,12 +192,7 @@ export default function LoginForm() {
         )}
       </motion.button>
 
-      <motion.p variants={itemVariants} className="text-center text-sm text-neutral-500 font-medium">
-        ¿No tienes cuenta?{' '}
-        <Link href="/register" className="text-red-600 hover:text-red-700 font-bold transition-colors hover:underline decoration-2 underline-offset-4">
-          Regístrate aquí
-        </Link>
-      </motion.p>
+
     </motion.form>
   );
 }

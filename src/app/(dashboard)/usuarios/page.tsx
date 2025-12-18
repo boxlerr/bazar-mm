@@ -284,6 +284,7 @@ export default function UsuariosPage() {
           setUsuarioSeleccionado(null);
         }}
         title="Detalle del Usuario"
+        maxWidth="max-w-4xl"
       >
         {usuarioSeleccionado && (
           <DetalleUsuario

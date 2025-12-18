@@ -10,6 +10,8 @@ interface CartSummaryProps {
     onUpdateQuantity: (id: string, qty: number) => void;
     onRemove: (id: string) => void;
     onCheckout: () => void;
+    dolarBlue?: number;
+    dolarOficial?: number;
 }
 
 export default function CartSummary({
@@ -18,12 +20,22 @@ export default function CartSummary({
     total,
     onUpdateQuantity,
     onRemove,
-    onCheckout
+    onCheckout,
+    dolarBlue = 0,
+    dolarOficial = 0
 }: CartSummaryProps) {
     const formatPrice = (amount: number) => {
         return new Intl.NumberFormat('es-AR', {
             style: 'currency',
             currency: 'ARS',
+            minimumFractionDigits: 2
+        }).format(amount);
+    };
+
+    const formatUSD = (amount: number) => {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
             minimumFractionDigits: 2
         }).format(amount);
     };
@@ -119,9 +131,25 @@ export default function CartSummary({
                     </div>
 
                     <div className="flex items-center gap-6 flex-1 justify-end">
-                        <div className="text-right">
-                            <p className="text-sm text-gray-500 font-medium uppercase">Total a Pagar</p>
-                            <p className="text-3xl font-black text-gray-900 leading-none mt-1">{formatPrice(total)}</p>
+                        <div className="flex flex-col items-end gap-1">
+                            <div className="text-right">
+                                <p className="text-sm text-gray-500 font-medium uppercase">Total a Pagar</p>
+                                <p className="text-3xl font-black text-gray-900 leading-none mt-1">{formatPrice(total)}</p>
+                            </div>
+                            {(dolarBlue > 0 || dolarOficial > 0) && (
+                                <div className="flex gap-3 text-xs font-medium">
+                                    {dolarBlue > 0 && (
+                                        <span className="text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
+                                            Blue: {formatUSD(total / dolarBlue)}
+                                        </span>
+                                    )}
+                                    {dolarOficial > 0 && (
+                                        <span className="text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-100">
+                                            Oficial: {formatUSD(total / dolarOficial)}
+                                        </span>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         <button

@@ -3,9 +3,13 @@
 import { Cliente } from '@/types/cliente';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, User, ArrowRight, Wallet, Users, AlertCircle } from 'lucide-react';
+import { Search, Plus, User, ArrowRight, Wallet, Users, AlertCircle, Edit } from 'lucide-react';
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
+import Modal from '@/components/ui/Modal';
+import ClienteForm from '@/app/(dashboard)/clientes/form';
+import { crearCliente, actualizarCliente } from '@/app/(dashboard)/clientes/actions';
+import { useToast } from '@/hooks/useToast';
 
 interface ClientsListProps {
     initialClientes: Cliente[];
@@ -14,6 +18,37 @@ interface ClientsListProps {
 
 export default function ClientsList({ initialClientes, onSelect }: ClientsListProps) {
     const [searchTerm, setSearchTerm] = useState('');
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedClient, setSelectedClient] = useState<Cliente | null>(null);
+    const { success, error } = useToast();
+
+    const handleNewClient = () => {
+        setSelectedClient(null);
+        setIsModalOpen(true);
+    };
+
+    const handleEditClient = (cliente: Cliente) => {
+        setSelectedClient(cliente);
+        setIsModalOpen(true);
+    };
+
+    const handleSaveClient = async (formData: FormData) => {
+        let result;
+        if (selectedClient) {
+            result = await actualizarCliente(selectedClient.id, formData);
+        } else {
+            result = await crearCliente(formData);
+        }
+
+        if (result.success) {
+            success(selectedClient ? 'Cliente actualizado' : 'Cliente creado exitosamente');
+            setIsModalOpen(false);
+            setSelectedClient(null);
+        } else {
+            error(result.error || 'Error al guardar cliente');
+            throw new Error(result.error);
+        }
+    };
 
     const filteredClientes = initialClientes.filter((cliente) =>
         cliente.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -72,12 +107,11 @@ export default function ClientsList({ initialClientes, onSelect }: ClientsListPr
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    <Link href="/clientes/nuevo">
-                        <Button className="w-full sm:w-auto">
-                            <Plus className="mr-2 h-4 w-4" />
-                            Nuevo Cliente
-                        </Button>
-                    </Link>
+                    {/* Replaced Link with Button to open Modal */}
+                    <Button className="w-full sm:w-auto" onClick={handleNewClient}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Nuevo Cliente
+                    </Button>
                 </div>
 
                 {/* Table */}
@@ -161,6 +195,19 @@ export default function ClientsList({ initialClientes, onSelect }: ClientsListPr
                     </table>
                 </div>
             </div>
-        </div>
+
+            {/* Client Form Modal */}
+            <Modal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title={selectedClient ? 'Editar Cliente' : 'Nuevo Cliente'}
+            >
+                <ClienteForm
+                    cliente={selectedClient}
+                    onSubmit={handleSaveClient}
+                    onCancel={() => setIsModalOpen(false)}
+                />
+            </Modal>
+        </div >
     );
 }

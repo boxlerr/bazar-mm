@@ -9,6 +9,8 @@ import TablaStock from './table';
 import { Producto } from '@/types/producto';
 import { createClient } from '@/lib/supabase/client';
 
+import DolarRatesCard from '@/components/dashboard/DolarRatesCard';
+
 export default function StockPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -169,8 +171,8 @@ export default function StockPage() {
         </motion.div>
       </div>
 
-      {/* Estadísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+        {/* Estadísticas (4 items, 1 col each on large screens) */}
         {estadisticas.map((stat, index) => (
           <motion.div
             key={stat.titulo}
@@ -178,28 +180,33 @@ export default function StockPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 + index * 0.1 }}
-            className={`${stat.bgColor} rounded-xl p-6 border border-${stat.color}-100 hover:shadow-md transition-all ${stat.clickable ? 'cursor-pointer' : ''} group`}
+            className={`${stat.bgColor} rounded-xl p-4 border border-${stat.color}-100 hover:shadow-md transition-all ${stat.clickable ? 'cursor-pointer' : ''} group flex flex-col justify-between lg:col-span-1`}
           >
-            <div className="flex items-center justify-between mb-4">
-              <div className={`${stat.bgColor} p-3 rounded-lg group-hover:scale-110 transition-transform`}>
-                <stat.icon className={`w-6 h-6 ${stat.iconColor}`} />
+            <div className="flex items-center justify-between mb-2">
+              <div className={`${stat.bgColor} p-2 rounded-lg group-hover:scale-110 transition-transform`}>
+                <stat.icon className={`w-5 h-5 ${stat.iconColor}`} />
               </div>
               {stat.alerta && (
                 <span className="bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded-full border border-red-200 animate-pulse">
-                  ¡Alerta!
+                  !
                 </span>
               )}
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-1">
+              <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1 truncate">
                 {stat.titulo}
               </p>
-              <p className={`text-3xl font-bold ${stat.valorColor}`}>
+              <p className={`text-2xl font-bold ${stat.valorColor}`}>
                 {stat.valor}
               </p>
             </div>
           </motion.div>
         ))}
+
+        {/* Dollar Card (2 cols on large screens) */}
+        <div className="sm:col-span-2 lg:col-span-2">
+          <DolarRatesCard />
+        </div>
       </div>
 
       {/* Tabla de productos */}

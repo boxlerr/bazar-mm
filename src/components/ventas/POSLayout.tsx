@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePOS } from '@/hooks/usePOS';
 import ProductSearch from './ProductSearch';
 import CartSummary from './CartSummary';
 import PaymentModal from './PaymentModal';
 import ClientSelectionModal from './ClientSelectionModal';
-import { User } from 'lucide-react';
+import { getDolarBlue, getDolarOficial } from '@/services/dolarService';
 
 export default function POSLayout() {
     const {
@@ -30,6 +30,24 @@ export default function POSLayout() {
 
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+    const [dolarBlue, setDolarBlue] = useState<number>(0);
+    const [dolarOficial, setDolarOficial] = useState<number>(0);
+
+    useEffect(() => {
+        const fetchRates = async () => {
+            try {
+                const [blue, oficial] = await Promise.all([
+                    getDolarBlue(),
+                    getDolarOficial()
+                ]);
+                setDolarBlue(blue.venta);
+                setDolarOficial(oficial.venta);
+            } catch (error) {
+                console.error('Error fetching rates:', error);
+            }
+        };
+        fetchRates();
+    }, []);
 
     const handleCheckout = async (method: string) => {
         const result = await checkout(method);
@@ -68,6 +86,8 @@ export default function POSLayout() {
                     onUpdateQuantity={updateQuantity}
                     onRemove={removeFromCart}
                     onCheckout={() => setIsPaymentModalOpen(true)}
+                    dolarBlue={dolarBlue}
+                    dolarOficial={dolarOficial}
                 />
             </div>
 
@@ -78,6 +98,8 @@ export default function POSLayout() {
                 onConfirm={handleCheckout}
                 loading={loading}
                 selectedClient={selectedClient}
+                dolarBlue={dolarBlue}
+                dolarOficial={dolarOficial}
             />
 
             <ClientSelectionModal

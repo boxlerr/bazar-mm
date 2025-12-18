@@ -11,6 +11,8 @@ interface PaymentModalProps {
     onConfirm: (method: string) => Promise<void>;
     loading: boolean;
     selectedClient: import('@/types/cliente').Cliente | null;
+    dolarBlue?: number;
+    dolarOficial?: number;
 }
 
 export default function PaymentModal({
@@ -19,7 +21,9 @@ export default function PaymentModal({
     total,
     onConfirm,
     loading,
-    selectedClient
+    selectedClient,
+    dolarBlue = 0,
+    dolarOficial = 0
 }: PaymentModalProps) {
     const [method, setMethod] = useState<string>('efectivo');
     const [pagoCon, setPagoCon] = useState<string>('');
@@ -41,6 +45,14 @@ export default function PaymentModal({
         return new Intl.NumberFormat('es-AR', {
             style: 'currency',
             currency: 'ARS',
+            minimumFractionDigits: 2
+        }).format(amount);
+    };
+
+    const formatUSD = (amount: number) => {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
             minimumFractionDigits: 2
         }).format(amount);
     };
@@ -77,6 +89,20 @@ export default function PaymentModal({
                                 <div className="text-center">
                                     <p className="text-sm text-gray-500 mb-1">Total a Pagar</p>
                                     <p className="text-4xl font-bold text-gray-900">{formatPrice(total)}</p>
+                                    {(dolarBlue || dolarOficial) && (
+                                        <div className="flex justify-center gap-3 mt-2">
+                                            {dolarBlue && (
+                                                <span className="text-blue-600 bg-blue-50 px-2 py-1 rounded-full text-xs font-bold border border-blue-100">
+                                                    Blue: {formatUSD(total / dolarBlue)}
+                                                </span>
+                                            )}
+                                            {dolarOficial && (
+                                                <span className="text-green-600 bg-green-50 px-2 py-1 rounded-full text-xs font-bold border border-green-100">
+                                                    Oficial: {formatUSD(total / dolarOficial)}
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-3">

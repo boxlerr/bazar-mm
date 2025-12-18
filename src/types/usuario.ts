@@ -3,6 +3,8 @@ export interface Usuario {
   email: string;
   nombre: string;
   telefono?: string;
+  dni?: string;
+  domicilio?: string;
   avatar?: string;
   rol: 'admin' | 'vendedor' | 'gerente';
   permisos: PermisosUsuario;
