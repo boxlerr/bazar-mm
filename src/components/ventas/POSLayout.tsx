@@ -5,6 +5,8 @@ import { usePOS } from '@/hooks/usePOS';
 import ProductSearch from './ProductSearch';
 import CartSummary from './CartSummary';
 import PaymentModal from './PaymentModal';
+import ClientSelectionModal from './ClientSelectionModal';
+import { User } from 'lucide-react';
 
 export default function POSLayout() {
     const {
@@ -21,10 +23,13 @@ export default function POSLayout() {
         removeFromCart,
         updateQuantity,
         checkout,
-        isCajaOpen
+        isCajaOpen,
+        selectedClient,
+        setSelectedClient
     } = usePOS();
 
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [isClientModalOpen, setIsClientModalOpen] = useState(false);
 
     const handleCheckout = async (method: string) => {
         const result = await checkout(method);
@@ -72,6 +77,13 @@ export default function POSLayout() {
                 total={total}
                 onConfirm={handleCheckout}
                 loading={loading}
+                selectedClient={selectedClient}
+            />
+
+            <ClientSelectionModal
+                isOpen={isClientModalOpen}
+                onClose={() => setIsClientModalOpen(false)}
+                onSelect={(client) => setSelectedClient(client)}
             />
         </div>
     );
