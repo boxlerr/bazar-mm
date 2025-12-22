@@ -8,11 +8,13 @@ export default function Modal({
   onClose,
   title,
   children,
+  maxWidth,
 }: {
   isOpen: boolean;
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  maxWidth?: string;
 }) {
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -40,14 +42,14 @@ export default function Modal({
               className="fixed inset-0 bg-black/50 backdrop-blur-sm"
               onClick={onClose}
             />
-            
+
             {/* Modal Content */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ duration: 0.2, type: "spring", stiffness: 300, damping: 30 }}
-              className="relative bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 overflow-hidden"
+              className={`relative bg-white rounded-xl shadow-2xl w-full p-6 overflow-hidden ${maxWidth || 'max-w-2xl'}`}
             >
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-gray-900">{title}</h2>

@@ -20,9 +20,25 @@ export interface RentabilidadItem {
 export async function getVentasPorVendedor(startDate?: Date, endDate?: Date) {
     const supabase = await createClient();
 
+    // 1. Fetch users first to have the mapping
+    const { data: usuarios, error: errorUsuarios } = await supabase
+        .from('usuarios')
+        .select('id, nombre');
+
+    if (errorUsuarios) {
+        console.error('Error fetching usuarios for report:', JSON.stringify(errorUsuarios, null, 2));
+        // Continue with empty map, will show as 'Desconocido'
+    }
+
+    const usuariosMap = new Map<string, string>();
+    usuarios?.forEach((u: any) => {
+        if (u.id && u.nombre) usuariosMap.set(u.id, u.nombre);
+    });
+
+    // 2. Fetch sales
     let query = supabase
         .from('ventas')
-        .select('total, usuario:usuarios(nombre)')
+        .select('total, usuario_id')
         .eq('estado', 'completada');
 
     if (startDate) query = query.gte('created_at', startDate.toISOString());
@@ -31,15 +47,16 @@ export async function getVentasPorVendedor(startDate?: Date, endDate?: Date) {
     const { data, error } = await query;
 
     if (error) {
-        console.error('Error fetching ventas por vendedor:', error);
+        console.error('Error fetching ventas por vendedor:', JSON.stringify(error, null, 2));
         return [];
     }
 
-    // Agrupar por usuario
+    // 3. Group by user
     const agrupado: Record<string, VentaPorUsuario> = {};
 
     data?.forEach((venta: any) => {
-        const nombre = venta.usuario?.nombre || 'Desconocido';
+        const nombre = usuariosMap.get(venta.usuario_id) || 'Desconocido';
+
         if (!agrupado[nombre]) {
             agrupado[nombre] = { usuario: nombre, total_ventas: 0, cantidad_tickets: 0 };
         }
@@ -105,31 +122,61 @@ export async function getRentabilidadReport(startDate?: Date, endDate?: Date) {
 export async function getMovimientosCajaReport(startDate?: Date, endDate?: Date) {
     const supabase = await createClient();
 
+    // 1. Fetch movimientos with caja
     let query = supabase
         .from('movimientos_caja')
         .select(`
             *,
-            caja:caja(usuario:usuarios(nombre))
+            caja:caja(*)
         `)
         .order('created_at', { ascending: false });
 
     if (startDate) query = query.gte('created_at', startDate.toISOString());
     if (endDate) query = query.lte('created_at', endDate.toISOString());
 
-    const { data, error } = await query;
+    const { data: movimientos, error } = await query;
 
-    if (error) return [];
+    if (error || !movimientos) return [];
 
-    return data;
+    // 2. Fetch users manually to avoid join issues
+    const userIds = Array.from(new Set(movimientos.map((m: any) => m.caja?.usuario_id).filter(Boolean)));
+
+    let usuariosMap = new Map();
+    if (userIds.length > 0) {
+        const { data: users } = await supabase
+            .from('usuarios')
+            .select('id, nombre')
+            .in('id', userIds);
+
+        if (users) {
+            usuariosMap = new Map(users.map((u: any) => [u.id, u.nombre]));
+        }
+    }
+
+    // 3. Map users to movements
+    return movimientos.map((m: any) => ({
+        ...m,
+        caja: {
+            ...m.caja,
+            usuario: {
+                nombre: usuariosMap.get(m.caja?.usuario_id) || 'Desconocido'
+            }
+        }
+    }));
 }
 
 
 export async function getVentasReport(startDate?: Date, endDate?: Date) {
     const supabase = await createClient();
 
+    // 1. Fetch users for mapping
+    const { data: usuarios } = await supabase.from('usuarios').select('id, nombre');
+    const usuariosMap = new Map(usuarios?.map((u: any) => [u.id, u.nombre]));
+
+    // 2. Fetch sales with clients and items
     let query = supabase
         .from('ventas')
-        .select('*, venta_items(*, productos(*))')
+        .select('*, clientes(nombre), venta_items(*, productos(*))')
         .order('created_at', { ascending: false });
 
     if (startDate) {
@@ -146,7 +193,16 @@ export async function getVentasReport(startDate?: Date, endDate?: Date) {
         return [];
     }
 
-    return data;
+    // 3. Map users
+    const result = data.map((v: any) => ({
+        ...v,
+        usuario: {
+            nombre: usuariosMap.get(v.usuario_id) || 'Desconocido'
+        },
+        cliente: v.clientes // Map clientes to a consistent property if needed, or just use v.clientes
+    }));
+
+    return result;
 }
 
 export async function getStockReport() {
@@ -268,6 +324,8 @@ export async function getSalesChartData(range: TimeRange = '7d') {
         .select('created_at, total')
         .gte('created_at', queryDate.toISOString());
 
+
+
     const chartDataMap = new Map<string, { day: string, value: number, fullDate: string, sortOrder: number }>();
 
     // Helper functions for formatting
@@ -295,6 +353,8 @@ export async function getSalesChartData(range: TimeRange = '7d') {
             return d.toLocaleDateString('es-AR', { weekday: 'short', timeZone });
         }
     };
+
+
 
     // Initialize buckets
     if (aggregation === 'daily') {
@@ -360,4 +420,75 @@ export async function getSalesChartData(range: TimeRange = '7d') {
     return Array.from(chartDataMap.values())
         .sort((a, b) => a.sortOrder - b.sortOrder)
         .map(({ day, value, fullDate }) => ({ day, value, fullDate }));
+}
+
+export async function getCajasReport(startDate?: Date, endDate?: Date) {
+    const supabase = await createClient();
+    console.log('Fetching Cajas Report (Manual Join)...');
+
+    // 1. Fetch users
+    const { data: usuarios } = await supabase.from('usuarios').select('id, nombre');
+    const usuariosMap = new Map(usuarios?.map((u: any) => [u.id, u.nombre]));
+
+    // 2. Fetch cajas without join
+    let query = supabase
+        .from('caja')
+        .select('*')
+        .order('fecha_apertura', { ascending: false });
+
+    if (startDate) query = query.gte('fecha_apertura', startDate.toISOString());
+    if (endDate) query = query.lte('fecha_apertura', endDate.toISOString());
+
+    const { data: cajas, error } = await query;
+
+    if (error) {
+        console.error('Error fetching cajas:', error);
+        return [];
+    }
+
+    // 3. Map users to cajas
+    const result = cajas.map((c: any) => ({
+        ...c,
+        usuario: {
+            nombre: usuariosMap.get(c.usuario_id) || 'Desconocido'
+        }
+    }));
+
+    return result;
+}
+
+export async function getRecentSales(limit: number = 10) {
+    const supabase = await createClient();
+
+    // 1. Fetch users for mapping
+    const { data: usuarios } = await supabase.from('usuarios').select('id, nombre');
+    const usuariosMap = new Map(usuarios?.map((u: any) => [u.id, u.nombre]));
+
+    // 2. Fetch recent sales
+    const { data: ventas, error } = await supabase
+        .from('ventas')
+        .select(`
+            id,
+            created_at,
+            total,
+            usuario_id,
+            cliente:clientes(nombre),
+            metodo_pago
+        `)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+    if (error) {
+        console.error('Error fetching recent sales:', error);
+        return [];
+    }
+
+    // 3. Map users
+    return ventas.map((v: any) => ({
+        ...v,
+        usuario: {
+            nombre: usuariosMap.get(v.usuario_id) || 'Desconocido'
+        },
+        cliente_nombre: v.cliente?.nombre || 'Consumidor Final'
+    }));
 }

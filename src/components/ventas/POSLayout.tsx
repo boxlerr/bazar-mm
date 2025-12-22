@@ -1,12 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePOS } from '@/hooks/usePOS';
+import { User, X } from 'lucide-react';
+import { toast } from 'sonner';
 import ProductSearch from './ProductSearch';
 import CartSummary from './CartSummary';
 import PaymentModal from './PaymentModal';
 import ClientSelectionModal from './ClientSelectionModal';
-import { User } from 'lucide-react';
+import { getDolarBlue, getDolarOficial } from '@/services/dolarService';
 
 export default function POSLayout() {
     const {
@@ -30,6 +32,24 @@ export default function POSLayout() {
 
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+    const [dolarBlue, setDolarBlue] = useState<number>(0);
+    const [dolarOficial, setDolarOficial] = useState<number>(0);
+
+    useEffect(() => {
+        const fetchRates = async () => {
+            try {
+                const [blue, oficial] = await Promise.all([
+                    getDolarBlue(),
+                    getDolarOficial()
+                ]);
+                setDolarBlue(blue.venta);
+                setDolarOficial(oficial.venta);
+            } catch (error) {
+                console.error('Error fetching rates:', error);
+            }
+        };
+        fetchRates();
+    }, []);
 
     const handleCheckout = async (method: string) => {
         const result = await checkout(method);
@@ -37,7 +57,7 @@ export default function POSLayout() {
             setIsPaymentModalOpen(false);
             // Opcional: Mostrar mensaje de éxito o notificación toast
         } else {
-            alert('Error al procesar la venta');
+            toast.error('Error al procesar la venta');
         }
     };
 
@@ -59,6 +79,38 @@ export default function POSLayout() {
                 />
             </div>
 
+            {/* Cliente Seleccionado */}
+            <div className="flex-shrink-0 px-1">
+                {selectedClient ? (
+                    <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-blue-100 rounded-full text-blue-600">
+                                <User className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium text-blue-900">Cliente Asignado</p>
+                                <p className="text-lg font-bold text-blue-700">{selectedClient.nombre}</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => setSelectedClient(null)}
+                            className="p-2 hover:bg-blue-100 rounded-full text-blue-400 hover:text-blue-600 transition-colors"
+                            title="Desasignar cliente"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+                ) : (
+                    <button
+                        onClick={() => setIsClientModalOpen(true)}
+                        className="w-full flex items-center justify-center gap-2 p-3 bg-white border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50 transition-all group"
+                    >
+                        <User className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                        <span className="font-medium">Seleccionar Cliente para Cuenta Corriente</span>
+                    </button>
+                )}
+            </div>
+
             {/* Área Principal: Carrito como Tabla */}
             <div className="flex-1 min-h-0 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <CartSummary
@@ -68,6 +120,8 @@ export default function POSLayout() {
                     onUpdateQuantity={updateQuantity}
                     onRemove={removeFromCart}
                     onCheckout={() => setIsPaymentModalOpen(true)}
+                    dolarBlue={dolarBlue}
+                    dolarOficial={dolarOficial}
                 />
             </div>
 
@@ -78,6 +132,8 @@ export default function POSLayout() {
                 onConfirm={handleCheckout}
                 loading={loading}
                 selectedClient={selectedClient}
+                dolarBlue={dolarBlue}
+                dolarOficial={dolarOficial}
             />
 
             <ClientSelectionModal

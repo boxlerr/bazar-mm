@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { Producto } from '@/types';
+import { notifyUsers } from '@/lib/notifications';
 
 export async function searchProducts(query: string) {
   const supabase = await createClient();
@@ -92,8 +93,18 @@ export async function processSale(saleData: {
       throw new Error(`Error al crear items: ${itemsError.message}`);
     }
 
-    // 3. Actualizar stock
+    // 3. Actualizar stock y registrar movimiento
     for (const item of saleData.items) {
+      // Obtener stock actual antes de actualizar
+      const { data: prod } = await supabase
+        .from('productos')
+        .select('stock_actual')
+        .eq('id', item.producto_id)
+        .single();
+
+      const stockAnterior = prod?.stock_actual || 0;
+      const stockNuevo = stockAnterior - item.cantidad;
+
       const { error: rpcError } = await supabase.rpc('actualizar_stock', {
         p_producto_id: item.producto_id,
         p_cantidad: -item.cantidad,
@@ -101,14 +112,36 @@ export async function processSale(saleData: {
 
       if (rpcError) {
         console.warn('RPC actualizar_stock failed, trying manual update', rpcError);
-        const { data: prod } = await supabase.from('productos').select('stock_actual').eq('id', item.producto_id).single();
-        if (prod) {
-          await supabase
-            .from('productos')
-            .update({ stock_actual: prod.stock_actual - item.cantidad })
-            .eq('id', item.producto_id);
-        }
+        await supabase
+          .from('productos')
+          .update({ stock_actual: stockNuevo })
+          .eq('id', item.producto_id);
       }
+
+      // Verificar stock bajo y notificar
+      if (stockNuevo <= (prod?.stock_minimo || 5)) {
+        await notifyUsers(
+          ['admin', 'gerente', 'vendedor'],
+          'Stock Bajo',
+          `El producto ${item.producto_id} tiene stock bajo (${stockNuevo} unidades)`,
+          'warning',
+          'stock',
+          item.producto_id,
+          `/stock/${item.producto_id}`
+        );
+      }
+
+      // Registrar movimiento en Kardex
+      await supabase.from('movimientos_stock').insert({
+        producto_id: item.producto_id,
+        usuario_id: user.id,
+        tipo: 'venta',
+        cantidad: -item.cantidad,
+        stock_anterior: stockAnterior,
+        stock_nuevo: stockNuevo,
+        motivo: `Venta Ticket #${venta.nro_ticket}`,
+        referencia_id: venta.id
+      });
     }
 
     // 4. Si es venta en efectivo, registrar movimiento en caja
@@ -157,6 +190,17 @@ export async function processSale(saleData: {
     revalidatePath('/ventas');
     revalidatePath('/stock');
     revalidatePath('/reportes');
+
+    // Notificar a Admin y Gerente
+    await notifyUsers(
+      ['admin', 'gerente'],
+      'Nueva Venta',
+      `Venta registrada por $${saleData.total} (Ticket #${venta.nro_ticket})`,
+      'success',
+      'ventas',
+      venta.id,
+      `/ventas/${venta.id}`
+    );
 
     return { success: true, venta };
   } catch (error: any) {

@@ -20,7 +20,17 @@ export default function CompraForm() {
   const [processingPDF, setProcessingPDF] = useState(false);
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [showProveedorModal, setShowProveedorModal] = useState(false);
-  const [nuevoProveedor, setNuevoProveedor] = useState({ nombre: '', razon_social: '', cuit: '', telefono: '', email: '' });
+  const [nuevoProveedor, setNuevoProveedor] = useState({
+    nombre: '',
+    razon_social: '',
+    cuit: '',
+    telefono: '',
+    email: '',
+    direccion: '',
+    ciudad: '',
+    condicion_iva: 'Responsable Inscripto',
+    observaciones: ''
+  });
 
   // Datos del formulario
   const [proveedor_id, setProveedorId] = useState('');
@@ -65,7 +75,17 @@ export default function CompraForm() {
         await loadProveedores();
         setProveedorId(data.id);
         setShowProveedorModal(false);
-        setNuevoProveedor({ nombre: '', razon_social: '', cuit: '', telefono: '', email: '' });
+        setNuevoProveedor({
+          nombre: '',
+          razon_social: '',
+          cuit: '',
+          telefono: '',
+          email: '',
+          direccion: '',
+          ciudad: '',
+          condicion_iva: 'Responsable Inscripto',
+          observaciones: ''
+        });
       }
     } catch (error) {
       console.error('Error creando proveedor:', error);
@@ -555,7 +575,7 @@ export default function CompraForm() {
       </div>
 
       {/* Footer Fijo para Acciones */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg z-10">
+      <div className="sticky bottom-0 -mx-6 -mb-6 bg-white border-t border-gray-200 p-4 shadow-lg z-10 mt-6">
         <div className="max-w-5xl mx-auto flex justify-between items-center">
           <button
             type="button"
@@ -599,31 +619,32 @@ export default function CompraForm() {
               <h3 className="text-xl font-bold text-gray-900 mb-6">Nuevo Proveedor</h3>
 
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
-                  <input
-                    type="text"
-                    value={nuevoProveedor.nombre}
-                    onChange={(e) => setNuevoProveedor({ ...nuevoProveedor, nombre: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Nombre del proveedor"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Razón Social</label>
-                  <input
-                    type="text"
-                    value={nuevoProveedor.razon_social}
-                    onChange={(e) => setNuevoProveedor({ ...nuevoProveedor, razon_social: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Razón Social S.A."
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Fantasía *</label>
+                    <input
+                      type="text"
+                      value={nuevoProveedor.nombre}
+                      onChange={(e) => setNuevoProveedor({ ...nuevoProveedor, nombre: e.target.value })}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Nombre del proveedor"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Razón Social</label>
+                    <input
+                      type="text"
+                      value={nuevoProveedor.razon_social}
+                      onChange={(e) => setNuevoProveedor({ ...nuevoProveedor, razon_social: e.target.value })}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Razón Social S.A."
+                    />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">CUIT</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">CUIT / DNI</label>
                     <input
                       type="text"
                       value={nuevoProveedor.cuit}
@@ -644,14 +665,63 @@ export default function CompraForm() {
                   </div>
                 </div>
 
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input
+                      type="email"
+                      value={nuevoProveedor.email}
+                      onChange={(e) => setNuevoProveedor({ ...nuevoProveedor, email: e.target.value })}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="proveedor@email.com"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
+                    <input
+                      type="text"
+                      value={nuevoProveedor.direccion}
+                      onChange={(e) => setNuevoProveedor({ ...nuevoProveedor, direccion: e.target.value })}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Calle 123"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Ciudad</label>
+                    <input
+                      type="text"
+                      value={nuevoProveedor.ciudad}
+                      onChange={(e) => setNuevoProveedor({ ...nuevoProveedor, ciudad: e.target.value })}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Ciudad"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Condición IVA</label>
+                    <select
+                      value={nuevoProveedor.condicion_iva}
+                      onChange={(e) => setNuevoProveedor({ ...nuevoProveedor, condicion_iva: e.target.value })}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="Responsable Inscripto">Responsable Inscripto</option>
+                      <option value="Monotributo">Monotributo</option>
+                      <option value="Exento">Exento</option>
+                      <option value="Consumidor Final">Consumidor Final</option>
+                    </select>
+                  </div>
+                </div>
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <input
-                    type="email"
-                    value={nuevoProveedor.email}
-                    onChange={(e) => setNuevoProveedor({ ...nuevoProveedor, email: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="proveedor@email.com"
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Observaciones</label>
+                  <textarea
+                    value={nuevoProveedor.observaciones}
+                    onChange={(e) => setNuevoProveedor({ ...nuevoProveedor, observaciones: e.target.value })}
+                    rows={2}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    placeholder="Notas adicionales..."
                   />
                 </div>
               </div>
@@ -661,7 +731,17 @@ export default function CompraForm() {
                   type="button"
                   onClick={() => {
                     setShowProveedorModal(false);
-                    setNuevoProveedor({ nombre: '', razon_social: '', cuit: '', telefono: '', email: '' });
+                    setNuevoProveedor({
+                      nombre: '',
+                      razon_social: '',
+                      cuit: '',
+                      telefono: '',
+                      email: '',
+                      direccion: '',
+                      ciudad: '',
+                      condicion_iva: 'Responsable Inscripto',
+                      observaciones: ''
+                    });
                   }}
                   className="flex-1 px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition text-gray-700 font-medium"
                 >

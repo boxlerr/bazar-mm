@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, Filter, Package, AlertTriangle, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, Filter, Package, AlertTriangle, Eye, ChevronLeft, ChevronRight, DollarSign } from 'lucide-react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Producto } from '@/types/producto';
+import { getDolarBlue, getDolarOficial, convertirPrecioADolares } from '@/services/dolarService';
 
 interface TablaStockProps {
   productos: Producto[];
@@ -15,7 +16,25 @@ export default function TablaStock({ productos }: TablaStockProps) {
   const [categoriaFiltro, setCategoriaFiltro] = useState('todos');
   const [stockFiltro, setStockFiltro] = useState('todos');
   const [paginaActual, setPaginaActual] = useState(1);
+  const [dolarBlue, setDolarBlue] = useState<number>(0);
+  const [dolarOficial, setDolarOficial] = useState<number>(0);
   const itemsPorPagina = 15;
+
+  useEffect(() => {
+    const fetchDolar = async () => {
+      try {
+        const [blue, oficial] = await Promise.all([
+          getDolarBlue(),
+          getDolarOficial()
+        ]);
+        setDolarBlue(blue.venta);
+        setDolarOficial(oficial.venta);
+      } catch (error) {
+        console.error("Error fetching dollar rates:", error);
+      }
+    };
+    fetchDolar();
+  }, []);
 
   // Obtener categorías únicas
   const categorias = Array.from(new Set(productos.map(p => p.categoria)));
@@ -49,8 +68,6 @@ export default function TablaStock({ productos }: TablaStockProps) {
       maximumFractionDigits: 2,
     }).format(num);
   };
-
-
 
   const getCategoryColor = (categoria: string) => {
     const colors: { [key: string]: string } = {
@@ -162,7 +179,7 @@ export default function TablaStock({ productos }: TablaStockProps) {
                   Stock
                 </th>
                 <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Precio Venta
+                  Precio Venta (ARS / USD)
                 </th>
                 <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Estado
@@ -240,11 +257,22 @@ export default function TablaStock({ productos }: TablaStockProps) {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
-                        <div className="text-sm font-bold text-gray-900">
+                        <div className="text-sm font-bold text-gray-900 mb-1">
                           ${formatNumber(producto.precio_venta)}
                         </div>
-                        <div className="text-xs text-gray-500">
-                          Costo: ${formatNumber(producto.precio_costo)}
+                        <div className="flex flex-col gap-0.5 items-end">
+                          {dolarBlue > 0 && (
+                            <div className="text-xs font-medium text-blue-600 flex items-center gap-1" title="Dólar Blue">
+                              <span className="text-[10px] text-gray-400 font-normal">Blue:</span>
+                              {formatNumber(producto.precio_venta / dolarBlue)} USD
+                            </div>
+                          )}
+                          {dolarOficial > 0 && (
+                            <div className="text-xs font-medium text-green-600 flex items-center gap-1" title="Dólar Oficial">
+                              <span className="text-[10px] text-gray-400 font-normal">Oficial:</span>
+                              {formatNumber(producto.precio_venta / dolarOficial)} USD
+                            </div>
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShoppingCart,
@@ -23,13 +23,14 @@ import {
   Truck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { createClient } from '@/lib/supabase/client';
+import { useRole } from '@/hooks/useRole';
 
 interface MenuItem {
   name: string;
   href: string;
   icon: React.ElementType;
   submenu?: SubMenuItem[];
+  permission?: string; // Key of permissions object to check
 }
 
 interface SubMenuItem {
@@ -45,12 +46,13 @@ const menuItems: MenuItem[] = [
   { name: 'Stock', href: '/stock', icon: Package },
   { name: 'Clientes', href: '/clientes', icon: Users },
   { name: 'Caja', href: '/caja', icon: Wallet },
-  { name: 'Reportes', href: '/reportes', icon: BarChart3 },
-  { name: 'Usuarios', href: '/usuarios', icon: UserCircle },
+  { name: 'Reportes', href: '/reportes', icon: BarChart3, permission: 'reportes' },
+  { name: 'Usuarios', href: '/usuarios', icon: UserCircle, permission: 'usuarios' },
   {
     name: 'Configuración',
     href: '/configuracion',
     icon: Settings,
+    permission: 'configuracion',
     submenu: [
       { name: 'General', href: '/configuracion', icon: Sliders },
       { name: 'Negocio', href: '/configuracion/empresa', icon: Building2 },
@@ -64,30 +66,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [expandedMenus, setExpandedMenus] = useState<string[]>(['Configuración']);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [user, setUser] = useState<{ email: string; name?: string } | null>(null);
-
-  useEffect(() => {
-    loadUser();
-  }, []);
-
-  const loadUser = async () => {
-    const supabase = createClient();
-    const { data: { user: authUser } } = await supabase.auth.getUser();
-
-    if (authUser) {
-      // Try to get additional user info from usuarios table
-      const { data: userProfile } = await supabase
-        .from('usuarios')
-        .select('nombre, email')
-        .eq('auth_user_id', authUser.id)
-        .single();
-
-      setUser({
-        email: authUser.email || 'usuario@bazar-mm.com',
-        name: userProfile?.nombre || authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Usuario',
-      });
-    }
-  };
+  const { user, permissions, loading } = useRole();
 
   const toggleSubmenu = (menuName: string) => {
     if (!isCollapsed) {
@@ -106,8 +85,18 @@ export default function Sidebar() {
 
   const getUserInitial = () => {
     if (!user) return 'U';
-    return (user.name || user.email || 'U').charAt(0).toUpperCase();
+    return (user.nombre || user.email || 'U').charAt(0).toUpperCase();
   };
+
+  // Filter menu items based on permissions
+  const filteredMenuItems = menuItems.filter(item => {
+    if (!item.permission) return true;
+    // Check specific permission based on item name mapping or generic check
+    if (item.permission === 'configuracion') return permissions?.configuracion?.acceder;
+    if (item.permission === 'usuarios') return permissions?.usuarios?.ver;
+    if (item.permission === 'reportes') return permissions?.reportes?.ver;
+    return true;
+  });
 
   return (
     <aside
@@ -156,7 +145,11 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-1 custom-scrollbar">
-        {menuItems.map((item) => {
+        {loading ? (
+          <div className="flex justify-center py-4">
+            <div className="w-6 h-6 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : filteredMenuItems.map((item) => {
           const isActive = pathname === item.href;
           const hasSubmenu = item.submenu && item.submenu.length > 0;
           const isExpanded = expandedMenus.includes(item.name);
@@ -272,14 +265,14 @@ export default function Sidebar() {
         )}>
           <div
             className="w-9 h-9 rounded-full bg-gradient-to-br from-neutral-700 to-neutral-600 flex items-center justify-center text-white font-bold text-sm shadow-inner flex-shrink-0"
-            title={isCollapsed && user ? user.name || user.email : undefined}
+            title={isCollapsed && user ? user.nombre || user.email : undefined}
           >
             {getUserInitial()}
           </div>
           {!isCollapsed && (
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-white truncate">
-                {user?.name || 'Cargando...'}
+                {user?.nombre || 'Cargando...'}
               </p>
               <p className="text-xs text-neutral-500 truncate">
                 {user?.email || ''}

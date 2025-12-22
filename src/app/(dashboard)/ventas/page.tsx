@@ -4,9 +4,10 @@ import Link from 'next/link';
 import { History } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Punto de Venta | Bazar M&M',
-  description: 'Sistema de facturación y ventas',
+  title: 'Ventas',
 };
+
+
 
 export default function VentasPage() {
   return (

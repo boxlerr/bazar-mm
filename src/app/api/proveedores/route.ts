@@ -1,11 +1,9 @@
 import { NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { createClient } from '@/lib/supabase/server';
 
 export async function GET() {
   try {
-    const cookieStore = await cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => Promise.resolve(cookieStore) });
+    const supabase = await createClient();
 
     const { data, error } = await supabase
       .from('proveedores')
@@ -30,11 +28,10 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const cookieStore = await cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => Promise.resolve(cookieStore) });
+    const supabase = await createClient();
 
     const body = await request.json();
-    const { nombre, razon_social, cuit, telefono, email } = body;
+    const { nombre, razon_social, cuit, telefono, email, direccion, ciudad, condicion_iva, observaciones } = body;
 
     if (!nombre) {
       return NextResponse.json(
@@ -51,6 +48,10 @@ export async function POST(request: Request) {
         cuit,
         telefono,
         email,
+        direccion,
+        ciudad,
+        condicion_iva,
+        observaciones,
         activo: true,
       })
       .select()
@@ -73,8 +74,7 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const cookieStore = await cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => Promise.resolve(cookieStore) });
+    const supabase = await createClient();
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');

@@ -25,45 +25,56 @@ export default function RentabilidadChart({ data }: RentabilidadChartProps) {
                 Rentabilidad Estimada
             </h3>
 
-            <div className="h-64 flex items-end justify-between gap-1 sm:gap-2">
-                {chartData.map((item, index) => {
-                    const heightTotal = (item.venta_total / maxVal) * 100;
-                    const heightGanancia = (item.ganancia / maxVal) * 100;
+            <div className="relative h-64">
+                {/* Background Grid */}
+                <div className="absolute inset-0 flex flex-col justify-between text-xs text-gray-300 pointer-events-none">
+                    <div className="border-b border-gray-100 w-full h-0"></div>
+                    <div className="border-b border-gray-100 w-full h-0"></div>
+                    <div className="border-b border-gray-100 w-full h-0"></div>
+                    <div className="border-b border-gray-100 w-full h-0"></div>
+                    <div className="border-b border-gray-100 w-full h-0"></div>
+                </div>
 
-                    return (
-                        <div key={item.fecha} className="flex-1 flex flex-col items-center gap-2 group/bar">
-                            <div className="relative w-full flex justify-center items-end h-full">
-                                {/* Barra Total Venta (Fondo) */}
-                                <motion.div
-                                    initial={{ height: 0 }}
-                                    animate={{ height: `${heightTotal}%` }}
-                                    className="w-full max-w-[30px] bg-gray-100 rounded-t-sm relative"
-                                >
-                                    {/* Barra Ganancia (Frente) */}
-                                    <motion.div
-                                        initial={{ height: 0 }}
-                                        animate={{ height: `${(item.ganancia / item.venta_total) * 100}%` }}
-                                        transition={{ duration: 0.5, delay: index * 0.05 }}
-                                        className="absolute bottom-0 left-0 right-0 bg-green-500/80 rounded-t-sm"
-                                    />
+                <div className="absolute inset-0 flex items-end justify-around gap-2 px-4">
+                    {chartData.map((item, index) => {
+                        const heightTotal = (item.venta_total / maxVal) * 100;
+                        const heightGanancia = (item.ganancia / maxVal) * 100;
 
-                                    {/* Tooltip */}
-                                    <div className="opacity-0 group-hover/bar:opacity-100 absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-gray-900 text-white text-xs p-2 rounded pointer-events-none z-10 w-max">
-                                        <div className="font-bold">{item.fecha}</div>
-                                        <div>Venta: ${item.venta_total.toLocaleString()}</div>
-                                        <div className="text-green-300">Ganancia: ${item.ganancia.toLocaleString()}</div>
-                                        <div className="text-gray-400">Margen: {item.margen.toFixed(1)}%</div>
+                        return (
+                            <div key={item.fecha} className="flex-1 flex flex-col items-center justify-end h-full group/bar max-w-[60px]">
+                                <div className="relative w-full flex justify-center items-end h-full">
+                                    {/* Barra Total Venta (Fondo) */}
+                                    <div
+                                        style={{ height: `${heightTotal}%` }}
+                                        className="w-full bg-gray-100 rounded-t-md relative transition-all duration-500 hover:bg-gray-200"
+                                    >
+                                        {/* Barra Ganancia (Frente) */}
+                                        <div
+                                            style={{ height: `${(item.ganancia / item.venta_total) * 100}%` }}
+                                            className="absolute bottom-0 left-0 right-0 bg-green-500 rounded-t-md transition-all duration-500 opacity-90"
+                                        />
+
+                                        {/* Tooltip */}
+                                        <div className="opacity-0 group-hover/bar:opacity-100 absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-gray-900 text-white text-xs p-2 rounded shadow-lg pointer-events-none z-20 w-max transition-opacity duration-200">
+                                            <div className="font-bold mb-1">{item.fecha}</div>
+                                            <div className="flex justify-between gap-4"><span>Venta:</span> <span className="font-mono">${item.venta_total.toLocaleString()}</span></div>
+                                            <div className="flex justify-between gap-4 text-green-300"><span>Ganancia:</span> <span className="font-mono">${item.ganancia.toLocaleString()}</span></div>
+                                            <div className="flex justify-between gap-4 text-gray-400 border-t border-gray-700 mt-1 pt-1"><span>Margen:</span> <span className="font-mono">{item.margen.toFixed(1)}%</span></div>
+                                        </div>
                                     </div>
-                                </motion.div>
+                                </div>
+                                <div className="mt-2 text-[10px] text-gray-400 font-medium truncate w-full text-center">
+                                    {item.fecha.split('-')[2]}/{item.fecha.split('-')[1]}
+                                </div>
                             </div>
+                        );
+                    })}
+                    {chartData.length === 0 && (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
+                            No hay datos para calcular rentabilidad
                         </div>
-                    );
-                })}
-                {chartData.length === 0 && (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
-                        No hay datos para calcular rentabilidad
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
             <div className="flex justify-center mt-4 gap-6 text-xs text-gray-500">
                 <div className="flex items-center gap-2">

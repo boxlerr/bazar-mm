@@ -16,7 +16,7 @@ export default function ForgotPasswordPage() {
                     transition={{ duration: 20, repeat: Infinity, repeatType: "reverse", ease: "linear" }}
                     className="absolute inset-0 z-10"
                 >
-                    <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center" />
+                    <div className="absolute inset-0 bg-neutral-900" />
                 </motion.div>
 
                 <div className="relative z-30 flex flex-col justify-between w-full p-12 text-white h-full">
@@ -57,9 +57,16 @@ export default function ForgotPasswordPage() {
                         transition={{ delay: 1.1 }}
                         className="flex items-center gap-6 text-sm text-neutral-400"
                     >
-                        <span>© {new Date().getFullYear()} Bazar M&M</span>
+                        <span>© {new Date().getFullYear()}</span>
                         <span className="w-1.5 h-1.5 rounded-full bg-red-600" />
-                        <span>v1.0.0</span>
+                        <a
+                            href="https://vaxler.com.ar/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:text-white transition-colors hover:underline"
+                        >
+                            Desarrollado por Vaxler
+                        </a>
                     </motion.div>
                 </div>
             </div>

@@ -2,8 +2,9 @@
 
 import { useRouter, usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { LogOut, Bell, Search, Menu, ChevronRight } from 'lucide-react';
+import { LogOut, Search, Menu, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import NotificationsPopover from '@/components/notifications/NotificationsPopover';
 
 export default function Header({ user }: { user: any }) {
   const router = useRouter();
@@ -56,10 +57,7 @@ export default function Header({ user }: { user: any }) {
           <div className="h-6 w-px bg-neutral-200" />
 
           <div className="flex items-center gap-4">
-            <button className="relative p-2 text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 rounded-lg transition-colors">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
-            </button>
+            <NotificationsPopover />
 
             <button
               onClick={handleLogout}

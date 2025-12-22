@@ -4,9 +4,11 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Save, X, Trash2, Package, DollarSign, TrendingUp, Plus, Minus, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
 import { Producto } from '@/types/producto';
+import { useRole } from '@/hooks/useRole';
 
 interface Props {
     params: Promise<{
@@ -21,6 +23,9 @@ export default function ProductoDetallePage({ params }: Props) {
     const [saving, setSaving] = useState(false);
     const [editando, setEditando] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const { permissions } = useRole();
+
+    const [historial, setHistorial] = useState<any[]>([]);
 
     useEffect(() => {
         loadProducto();
@@ -37,6 +42,15 @@ export default function ProductoDetallePage({ params }: Props) {
 
         if (data) {
             setProducto(data);
+            // Cargar historial
+            const { data: movs, error } = await supabase
+                .from('movimientos_stock')
+                .select(`*, usuario:usuarios(nombre)`)
+                .eq('producto_id', id)
+                .order('created_at', { ascending: false })
+                .limit(20);
+
+            if (movs) setHistorial(movs);
         }
         setLoading(false);
     };
@@ -69,7 +83,7 @@ export default function ProductoDetallePage({ params }: Props) {
             await loadProducto();
         } catch (error) {
             console.error('Error al guardar:', error);
-            alert('Error al guardar los cambios');
+            toast.error('Error al guardar los cambios');
         } finally {
             setSaving(false);
         }
@@ -90,7 +104,7 @@ export default function ProductoDetallePage({ params }: Props) {
             router.push('/stock');
         } catch (error) {
             console.error('Error al eliminar:', error);
-            alert('Error al eliminar el producto');
+            toast.error('Error al eliminar el producto');
         }
     };
 
@@ -187,13 +201,15 @@ export default function ProductoDetallePage({ params }: Props) {
                                 >
                                     Editar
                                 </button>
-                                <button
-                                    onClick={() => setShowDeleteModal(true)}
-                                    className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl transition-all font-medium shadow-sm hover:shadow"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                    Eliminar
-                                </button>
+                                {permissions?.productos?.eliminar && (
+                                    <button
+                                        onClick={() => setShowDeleteModal(true)}
+                                        className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl transition-all font-medium shadow-sm hover:shadow"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                        Eliminar
+                                    </button>
+                                )}
                             </>
                         ) : (
                             <>
@@ -528,6 +544,73 @@ export default function ProductoDetallePage({ params }: Props) {
                     </div>
                 )}
             </AnimatePresence>
+            {/* Historial de Movimientos */}
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.4 }}
+                className="bg-white rounded-xl shadow-sm border border-gray-100 p-6"
+            >
+                <div className="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
+                    <div className="bg-purple-50 p-2.5 rounded-lg">
+                        <TrendingUp className="w-5 h-5 text-purple-600" />
+                    </div>
+                    <h2 className="text-lg font-bold text-gray-900">Historial de Movimientos (Kardex)</h2>
+                </div>
+
+                <div className="overflow-x-auto">
+                    <table className="w-full">
+                        <thead>
+                            <tr className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100">
+                                <th className="pb-3 pl-4">Fecha</th>
+                                <th className="pb-3">Tipo</th>
+                                <th className="pb-3">Detalle</th>
+                                <th className="pb-3 text-right">Cantidad</th>
+                                <th className="pb-3 text-right">Stock</th>
+                                <th className="pb-3 text-right pr-4">Usuario</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                            {historial.length === 0 ? (
+                                <tr>
+                                    <td colSpan={6} className="py-8 text-center text-gray-500">
+                                        No hay movimientos registrados recientemente.
+                                    </td>
+                                </tr>
+                            ) : (
+                                historial.map((mov) => (
+                                    <tr key={mov.id} className="hover:bg-gray-50/50 transition-colors">
+                                        <td className="py-3 pl-4 text-sm text-gray-600">
+                                            {new Date(mov.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                        </td>
+                                        <td className="py-3">
+                                            <span className={`text-xs font-bold uppercase px-2 py-1 rounded-full ${mov.tipo === 'venta' ? 'bg-green-100 text-green-700' :
+                                                mov.tipo === 'compra' ? 'bg-blue-100 text-blue-700' :
+                                                    mov.tipo === 'ajuste_manual' ? 'bg-purple-100 text-purple-700' :
+                                                        'bg-gray-100 text-gray-700'
+                                                }`}>
+                                                {mov.tipo.replace('_', ' ')}
+                                            </span>
+                                        </td>
+                                        <td className="py-3 text-sm text-gray-700 max-w-xs truncate" title={mov.motivo}>
+                                            {mov.motivo || '-'}
+                                        </td>
+                                        <td className={`py-3 text-right font-bold ${mov.cantidad > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                            {mov.cantidad > 0 ? '+' : ''}{mov.cantidad}
+                                        </td>
+                                        <td className="py-3 text-right text-sm font-mono text-gray-600">
+                                            {mov.stock_nuevo}
+                                        </td>
+                                        <td className="py-3 text-right pr-4 text-sm text-gray-500">
+                                            {mov.usuario?.nombre || 'Sistema'}
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </motion.div>
         </motion.div>
     );
 }

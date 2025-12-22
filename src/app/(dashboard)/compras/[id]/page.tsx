@@ -4,6 +4,7 @@ import { ArrowLeft, Calendar, DollarSign, FileText, User, CreditCard, Package } 
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import TablaProductosEditable from './TablaProductosEditable';
+import { PurchaseActions } from './PurchaseActions';
 import * as motion from 'framer-motion/client';
 
 export const metadata: Metadata = {
@@ -64,6 +65,9 @@ export default async function DetalleCompraPage({ params }: Props) {
           <ArrowLeft className="w-4 h-4" />
           Volver a Compras
         </Link>
+
+
+
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <div className="flex items-center gap-3 mb-2">
@@ -72,10 +76,10 @@ export default async function DetalleCompraPage({ params }: Props) {
               </h1>
               <span
                 className={`px-3 py-1 text-sm font-bold rounded-full border ${compra.estado === 'completada'
-                    ? 'bg-green-50 text-green-700 border-green-200'
-                    : compra.estado === 'pendiente'
-                      ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
-                      : 'bg-red-50 text-red-700 border-red-200'
+                  ? 'bg-green-50 text-green-700 border-green-200'
+                  : compra.estado === 'pendiente'
+                    ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                    : 'bg-red-50 text-red-700 border-red-200'
                   }`}
               >
                 {compra.estado.toUpperCase()}
@@ -94,6 +98,8 @@ export default async function DetalleCompraPage({ params }: Props) {
               </p>
             </div>
           </div>
+
+          <PurchaseActions id={compra.id} />
         </div>
       </div>
 

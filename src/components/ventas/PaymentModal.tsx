@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, CreditCard, Banknote, Smartphone, Receipt } from 'lucide-react';
+import { X, CreditCard, Banknote, Smartphone, Receipt, AlertCircle, User } from 'lucide-react';
 
 interface PaymentModalProps {
     isOpen: boolean;
@@ -11,6 +11,8 @@ interface PaymentModalProps {
     onConfirm: (method: string) => Promise<void>;
     loading: boolean;
     selectedClient: import('@/types/cliente').Cliente | null;
+    dolarBlue?: number;
+    dolarOficial?: number;
 }
 
 export default function PaymentModal({
@@ -19,7 +21,9 @@ export default function PaymentModal({
     total,
     onConfirm,
     loading,
-    selectedClient
+    selectedClient,
+    dolarBlue = 0,
+    dolarOficial = 0
 }: PaymentModalProps) {
     const [method, setMethod] = useState<string>('efectivo');
     const [pagoCon, setPagoCon] = useState<string>('');
@@ -41,6 +45,14 @@ export default function PaymentModal({
         return new Intl.NumberFormat('es-AR', {
             style: 'currency',
             currency: 'ARS',
+            minimumFractionDigits: 2
+        }).format(amount);
+    };
+
+    const formatUSD = (amount: number) => {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
             minimumFractionDigits: 2
         }).format(amount);
     };
@@ -77,6 +89,26 @@ export default function PaymentModal({
                                 <div className="text-center">
                                     <p className="text-sm text-gray-500 mb-1">Total a Pagar</p>
                                     <p className="text-4xl font-bold text-gray-900">{formatPrice(total)}</p>
+                                    {(dolarBlue || dolarOficial) && (
+                                        <div className="flex justify-center gap-3 mt-2">
+                                            {dolarBlue && (
+                                                <span className="text-blue-600 bg-blue-50 px-2 py-1 rounded-full text-xs font-bold border border-blue-100">
+                                                    Blue: {formatUSD(total / dolarBlue)}
+                                                </span>
+                                            )}
+                                            {dolarOficial && (
+                                                <span className="text-green-600 bg-green-50 px-2 py-1 rounded-full text-xs font-bold border border-green-100">
+                                                    Oficial: {formatUSD(total / dolarOficial)}
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
+                                    {selectedClient && (
+                                        <div className="mt-3 flex items-center justify-center gap-2 text-blue-600 bg-blue-50 py-1 px-3 rounded-full text-sm font-medium mx-auto w-fit">
+                                            <User className="w-4 h-4" />
+                                            <span>Cliente: {selectedClient.nombre}</span>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-3">
@@ -98,6 +130,16 @@ export default function PaymentModal({
                                         </button>
                                     ))}
                                 </div>
+
+                                {method === 'cuenta_corriente' && !selectedClient && (
+                                    <div className="flex items-start gap-3 p-4 bg-amber-50 text-amber-800 rounded-xl border border-amber-200">
+                                        <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                                        <div className="text-sm">
+                                            <p className="font-bold">Cliente Requerido</p>
+                                            <p>Para cobrar con Cuenta Corriente debe seleccionar un cliente primero. Cierre esta ventana y seleccione uno.</p>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {method === 'efectivo' && (
                                     <div className="bg-gray-50 p-4 rounded-xl space-y-3">

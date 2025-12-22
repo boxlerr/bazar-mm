@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { notifyUsers } from '@/lib/notifications';
 
 export type MotivoAjuste = 'inventario' | 'rotura' | 'perdida' | 'regalo' | 'actualizacion' | 'otro';
 
@@ -23,73 +24,87 @@ export async function registrarAjuste(
     // Calcular cantidad real (negativa si es salida)
     const cantidadReal = tipo === 'salida' ? -Math.abs(cantidad) : Math.abs(cantidad);
 
-    const { error } = await supabase
-        .from('ajustes_stock')
-        .insert({
-            producto_id: productoId,
-            usuario_id: user.id,
-            cantidad: cantidadReal,
-            motivo,
-            observaciones
-        });
+    try {
+        // 1. Obtener stock actual
+        const { data: prod, error: prodError } = await supabase
+            .from('productos')
+            .select('stock_actual')
+            .eq('id', productoId)
+            .single();
 
-    if (error) {
+        if (prodError || !prod) throw new Error('Producto no encontrado');
+
+        const stockAnterior = prod.stock_actual;
+        const stockNuevo = stockAnterior + cantidadReal;
+
+        // 2. Actualizar stock producto
+        const { error: updateError } = await supabase
+            .from('productos')
+            .update({ stock_actual: stockNuevo })
+            .eq('id', productoId);
+
+        if (updateError) throw updateError;
+
+        // 3. Registrar en Kardex
+        const { error: kardexError } = await supabase
+            .from('movimientos_stock')
+            .insert({
+                producto_id: productoId,
+                usuario_id: user.id,
+                tipo: 'ajuste_manual',
+                cantidad: cantidadReal,
+                stock_anterior: stockAnterior,
+                stock_nuevo: stockNuevo,
+                motivo: `${motivo} - ${observaciones}`
+            });
+
+        if (kardexError) throw kardexError;
+
+        revalidatePath('/stock');
+
+        // Notificar ajuste
+        await notifyUsers(
+            ['admin'],
+            'Ajuste de Stock',
+            `Ajuste manual (${tipo}) de ${cantidad} unidades en producto. Motivo: ${motivo}`,
+            'warning',
+            'stock',
+            productoId,
+            `/stock/${productoId}`
+        );
+
+        return { success: true };
+    } catch (error: any) {
         console.error('Error al registrar ajuste:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error.message || 'Error al registrar ajuste' };
     }
-
-    revalidatePath('/stock');
-    return { success: true };
 }
 
 export async function obtenerHistorialMovimientos(productoId: string) {
     const supabase = await createClient();
 
-    // 1. Obtener ajustes manuales
-    const { data: ajustes } = await supabase
-        .from('ajustes_stock')
-        .select('*')
+    const { data, error } = await supabase
+        .from('movimientos_stock')
+        .select(`
+            *,
+            usuario:usuarios(nombre)
+        `)
         .eq('producto_id', productoId)
         .order('created_at', { ascending: false });
 
-    // 2. Obtener ventas
-    const { data: ventas } = await supabase
-        .from('venta_items')
-        .select('*, venta:ventas(created_at, nro_ticket)')
-        .eq('producto_id', productoId)
-        .order('created_at', { ascending: false });
+    if (error) {
+        console.error('Error fetching kardex:', error);
+        return [];
+    }
 
-    // 3. Obtener compras
-    const { data: compras } = await supabase
-        .from('compra_items')
-        .select('*, compra:compras(created_at, numero_orden, proveedor:proveedores(nombre))')
-        .eq('producto_id', productoId)
-        .order('created_at', { ascending: false });
-
-    // Unificar y ordenar
-    const movimientos = [
-        ...(ajustes || []).map(a => ({
-            id: a.id,
-            tipo: 'ajuste',
-            cantidad: a.cantidad,
-            fecha: a.created_at,
-            descripcion: `Ajuste: ${a.motivo} - ${a.observaciones || ''}`
-        })),
-        ...(ventas || []).map(v => ({
-            id: v.id,
-            tipo: 'venta',
-            cantidad: -v.cantidad, // Ventas restan
-            fecha: v.venta?.created_at || v.created_at,
-            descripcion: `Venta Ticket #${v.venta?.nro_ticket || 'Borrador'}`
-        })),
-        ...(compras || []).map(c => ({
-            id: c.id,
-            tipo: 'compra',
-            cantidad: c.cantidad, // Compras suman
-            fecha: c.compra?.created_at || c.created_at,
-            descripcion: `Compra a ${(c.compra?.proveedor as any)?.nombre || 'Proveedor'} (Orden #${c.compra?.numero_orden || '?'})`
-        }))
-    ];
-
-    return movimientos.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+    return data.map((m: any) => ({
+        id: m.id,
+        tipo: m.tipo === 'ajuste_manual' ? 'ajuste' : m.tipo,
+        cantidad: m.cantidad,
+        fecha: m.created_at,
+        descripcion: m.motivo || 'Sin descripción',
+        stock_anterior: m.stock_anterior,
+        stock_nuevo: m.stock_nuevo,
+        usuario: m.usuario?.nombre || 'Sistema'
+    }));
 }

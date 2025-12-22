@@ -39,6 +39,8 @@ export default function UsuarioForm({ usuario, onSubmit, onCancel }: UsuarioForm
         nombre: usuario.nombre,
         email: usuario.email,
         telefono: usuario.telefono || '',
+        dni: usuario.dni || '',
+        domicilio: usuario.domicilio || '',
         rol: usuario.rol,
         activo: usuario.activo,
         permisos: usuario.permisos,
@@ -98,6 +100,12 @@ export default function UsuarioForm({ usuario, onSubmit, onCancel }: UsuarioForm
       newErrors.email = 'El email es requerido';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Email inválido';
+    }
+
+    if (!usuario && !formData.password) {
+      newErrors.password = 'La contraseña es requerida';
+    } else if (!usuario && formData.password && formData.password.length < 6) {
+      newErrors.password = 'Mínimo 6 caracteres';
     }
 
     if (!formData.rol) {
@@ -177,74 +185,136 @@ export default function UsuarioForm({ usuario, onSubmit, onCancel }: UsuarioForm
               </p>
             )}
           </div>
+          {errors.email && (
+            <p className="mt-1 text-sm text-red-600 flex items-center">
+              <AlertCircle className="w-3 h-3 mr-1" />
+              {errors.email}
+            </p>
+          )}
+        </div>
 
-          {/* Teléfono */}
+        {/* Contraseña (solo si es nuevo usuario) */}
+        {!usuario && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Teléfono
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Phone className="h-4 w-4 text-gray-400" />
-              </div>
-              <input
-                type="tel"
-                value={formData.telefono || ''}
-                onChange={(e) => handleChange('telefono', e.target.value)}
-                className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                placeholder="Ej: +54 9 11 1234-5678"
-              />
-            </div>
-          </div>
-
-          {/* Rol */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Rol <span className="text-red-500">*</span>
+              Contraseña <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Shield className="h-4 w-4 text-gray-400" />
               </div>
-              <select
-                value={formData.rol || 'vendedor'}
-                onChange={(e) => handleChange('rol', e.target.value)}
-                className={`pl-10 w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 appearance-none ${errors.rol ? 'border-red-500' : 'border-gray-300'
+              <input
+                type="password"
+                value={(formData as any).password || ''}
+                onChange={(e) => handleChange('password', e.target.value)}
+                className={`pl-10 w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 transition-colors ${errors.password ? 'border-red-500 bg-red-50' : 'border-gray-300'
                   }`}
-              >
-                <option value="vendedor">Vendedor</option>
-                <option value="gerente">Gerente</option>
-                <option value="admin">Administrador</option>
-              </select>
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                <ChevronDown className="h-4 w-4 text-gray-400" />
-              </div>
+                placeholder="Mínimo 6 caracteres"
+              />
             </div>
-            {errors.rol && (
-              <p className="mt-1 text-sm text-red-600">{errors.rol}</p>
+            {errors.password && (
+              <p className="mt-1 text-sm text-red-600 flex items-center">
+                <AlertCircle className="w-3 h-3 mr-1" />
+                {errors.password}
+              </p>
             )}
+          </div>
+        )}
+
+        {/* DNI */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            DNI
+          </label>
+          <input
+            type="text"
+            value={formData.dni || ''}
+            onChange={(e) => handleChange('dni', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+            placeholder="Ej: 12.345.678"
+          />
+        </div>
+
+        {/* Teléfono */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Teléfono
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Phone className="h-4 w-4 text-gray-400" />
+            </div>
+            <input
+              type="tel"
+              value={formData.telefono || ''}
+              onChange={(e) => handleChange('telefono', e.target.value)}
+              className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+              placeholder="Ej: +54 9 11 1234-5678"
+            />
           </div>
         </div>
 
-        {/* Estado activo */}
-        <div className="flex items-center p-4 bg-gray-50 rounded-lg border border-gray-200">
-          <div className="flex items-center h-5">
-            <input
-              type="checkbox"
-              id="activo"
-              checked={formData.activo || false}
-              onChange={(e) => handleChange('activo', e.target.checked)}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
-            />
+        {/* Domicilio */}
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Domicilio
+          </label>
+          <input
+            type="text"
+            value={formData.domicilio || ''}
+            onChange={(e) => handleChange('domicilio', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+            placeholder="Ej: Av. Siempreviva 123, Springfield"
+          />
+        </div>
+
+        {/* Rol */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Rol <span className="text-red-500">*</span>
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Shield className="h-4 w-4 text-gray-400" />
+            </div>
+            <select
+              value={formData.rol || 'vendedor'}
+              onChange={(e) => handleChange('rol', e.target.value)}
+              className={`pl-10 w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 appearance-none ${errors.rol ? 'border-red-500' : 'border-gray-300'
+                }`}
+            >
+              <option value="vendedor">Vendedor</option>
+              <option value="gerente">Gerente</option>
+              <option value="admin">Administrador</option>
+            </select>
+            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+              <ChevronDown className="h-4 w-4 text-gray-400" />
+            </div>
           </div>
-          <div className="ml-3 text-sm">
-            <label htmlFor="activo" className="font-medium text-gray-900 cursor-pointer">
-              Usuario activo
-            </label>
-            <p className="text-gray-500">
-              Permitir que este usuario acceda al sistema
-            </p>
-          </div>
+          {errors.rol && (
+            <p className="mt-1 text-sm text-red-600">{errors.rol}</p>
+          )}
+        </div>
+      </div>
+
+      {/* Estado activo */}
+      <div className="flex items-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <div className="flex items-center h-5">
+          <input
+            type="checkbox"
+            id="activo"
+            checked={formData.activo || false}
+            onChange={(e) => handleChange('activo', e.target.checked)}
+            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
+          />
+        </div>
+        <div className="ml-3 text-sm">
+          <label htmlFor="activo" className="font-medium text-gray-900 cursor-pointer">
+            Usuario activo
+          </label>
+          <p className="text-gray-500">
+            Permitir que este usuario acceda al sistema
+          </p>
         </div>
       </div>
 
@@ -344,7 +414,7 @@ export default function UsuarioForm({ usuario, onSubmit, onCancel }: UsuarioForm
           {usuario ? 'Actualizar Usuario' : 'Crear Usuario'}
         </button>
       </div>
-    </form>
+    </form >
   );
 }
 

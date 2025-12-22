@@ -153,7 +153,8 @@ export default function TablaCompras({ compras }: TablaComprasProps) {
                                             initial="hidden"
                                             animate="show"
                                             exit="hidden"
-                                            className="group hover:bg-blue-50/50 transition-colors"
+                                            onClick={() => window.location.href = `/compras/${compra.id}`}
+                                            className="group hover:bg-blue-50/50 transition-colors cursor-pointer"
                                         >
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="flex items-center gap-2">
@@ -192,20 +193,20 @@ export default function TablaCompras({ compras }: TablaComprasProps) {
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span
                                                     className={`px-3 py-1 inline-flex text-xs font-medium rounded-full border ${compra.estado === 'completada'
-                                                            ? 'bg-green-50 text-green-700 border-green-200'
-                                                            : compra.estado === 'pendiente'
-                                                                ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
-                                                                : 'bg-red-50 text-red-700 border-red-200'
+                                                        ? 'bg-green-50 text-green-700 border-green-200'
+                                                        : compra.estado === 'pendiente'
+                                                            ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                                                            : 'bg-red-50 text-red-700 border-red-200'
                                                         }`}
                                                 >
                                                     <span className={`w-1.5 h-1.5 rounded-full mr-2 ${compra.estado === 'completada' ? 'bg-green-500' :
-                                                            compra.estado === 'pendiente' ? 'bg-yellow-500' : 'bg-red-500'
+                                                        compra.estado === 'pendiente' ? 'bg-yellow-500' : 'bg-red-500'
                                                         }`}></span>
                                                     {compra.estado.charAt(0).toUpperCase() + compra.estado.slice(1)}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                                                     {compra.pdf_url && (
                                                         <a
                                                             href={compra.pdf_url}

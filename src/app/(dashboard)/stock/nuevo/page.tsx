@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Save, Package, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
 
@@ -54,7 +55,7 @@ export default function NuevoProductoPage() {
                 .single();
 
             if (existing) {
-                alert('Ya existe un producto con ese código');
+                toast.warning('Ya existe un producto con ese código');
                 setLoading(false);
                 return;
             }
@@ -70,7 +71,7 @@ export default function NuevoProductoPage() {
             router.push(`/stock/${data.id}`);
         } catch (error) {
             console.error('Error al crear producto:', error);
-            alert('Error al crear el producto');
+            toast.error('Error al crear el producto');
             setLoading(false);
         }
     };

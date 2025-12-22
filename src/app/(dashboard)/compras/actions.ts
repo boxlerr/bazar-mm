@@ -4,10 +4,11 @@ import { createActionClient } from '@/lib/supabase/action';
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { CompraItemForm } from '@/types/compra';
+import { notifyUsers } from '@/lib/notifications';
 
 export async function crearCompra(formData: FormData) {
   console.log('🚀 crearCompra: Iniciando server action...');
-  
+
   try {
     // Crear cliente compatible con server actions
     const supabase = await createActionClient();
@@ -15,12 +16,12 @@ export async function crearCompra(formData: FormData) {
 
     // Obtener usuario autenticado
     const { data: { user }, error: userError } = await supabase.auth.getUser();
-    
+
     if (userError || !user) {
       console.error('❌ crearCompra: Error obteniendo usuario:', userError);
       return { success: false, error: 'Usuario no autenticado' };
     }
-    
+
     console.log('✅ crearCompra: Usuario autenticado:', user.email, 'ID:', user.id);
 
     // Extraer datos del FormData
@@ -31,9 +32,9 @@ export async function crearCompra(formData: FormData) {
     const total = parseFloat(formData.get('total') as string);
     const itemsJson = formData.get('items') as string;
     const pdfFile = formData.get('pdf') as File | null;
-    
+
     console.log('📋 crearCompra: Datos extraídos:', { proveedor_id, numero_orden, metodo_pago, total });
-    
+
     const items: CompraItemForm[] = JSON.parse(itemsJson);
     console.log('📦 crearCompra: Items parseados:', items.length);
 
@@ -42,7 +43,7 @@ export async function crearCompra(formData: FormData) {
       console.error('❌ crearCompra: Validación fallida:', { proveedor_id, items_count: items.length });
       return { success: false, error: 'Datos incompletos' };
     }
-    
+
     console.log('✅ crearCompra: Validaciones pasadas');
 
     // Subir PDF si existe
@@ -52,7 +53,7 @@ export async function crearCompra(formData: FormData) {
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('documentos')
         .upload(fileName, pdfFile);
-      
+
       if (!uploadError && uploadData) {
         const { data: urlData } = supabase.storage
           .from('documentos')
@@ -82,7 +83,7 @@ export async function crearCompra(formData: FormData) {
       console.error('❌ crearCompra: Error en DB:', compraError);
       return { success: false, error: 'Error al crear la compra' };
     }
-    
+
     console.log('✅ crearCompra: Compra creada con ID:', compra.id);
 
     // Procesar cada item
@@ -144,7 +145,7 @@ export async function crearCompra(formData: FormData) {
         continue;
       }
 
-      // Actualizar stock del producto
+      // Actualizar stock del producto y registrar en Kardex
       const { data: currentProduct } = await supabase
         .from('productos')
         .select('stock_actual')
@@ -152,28 +153,55 @@ export async function crearCompra(formData: FormData) {
         .single();
 
       if (currentProduct) {
+        const stockAnterior = currentProduct.stock_actual;
+        const stockNuevo = stockAnterior + item.cantidad;
+
         await supabase
           .from('productos')
           .update({
-            stock_actual: currentProduct.stock_actual + item.cantidad,
+            stock_actual: stockNuevo,
             precio_costo: item.precio_costo,
             precio_venta: item.precio_venta,
           })
           .eq('id', producto_id);
+
+        // Registrar en Kardex
+        await supabase.from('movimientos_stock').insert({
+          producto_id,
+          usuario_id: user.id,
+          tipo: 'compra',
+          cantidad: item.cantidad,
+          stock_anterior: stockAnterior,
+          stock_nuevo: stockNuevo,
+          motivo: `Compra Orden #${numero_orden}`,
+          referencia_id: compra.id
+        });
       }
     }
 
     revalidatePath('/compras');
     revalidatePath('/stock');
-    
+
     console.log('✅ crearCompra: Proceso completado exitosamente!');
+
+    // Notificar
+    await notifyUsers(
+      ['admin', 'gerente'],
+      'Nueva Compra',
+      `Compra registrada a proveedor (Orden #${numero_orden}) por $${total}`,
+      'info',
+      'compras',
+      compra.id,
+      `/compras`
+    );
+
     return { success: true, compra_id: compra.id };
-    
+
   } catch (error) {
     console.error('❌ crearCompra: Error capturado:', error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Error desconocido' 
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error desconocido'
     };
   }
 }
@@ -218,4 +246,73 @@ export async function obtenerProveedores() {
   }
 
   return data || [];
+}
+
+export async function eliminarCompra(id: string) {
+  try {
+    const supabase = await createActionClient();
+
+    // 1. Obtener los items de la compra para revertir el stock
+    const { data: items, error: itemsError } = await supabase
+      .from('compra_items')
+      .select('producto_id, cantidad')
+      .eq('compra_id', id);
+
+    if (itemsError) throw new Error('Error al obtener items de la compra');
+
+    // Obtener usuario para el log
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // 2. Revertir el stock de cada producto
+    for (const item of items) {
+      const { data: producto } = await supabase
+        .from('productos')
+        .select('stock_actual')
+        .eq('id', item.producto_id)
+        .single();
+
+      if (producto) {
+        const stockAnterior = producto.stock_actual;
+        const stockNuevo = Math.max(0, stockAnterior - item.cantidad);
+
+        await supabase
+          .from('productos')
+          .update({ stock_actual: stockNuevo })
+          .eq('id', item.producto_id);
+
+        // Registrar en Kardex (Reversión de compra)
+        if (user) {
+          await supabase.from('movimientos_stock').insert({
+            producto_id: item.producto_id,
+            usuario_id: user.id,
+            tipo: 'ajuste_manual', // O 'devolucion' si existiera en el enum
+            cantidad: -item.cantidad,
+            stock_anterior: stockAnterior,
+            stock_nuevo: stockNuevo,
+            motivo: `Anulación Compra (ID: ${id.slice(0, 8)})`,
+            referencia_id: id
+          });
+        }
+      }
+    }
+
+    // 3. Eliminar la compra (los items se eliminan por cascada si está configurado, 
+    // pero por seguridad eliminamos items primero si no hay cascada, aunque aquí asumimos cascada o borrado directo)
+    // Supabase suele manejar cascada si está configurado en la FK. Si no, deberíamos borrar items primero.
+    // Vamos a intentar borrar la compra directamente.
+    const { error: deleteError } = await supabase
+      .from('compras')
+      .delete()
+      .eq('id', id);
+
+    if (deleteError) throw deleteError;
+
+    revalidatePath('/compras');
+    revalidatePath('/stock');
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error eliminando compra:', error);
+    return { success: false, error: 'Error al eliminar la compra' };
+  }
 }

@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { notifyUsers } from '@/lib/notifications';
 
 export async function getCajaState() {
     const supabase = await createClient();
@@ -108,6 +109,17 @@ export async function cerrarCaja(cajaId: string, saldoFinal: number, observacion
     }
 
     revalidatePath('/caja');
+
+    await notifyUsers(
+        ['admin', 'gerente'],
+        'Cierre de Caja',
+        `Se ha cerrado una caja con saldo final: $${saldoFinal}`,
+        'caja',
+        'caja',
+        cajaId,
+        `/caja`
+    );
+
     return { success: true };
 }
 

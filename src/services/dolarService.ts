@@ -1,38 +1,68 @@
-import { getDolarRate, pesosToUSD, usdToPesos } from '@/lib/dolarhoy';
+// Interfaces para la API de DolarAPI
+interface DolarRate {
+  compra: number;
+  venta: number;
+  casa: string;
+  nombre: string;
+  moneda: string;
+  fechaActualizacion: string;
+}
 
-// Cache para almacenar la cotización
-let cachedRate: { value: number; timestamp: number } | null = null;
-const CACHE_DURATION = 1000 * 60 * 60; // 1 hora
+// URL base de la API
+const API_URL = 'https://dolarapi.com/v1/dolares';
 
-// Obtener cotización con caché
-export async function getCotizacionDolar(): Promise<number> {
-  if (cachedRate && Date.now() - cachedRate.timestamp < CACHE_DURATION) {
-    return cachedRate.value;
+// Cache simple
+let cachedRates: { [key: string]: { rate: DolarRate; timestamp: number } } = {};
+const CACHE_DURATION = 1000 * 60 * 5; // 5 minutos
+
+// Función genérica para obtener cotización
+async function fetchRate(type: 'oficial' | 'blue'): Promise<DolarRate> {
+  const now = Date.now();
+
+  if (cachedRates[type] && now - cachedRates[type].timestamp < CACHE_DURATION) {
+    return cachedRates[type].rate;
   }
 
-  const rate = await getDolarRate();
-  cachedRate = {
-    value: rate,
-    timestamp: Date.now(),
-  };
+  try {
+    const response = await fetch(`${API_URL}/${type}`, { next: { revalidate: 300 } });
+    if (!response.ok) throw new Error(`Error fetching ${type} rate`);
 
-  return rate;
+    const rate: DolarRate = await response.json();
+    cachedRates[type] = { rate, timestamp: now };
+
+    return rate;
+  } catch (error) {
+    console.error(`Error obteniendo cotización ${type}:`, error);
+    // Retornar valor fallback o el último conocido si falla
+    if (cachedRates[type]) return cachedRates[type].rate;
+    throw error;
+  }
 }
 
-// Convertir precio de producto a dólares
-export async function convertirPrecioADolares(precioPesos: number): Promise<number> {
-  const rate = await getCotizacionDolar();
-  return pesosToUSD(precioPesos, rate);
+export async function getDolarOficial(): Promise<DolarRate> {
+  return fetchRate('oficial');
 }
 
-// Convertir precio de producto a pesos
-export async function convertirPrecioAPesos(precioDolares: number): Promise<number> {
-  const rate = await getCotizacionDolar();
-  return usdToPesos(precioDolares, rate);
+export async function getDolarBlue(): Promise<DolarRate> {
+  return fetchRate('blue');
 }
 
-// Obtener cotización formateada
-export async function getCotizacionFormateada(): Promise<string> {
-  const rate = await getCotizacionDolar();
-  return `$${rate.toFixed(2)}`;
+// Helpers de conversión (usando Venta Blue por defecto para precios)
+export async function convertirPrecioADolares(precioPesos: number, tipo: 'oficial' | 'blue' = 'blue'): Promise<number> {
+  try {
+    const rate = await fetchRate(tipo);
+    if (rate.venta === 0) return 0;
+    return Number((precioPesos / rate.venta).toFixed(2));
+  } catch {
+    return 0;
+  }
+}
+
+export async function convertirPrecioAPesos(precioDolares: number, tipo: 'oficial' | 'blue' = 'blue'): Promise<number> {
+  try {
+    const rate = await fetchRate(tipo);
+    return Math.ceil(precioDolares * rate.venta);
+  } catch {
+    return 0;
+  }
 }

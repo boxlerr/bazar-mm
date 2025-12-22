@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { Proveedor } from '@/types/proveedor';
+import { notifyUsers } from '@/lib/notifications';
 
 export async function obtenerProveedores() {
     const supabase = await createClient();
@@ -21,6 +22,20 @@ export async function obtenerProveedores() {
     return { success: true, data: data as Proveedor[] };
 }
 
+export async function reactivateSupplier(nombre: string) {
+    const supabase = await createClient();
+
+    const { error } = await supabase
+        .from('proveedores')
+        .update({ activo: true })
+        .eq('nombre', nombre);
+
+    if (error) return { success: false, error: error.message };
+
+    revalidatePath('/proveedores');
+    return { success: true };
+}
+
 export async function crearProveedor(data: Partial<Proveedor>) {
     const supabase = await createClient();
 
@@ -37,6 +52,18 @@ export async function crearProveedor(data: Partial<Proveedor>) {
     }
 
     revalidatePath('/proveedores');
+
+    // Notificar
+    await notifyUsers(
+        ['admin', 'gerente'],
+        'Nuevo Proveedor',
+        `Se ha registrado al proveedor ${data.nombre}`,
+        'info',
+        'proveedores',
+        undefined,
+        `/proveedores`
+    );
+
     return { success: true };
 }
 
@@ -60,10 +87,10 @@ export async function actualizarProveedor(id: string, data: Partial<Proveedor>) 
 export async function eliminarProveedor(id: string) {
     const supabase = await createClient();
 
-    // Soft delete
+    // Hard delete (eliminar de la DB)
     const { error } = await supabase
         .from('proveedores')
-        .update({ activo: false })
+        .delete()
         .eq('id', id);
 
     if (error) {
@@ -73,4 +100,21 @@ export async function eliminarProveedor(id: string) {
 
     revalidatePath('/proveedores');
     return { success: true };
+}
+
+export async function getComprasByProveedor(proveedorId: string) {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+        .from('compras')
+        .select('*')
+        .eq('proveedor_id', proveedorId)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Error al obtener compras del proveedor:', error);
+        return [];
+    }
+
+    return data;
 }
