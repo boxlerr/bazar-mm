@@ -130,28 +130,6 @@ export async function processSale(saleData: {
           venta_id: venta.id
         });
       }
-    } else if (saleData.metodo_pago === 'cuenta_corriente' && saleData.cliente_id) {
-      // 5. Si es cuenta corriente, actualizar saldo cliente
-      const { data: cliente } = await supabase
-        .from('clientes')
-        .select('saldo_cuenta_corriente')
-        .eq('id', saleData.cliente_id)
-        .single();
-
-      const nuevoSaldo = (cliente?.saldo_cuenta_corriente || 0) + saleData.total;
-
-      await supabase
-        .from('clientes')
-        .update({ saldo_cuenta_corriente: nuevoSaldo })
-        .eq('id', saleData.cliente_id);
-
-      await supabase.from('movimientos_cuenta_corriente').insert({
-        cliente_id: saleData.cliente_id,
-        tipo: 'debito', // Venta es un débito (aumenta la deuda)
-        monto: saleData.total,
-        descripcion: `Compra Ticket #${venta.nro_ticket}`,
-        venta_id: venta.id
-      });
     }
 
     revalidatePath('/ventas');

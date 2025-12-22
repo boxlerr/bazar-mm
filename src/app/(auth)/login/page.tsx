@@ -17,7 +17,7 @@ export default function LoginPage() {
           transition={{ duration: 20, repeat: Infinity, repeatType: "reverse", ease: "linear" }}
           className="absolute inset-0 z-10"
         >
-          <div className="absolute inset-0 bg-[url('/login-bg.png')] bg-cover bg-center" />
+          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center" />
         </motion.div>
 
         <div className="relative z-30 flex flex-col justify-between w-full p-12 text-white h-full">

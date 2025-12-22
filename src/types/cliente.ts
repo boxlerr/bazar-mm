@@ -11,13 +11,3 @@ export interface Cliente {
   created_at: string;
   updated_at: string;
 }
-
-export interface MovimientoCuentaCorriente {
-  id: string;
-  cliente_id: string;
-  tipo: 'debito' | 'credito';
-  monto: number;
-  descripcion: string;
-  venta_id?: string;
-  created_at: string;
-}

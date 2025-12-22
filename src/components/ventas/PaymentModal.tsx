@@ -10,7 +10,6 @@ interface PaymentModalProps {
     total: number;
     onConfirm: (method: string) => Promise<void>;
     loading: boolean;
-    selectedClient: import('@/types/cliente').Cliente | null;
 }
 
 export default function PaymentModal({
@@ -18,8 +17,7 @@ export default function PaymentModal({
     onClose,
     total,
     onConfirm,
-    loading,
-    selectedClient
+    loading
 }: PaymentModalProps) {
     const [method, setMethod] = useState<string>('efectivo');
     const [pagoCon, setPagoCon] = useState<string>('');
@@ -126,11 +124,7 @@ export default function PaymentModal({
 
                                 <button
                                     onClick={handleConfirm}
-                                    disabled={
-                                        loading ||
-                                        (method === 'efectivo' && parseFloat(pagoCon || '0') < total) ||
-                                        (method === 'cuenta_corriente' && !selectedClient)
-                                    }
+                                    disabled={loading || (method === 'efectivo' && parseFloat(pagoCon || '0') < total)}
                                     className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-3.5 rounded-xl font-bold text-lg shadow-lg shadow-blue-200 hover:shadow-xl transition-all active:scale-[0.98]"
                                 >
                                     {loading ? 'Procesando...' : 'Confirmar e Imprimir Ticket'}

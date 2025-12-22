@@ -8,8 +8,6 @@ import { processSale, searchProducts } from '@/app/(dashboard)/ventas/actions';
 // Revisando archivos anteriores, vi BotonImprimirTicket que usa PrinterService.
 // Vamos a crear un servicio simple de impresión si no lo encuentro fácil, pero mejor uso fetch directo al 3001.
 
-import { Cliente } from '@/types/cliente';
-
 export interface CartItem extends Producto {
     cantidad: number;
     subtotal: number;
@@ -22,9 +20,6 @@ export function usePOS() {
     const [searchResults, setSearchResults] = useState<Producto[]>([]);
     const [isSearching, setIsSearching] = useState(false);
     const [isInitialized, setIsInitialized] = useState(false);
-
-    // Cliente seleccionado para la venta
-    const [selectedClient, setSelectedClient] = useState<Cliente | null>(null);
 
     // Cargar carrito desde localStorage al inicio
     useEffect(() => {
@@ -111,13 +106,13 @@ export function usePOS() {
     };
 
     // Procesar venta
-    const checkout = async (paymentMethod: string) => {
+    const checkout = async (paymentMethod: string, clienteId?: string) => {
         if (cart.length === 0) return;
         setLoading(true);
 
         try {
             const saleData = {
-                cliente_id: selectedClient?.id,
+                cliente_id: clienteId,
                 items: cart.map(item => ({
                     producto_id: item.id,
                     cantidad: item.cantidad,
@@ -211,8 +206,6 @@ export function usePOS() {
         updateQuantity,
         checkout,
         isCajaOpen,
-        checkCajaStatus,
-        selectedClient,
-        setSelectedClient
+        checkCajaStatus
     };
 }
