@@ -144,7 +144,7 @@ export async function crearCompra(formData: FormData) {
         continue;
       }
 
-      // Actualizar stock del producto
+      // Actualizar stock del producto y registrar en Kardex
       const { data: currentProduct } = await supabase
         .from('productos')
         .select('stock_actual')
@@ -152,14 +152,29 @@ export async function crearCompra(formData: FormData) {
         .single();
 
       if (currentProduct) {
+        const stockAnterior = currentProduct.stock_actual;
+        const stockNuevo = stockAnterior + item.cantidad;
+
         await supabase
           .from('productos')
           .update({
-            stock_actual: currentProduct.stock_actual + item.cantidad,
+            stock_actual: stockNuevo,
             precio_costo: item.precio_costo,
             precio_venta: item.precio_venta,
           })
           .eq('id', producto_id);
+
+        // Registrar en Kardex
+        await supabase.from('movimientos_stock').insert({
+          producto_id,
+          usuario_id: user.id,
+          tipo: 'compra',
+          cantidad: item.cantidad,
+          stock_anterior: stockAnterior,
+          stock_nuevo: stockNuevo,
+          motivo: `Compra Orden #${numero_orden}`,
+          referencia_id: compra.id
+        });
       }
     }
 
@@ -232,6 +247,9 @@ export async function eliminarCompra(id: string) {
 
     if (itemsError) throw new Error('Error al obtener items de la compra');
 
+    // Obtener usuario para el log
+    const { data: { user } } = await supabase.auth.getUser();
+
     // 2. Revertir el stock de cada producto
     for (const item of items) {
       const { data: producto } = await supabase
@@ -241,10 +259,27 @@ export async function eliminarCompra(id: string) {
         .single();
 
       if (producto) {
+        const stockAnterior = producto.stock_actual;
+        const stockNuevo = Math.max(0, stockAnterior - item.cantidad);
+
         await supabase
           .from('productos')
-          .update({ stock_actual: Math.max(0, producto.stock_actual - item.cantidad) })
+          .update({ stock_actual: stockNuevo })
           .eq('id', item.producto_id);
+
+        // Registrar en Kardex (Reversión de compra)
+        if (user) {
+          await supabase.from('movimientos_stock').insert({
+            producto_id: item.producto_id,
+            usuario_id: user.id,
+            tipo: 'ajuste_manual', // O 'devolucion' si existiera en el enum
+            cantidad: -item.cantidad,
+            stock_anterior: stockAnterior,
+            stock_nuevo: stockNuevo,
+            motivo: `Anulación Compra (ID: ${id.slice(0, 8)})`,
+            referencia_id: id
+          });
+        }
       }
     }
 

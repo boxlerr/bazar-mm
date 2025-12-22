@@ -55,7 +55,36 @@ const item = {
     show: { opacity: 1, y: 0 }
 };
 
+import { useState } from 'react';
+import { toast } from 'sonner';
+
 export default function ConfiguracionContent() {
+    const [downloading, setDownloading] = useState(false);
+
+    const handleDownloadBackup = async () => {
+        setDownloading(true);
+        try {
+            const response = await fetch('/api/backup');
+            if (!response.ok) throw new Error('Error generando backup');
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `backup-bazar-mm-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            toast.success('Backup descargado correctamente');
+        } catch (error) {
+            console.error('Backup error:', error);
+            toast.error('Error al descargar el backup');
+        } finally {
+            setDownloading(false);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gray-50/50 p-6 md:p-8">
             <div className="max-w-6xl mx-auto">
@@ -147,9 +176,22 @@ export default function ConfiguracionContent() {
                         </div>
 
                         <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
-                            <button className="flex items-center justify-center gap-2 px-6 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold transition-all shadow-lg shadow-emerald-900/20 hover:shadow-emerald-900/40 hover:-translate-y-0.5 active:translate-y-0">
-                                <Download className="w-5 h-5" />
-                                Descargar Backup
+                            <button
+                                onClick={handleDownloadBackup}
+                                disabled={downloading}
+                                className="flex items-center justify-center gap-2 px-6 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold transition-all shadow-lg shadow-emerald-900/20 hover:shadow-emerald-900/40 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {downloading ? (
+                                    <>
+                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        Generando...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Download className="w-5 h-5" />
+                                        Descargar Backup
+                                    </>
+                                )}
                             </button>
 
                             <button className="flex items-center justify-center gap-2 px-6 py-4 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium transition-all backdrop-blur-sm">
