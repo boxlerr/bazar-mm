@@ -23,11 +23,11 @@ export async function getEmpresaConfig(): Promise<EmpresaConfig> {
             .single();
 
         if (error) {
-            // Si el error es que no hay filas, devolvemos default
-            if (error.code === 'PGRST116') {
+            // Si el error es que no hay filas (PGRST116), la tabla no existe (42P01) o no está en caché (PGRST205)
+            if (error.code === 'PGRST116' || error.code === '42P01' || error.code === 'PGRST205') {
                 return DEFAULT_CONFIG;
             }
-            console.error('Error fetching config:', error);
+            console.error('Error fetching config:', JSON.stringify(error, null, 2));
             return DEFAULT_CONFIG;
         }
 

@@ -26,8 +26,13 @@ export async function getNotificacionesConfig(): Promise<NotificacionesConfig> {
             .single();
 
         if (error) {
-            if (error.code === 'PGRST116') return DEFAULT_NOTIF_CONFIG;
-            console.error('Error fetching notif config:', error);
+            // PGRST116: JSON object requested, multiple (or no) rows returned
+            // 42P01: relation "configuracion" does not exist
+            // PGRST205: relation not found in schema cache
+            if (error.code === 'PGRST116' || error.code === '42P01' || error.code === 'PGRST205') {
+                return DEFAULT_NOTIF_CONFIG;
+            }
+            console.error('Error fetching notif config:', JSON.stringify(error, null, 2));
             return DEFAULT_NOTIF_CONFIG;
         }
 
