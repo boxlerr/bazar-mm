@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { Usuario, PERMISOS_POR_ROL } from '@/types/usuario';
 import { revalidatePath } from 'next/cache';
+import { notifyUsers } from '@/lib/notifications';
 
 export async function obtenerUsuarios() {
   try {
@@ -111,6 +112,18 @@ export async function crearUsuario(usuario: Partial<Usuario> & { password?: stri
     }
 
     revalidatePath('/usuarios');
+
+    // Notificar
+    await notifyUsers(
+      ['admin'],
+      'Nuevo Usuario',
+      `Se ha creado el usuario ${usuario.nombre} (${usuario.rol})`,
+      'info',
+      'usuarios',
+      authUser.user.id,
+      `/usuarios`
+    );
+
     // Devolvemos el usuario completo con los permisos calculados
     return {
       success: true,

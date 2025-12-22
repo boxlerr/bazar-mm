@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { notifyUsers } from '@/lib/notifications';
 
 export type MotivoAjuste = 'inventario' | 'rotura' | 'perdida' | 'regalo' | 'actualizacion' | 'otro';
 
@@ -60,6 +61,18 @@ export async function registrarAjuste(
         if (kardexError) throw kardexError;
 
         revalidatePath('/stock');
+
+        // Notificar ajuste
+        await notifyUsers(
+            ['admin'],
+            'Ajuste de Stock',
+            `Ajuste manual (${tipo}) de ${cantidad} unidades en producto. Motivo: ${motivo}`,
+            'warning',
+            'stock',
+            productoId,
+            `/stock/${productoId}`
+        );
+
         return { success: true };
     } catch (error: any) {
         console.error('Error al registrar ajuste:', error);

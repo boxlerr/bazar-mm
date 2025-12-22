@@ -3,9 +3,24 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { MovimientoCuentaCorriente } from '@/types/cliente';
+import { notifyUsers } from '@/lib/notifications';
+
+async function getActorName(supabase: any) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return 'Alguien';
+
+    const { data: perfil } = await supabase
+        .from('usuarios')
+        .select('nombre')
+        .eq('id', user.id)
+        .single();
+
+    return perfil?.nombre || 'Alguien';
+}
 
 export async function crearCliente(formData: FormData) {
     const supabase = await createClient();
+    const actorName = await getActorName(supabase);
 
     const clienteData = {
         nombre: formData.get('nombre'),
@@ -15,11 +30,22 @@ export async function crearCliente(formData: FormData) {
         direccion: formData.get('direccion'),
     };
 
-    const { error } = await supabase.from('clientes').insert(clienteData);
+    const { data, error } = await supabase.from('clientes').insert(clienteData).select('id').single();
 
     if (error) {
         return { success: false, error: error.message };
     }
+
+    // Notificar nuevo cliente
+    await notifyUsers(
+        ['admin', 'gerente', 'vendedor'],
+        'Nuevo Cliente',
+        `${actorName} ha registrado al cliente ${clienteData.nombre}`,
+        'info',
+        'clientes',
+        data.id,
+        `/clientes/${data.id}`
+    );
 
     revalidatePath('/clientes');
     return { success: true };
@@ -107,15 +133,12 @@ export async function registrarPago(
     }
 
     try {
-        // 1. Registrar movimiento en Cuenta Corriente (Crédito = Baja deuda/Sube saldo a favor, pero aquí "Saldo" es deuda normalmente en sistemas simples? 
-        //    Depende: Si Saldo > 0 es Deuda del cliente.
-        //    Si cliente paga, Saldo baja.
-        //    Credito = Resta al saldo deudor.
+        const actorName = await getActorName(supabase);
 
-        // Obtener saldo actual
+        // 1. Registrar movimiento en Cuenta Corriente
         const { data: cliente } = await supabase
             .from('clientes')
-            .select('saldo_cuenta_corriente')
+            .select('saldo_cuenta_corriente, nombre')
             .eq('id', clienteId)
             .single();
 
@@ -131,7 +154,7 @@ export async function registrarPago(
         // 2. Registrar el movimiento histórico
         await supabase.from('movimientos_cuenta_corriente').insert({
             cliente_id: clienteId,
-            tipo: 'credito', // Cliente paga, es un crédito a su cuenta
+            tipo: 'credito',
             monto: monto,
             descripcion: `Pago recibido (${metodoPago}). ${notas || ''}`
         });
@@ -143,6 +166,17 @@ export async function registrarPago(
             concepto: `Pago Cliente #${clienteId.slice(0, 8)}`,
             monto: monto
         });
+
+        // Notificar pago
+        await notifyUsers(
+            ['admin', 'gerente'],
+            'Pago Recibido',
+            `${actorName} registró un pago de $${monto} del cliente ${cliente?.nombre || 'Desconocido'}`,
+            'success',
+            'clientes',
+            clienteId,
+            `/clientes/${clienteId}`
+        );
 
         revalidatePath(`/clientes/${clienteId}`);
         revalidatePath('/clientes');
@@ -156,10 +190,7 @@ export async function registrarPago(
 
 export async function eliminarCliente(id: string) {
     const supabase = await createClient();
-
-    // Check if client has active current account balance or movements?
-    // For now, we'll just do a soft delete if possible, but the table might not have 'activo'.
-    // Checked types/cliente.ts, it HAS 'activo'. So we do soft delete.
+    const actorName = await getActorName(supabase);
 
     const { error } = await supabase
         .from('clientes')
@@ -170,6 +201,16 @@ export async function eliminarCliente(id: string) {
         console.error('Error al eliminar cliente:', error);
         return { success: false, error: error.message };
     }
+
+    // Notificar eliminación
+    await notifyUsers(
+        ['admin', 'gerente'],
+        'Cliente Eliminado',
+        `${actorName} ha eliminado (archivado) un cliente.`,
+        'warning',
+        'clientes',
+        id
+    );
 
     revalidatePath('/clientes');
     return { success: true };

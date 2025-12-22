@@ -4,6 +4,7 @@ import { createActionClient } from '@/lib/supabase/action';
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { CompraItemForm } from '@/types/compra';
+import { notifyUsers } from '@/lib/notifications';
 
 export async function crearCompra(formData: FormData) {
   console.log('🚀 crearCompra: Iniciando server action...');
@@ -182,6 +183,18 @@ export async function crearCompra(formData: FormData) {
     revalidatePath('/stock');
 
     console.log('✅ crearCompra: Proceso completado exitosamente!');
+
+    // Notificar
+    await notifyUsers(
+      ['admin', 'gerente'],
+      'Nueva Compra',
+      `Compra registrada a proveedor (Orden #${numero_orden}) por $${total}`,
+      'info',
+      'compras',
+      compra.id,
+      `/compras`
+    );
+
     return { success: true, compra_id: compra.id };
 
   } catch (error) {

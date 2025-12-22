@@ -13,6 +13,7 @@ export default async function ClientesPage() {
   const { data: clientes } = await supabase
     .from('clientes')
     .select('*')
+    .eq('activo', true)
     .order('nombre');
 
   return (

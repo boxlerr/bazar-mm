@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { Proveedor } from '@/types/proveedor';
+import { notifyUsers } from '@/lib/notifications';
 
 export async function obtenerProveedores() {
     const supabase = await createClient();
@@ -51,6 +52,18 @@ export async function crearProveedor(data: Partial<Proveedor>) {
     }
 
     revalidatePath('/proveedores');
+
+    // Notificar
+    await notifyUsers(
+        ['admin', 'gerente'],
+        'Nuevo Proveedor',
+        `Se ha registrado al proveedor ${data.nombre}`,
+        'info',
+        'proveedores',
+        undefined,
+        `/proveedores`
+    );
+
     return { success: true };
 }
 

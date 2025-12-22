@@ -115,7 +115,9 @@ export async function cerrarCaja(cajaId: string, saldoFinal: number, observacion
         'Cierre de Caja',
         `Se ha cerrado una caja con saldo final: $${saldoFinal}`,
         'caja',
-        cajaId
+        'caja',
+        cajaId,
+        `/caja`
     );
 
     return { success: true };

@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { Producto } from '@/types';
+import { notifyUsers } from '@/lib/notifications';
 
 export async function searchProducts(query: string) {
   const supabase = await createClient();
@@ -117,6 +118,19 @@ export async function processSale(saleData: {
           .eq('id', item.producto_id);
       }
 
+      // Verificar stock bajo y notificar
+      if (stockNuevo <= (prod?.stock_minimo || 5)) {
+        await notifyUsers(
+          ['admin', 'gerente', 'vendedor'],
+          'Stock Bajo',
+          `El producto ${item.producto_id} tiene stock bajo (${stockNuevo} unidades)`,
+          'warning',
+          'stock',
+          item.producto_id,
+          `/stock/${item.producto_id}`
+        );
+      }
+
       // Registrar movimiento en Kardex
       await supabase.from('movimientos_stock').insert({
         producto_id: item.producto_id,
@@ -176,6 +190,17 @@ export async function processSale(saleData: {
     revalidatePath('/ventas');
     revalidatePath('/stock');
     revalidatePath('/reportes');
+
+    // Notificar a Admin y Gerente
+    await notifyUsers(
+      ['admin', 'gerente'],
+      'Nueva Venta',
+      `Venta registrada por $${saleData.total} (Ticket #${venta.nro_ticket})`,
+      'success',
+      'ventas',
+      venta.id,
+      `/ventas/${venta.id}`
+    );
 
     return { success: true, venta };
   } catch (error: any) {

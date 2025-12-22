@@ -1,20 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Bell, Check, Trash2, X } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Bell, Check, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
 interface Notification {
     id: string;
-    title: string;
-    message: string;
-    type: 'info' | 'warning' | 'success' | 'error';
-    read: boolean;
+    titulo: string;
+    mensaje: string;
+    tipo: 'info' | 'warning' | 'success' | 'error';
+    leida: boolean;
     created_at: string;
     link?: string;
 }
@@ -23,32 +24,88 @@ export default function NotificationsPopover() {
     const [isOpen, setIsOpen] = useState(false);
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
+    const [loading, setLoading] = useState(true);
     const supabase = createClient();
+    const router = useRouter();
+
+    const fetchNotifications = useCallback(async () => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            const { data, error } = await supabase
+                .from('notificaciones')
+                .select('*')
+                .eq('usuario_id', user.id)
+                .order('created_at', { ascending: false })
+                .limit(20);
+
+            if (error) throw error;
+
+            setNotifications(data || []);
+            setUnreadCount(data?.filter(n => !n.leida).length || 0);
+        } catch (error) {
+            console.error('Error fetching notifications:', error);
+        } finally {
+            setLoading(false);
+        }
+    }, []); // Removed supabase dependency to prevent infinite loop
 
     useEffect(() => {
-        // Mock notifications for now, or fetch from DB if table exists
-        // For now we'll just show a "System Ready" notification
-        setNotifications([
-            {
-                id: '1',
-                title: 'Sistema Actualizado',
-                message: 'Las copias de seguridad y el historial de stock están activos.',
-                type: 'success',
-                read: false,
-                created_at: new Date().toISOString(),
-            }
-        ]);
-        setUnreadCount(1);
-    }, []);
+        fetchNotifications();
 
-    const markAsRead = (id: string) => {
-        setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+        // Polling every 30 seconds
+        const interval = setInterval(fetchNotifications, 30000);
+
+        return () => clearInterval(interval);
+    }, [fetchNotifications]);
+
+    const markAsRead = async (id: string) => {
+        // Optimistic update
+        setNotifications(prev => prev.map(n => n.id === id ? { ...n, leida: true } : n));
         setUnreadCount(prev => Math.max(0, prev - 1));
+
+        try {
+            await supabase
+                .from('notificaciones')
+                .update({ leida: true })
+                .eq('id', id);
+        } catch (error) {
+            console.error('Error marking as read:', error);
+        }
     };
 
-    const clearAll = () => {
+    const handleNotificationClick = async (notification: Notification) => {
+        if (!notification.leida) {
+            await markAsRead(notification.id);
+        }
+
+        setIsOpen(false);
+
+        if (notification.link) {
+            router.push(notification.link);
+        }
+    };
+
+    const clearAll = async () => {
+        // Optimistic update
         setNotifications([]);
         setUnreadCount(0);
+
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            await supabase
+                .from('notificaciones')
+                .delete()
+                .eq('usuario_id', user.id);
+
+            toast.success('Notificaciones borradas');
+        } catch (error) {
+            console.error('Error clearing notifications:', error);
+            toast.error('Error al borrar notificaciones');
+        }
     };
 
     return (
@@ -59,7 +116,7 @@ export default function NotificationsPopover() {
             >
                 <Bell className="w-5 h-5" />
                 {unreadCount > 0 && (
-                    <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
+                    <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white animate-pulse" />
                 )}
             </button>
 
@@ -75,7 +132,7 @@ export default function NotificationsPopover() {
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: 10, scale: 0.95 }}
                             transition={{ duration: 0.2 }}
-                            className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-neutral-200 z-50 overflow-hidden"
+                            className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-xl border border-neutral-200 z-50 overflow-hidden"
                         >
                             <div className="flex items-center justify-between p-4 border-b border-neutral-100 bg-neutral-50/50">
                                 <h3 className="font-semibold text-sm text-neutral-900">Notificaciones</h3>
@@ -90,8 +147,13 @@ export default function NotificationsPopover() {
                                 )}
                             </div>
 
-                            <div className="max-h-[400px] overflow-y-auto">
-                                {notifications.length === 0 ? (
+                            <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
+                                {loading ? (
+                                    <div className="p-8 text-center text-neutral-400">
+                                        <div className="w-6 h-6 border-2 border-neutral-300 border-t-red-500 rounded-full animate-spin mx-auto mb-2"></div>
+                                        <p className="text-xs">Cargando...</p>
+                                    </div>
+                                ) : notifications.length === 0 ? (
                                     <div className="p-8 text-center text-neutral-500">
                                         <Bell className="w-8 h-8 mx-auto mb-3 text-neutral-300" />
                                         <p className="text-sm">No tienes notificaciones</p>
@@ -101,34 +163,38 @@ export default function NotificationsPopover() {
                                         {notifications.map((notification) => (
                                             <div
                                                 key={notification.id}
+                                                onClick={() => handleNotificationClick(notification)}
                                                 className={cn(
-                                                    "p-4 hover:bg-neutral-50 transition-colors relative group",
-                                                    !notification.read && "bg-blue-50/30"
+                                                    "p-4 hover:bg-neutral-50 transition-colors relative group cursor-pointer",
+                                                    !notification.leida && "bg-blue-50/30"
                                                 )}
                                             >
                                                 <div className="flex gap-3">
                                                     <div className={cn(
                                                         "w-2 h-2 mt-1.5 rounded-full shrink-0",
-                                                        notification.type === 'success' && "bg-green-500",
-                                                        notification.type === 'warning' && "bg-yellow-500",
-                                                        notification.type === 'error' && "bg-red-500",
-                                                        notification.type === 'info' && "bg-blue-500",
+                                                        notification.tipo === 'success' && "bg-green-500",
+                                                        notification.tipo === 'warning' && "bg-yellow-500",
+                                                        notification.tipo === 'error' && "bg-red-500",
+                                                        notification.tipo === 'info' && "bg-blue-500",
                                                     )} />
                                                     <div className="flex-1 space-y-1">
                                                         <div className="flex justify-between items-start">
-                                                            <p className="text-sm font-medium text-neutral-900 leading-none">
-                                                                {notification.title}
+                                                            <p className={cn(
+                                                                "text-sm text-neutral-900 leading-none",
+                                                                !notification.leida ? "font-semibold" : "font-medium"
+                                                            )}>
+                                                                {notification.titulo}
                                                             </p>
-                                                            <span className="text-[10px] text-neutral-400">
+                                                            <span className="text-[10px] text-neutral-400 whitespace-nowrap ml-2">
                                                                 {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true, locale: es })}
                                                             </span>
                                                         </div>
-                                                        <p className="text-xs text-neutral-500 leading-relaxed">
-                                                            {notification.message}
+                                                        <p className="text-xs text-neutral-500 leading-relaxed line-clamp-2">
+                                                            {notification.mensaje}
                                                         </p>
                                                     </div>
                                                 </div>
-                                                {!notification.read && (
+                                                {!notification.leida && (
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
@@ -145,10 +211,19 @@ export default function NotificationsPopover() {
                                     </div>
                                 )}
                             </div>
+                            <div className="p-2 border-t border-neutral-100 bg-neutral-50/50 text-center">
+                                <a
+                                    href="/notificaciones"
+                                    className="text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors inline-flex items-center gap-1"
+                                    onClick={() => setIsOpen(false)}
+                                >
+                                    Ver todas las notificaciones
+                                </a>
+                            </div>
                         </motion.div>
                     </>
                 )}
             </AnimatePresence>
-        </div>
+        </div >
     );
 }
