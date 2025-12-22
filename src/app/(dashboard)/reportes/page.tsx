@@ -14,8 +14,7 @@ import {
 } from './actions';
 
 export const metadata: Metadata = {
-  title: 'Reportes | Bazar M&M',
-  description: 'Panel de reportes y exportaciones',
+  title: 'Reportes',
 };
 
 // Forzar renderizado dinámico para tener datos frescos

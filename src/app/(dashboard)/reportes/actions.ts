@@ -144,9 +144,14 @@ export async function getMovimientosCajaReport(startDate?: Date, endDate?: Date)
 export async function getVentasReport(startDate?: Date, endDate?: Date) {
     const supabase = await createClient();
 
+    // 1. Fetch users for mapping
+    const { data: usuarios } = await supabase.from('usuarios').select('id, nombre');
+    const usuariosMap = new Map(usuarios?.map((u: any) => [u.id, u.nombre]));
+
+    // 2. Fetch sales with clients and items
     let query = supabase
         .from('ventas')
-        .select('*, venta_items(*, productos(*))')
+        .select('*, clientes(nombre), venta_items(*, productos(*))')
         .order('created_at', { ascending: false });
 
     if (startDate) {
@@ -163,7 +168,16 @@ export async function getVentasReport(startDate?: Date, endDate?: Date) {
         return [];
     }
 
-    return data;
+    // 3. Map users
+    const result = data.map((v: any) => ({
+        ...v,
+        usuario: {
+            nombre: usuariosMap.get(v.usuario_id) || 'Desconocido'
+        },
+        cliente: v.clientes // Map clientes to a consistent property if needed, or just use v.clientes
+    }));
+
+    return result;
 }
 
 export async function getStockReport() {
@@ -377,4 +391,39 @@ export async function getSalesChartData(range: TimeRange = '7d') {
     return Array.from(chartDataMap.values())
         .sort((a, b) => a.sortOrder - b.sortOrder)
         .map(({ day, value, fullDate }) => ({ day, value, fullDate }));
+}
+
+export async function getCajasReport(startDate?: Date, endDate?: Date) {
+    const supabase = await createClient();
+    console.log('Fetching Cajas Report (Manual Join)...');
+
+    // 1. Fetch users
+    const { data: usuarios } = await supabase.from('usuarios').select('id, nombre');
+    const usuariosMap = new Map(usuarios?.map((u: any) => [u.id, u.nombre]));
+
+    // 2. Fetch cajas without join
+    let query = supabase
+        .from('caja')
+        .select('*')
+        .order('fecha_apertura', { ascending: false });
+
+    if (startDate) query = query.gte('fecha_apertura', startDate.toISOString());
+    if (endDate) query = query.lte('fecha_apertura', endDate.toISOString());
+
+    const { data: cajas, error } = await query;
+
+    if (error) {
+        console.error('Error fetching cajas:', error);
+        return [];
+    }
+
+    // 3. Map users to cajas
+    const result = cajas.map((c: any) => ({
+        ...c,
+        usuario: {
+            nombre: usuariosMap.get(c.usuario_id) || 'Desconocido'
+        }
+    }));
+
+    return result;
 }

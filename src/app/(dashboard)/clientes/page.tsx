@@ -4,8 +4,7 @@ import ClientsList from '@/components/clientes/ClientsList';
 import { createClient } from '@/lib/supabase/server';
 
 export const metadata: Metadata = {
-  title: 'Clientes | Bazar M&M',
-  description: 'Gestión de clientes y cuentas corrientes',
+  title: 'Clientes',
 };
 
 export default async function ClientesPage() {

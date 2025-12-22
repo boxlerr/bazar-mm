@@ -1,11 +1,8 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { createClient } from '@/lib/supabase/server';
 
 /**
  * Cliente de Supabase para Server Actions
- * Usa createRouteHandlerClient que es compatible con server actions
+ * Reutilizamos el cliente de servidor que ya maneja cookies correctamente con @supabase/ssr
  */
-export async function createActionClient() {
-  const cookieStore = await cookies();
-  return createRouteHandlerClient({ cookies: () => cookieStore });
-}
+export const createActionClient = createClient;
+

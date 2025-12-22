@@ -3,50 +3,65 @@
 import { useState } from 'react';
 import { FileText, Package, Users, CreditCard, Download } from 'lucide-react';
 import ReportCard from './ReportCard';
-import { getVentasReport, getStockReport, getClientesReport } from '@/app/(dashboard)/reportes/actions';
-import { exportToPDF, exportToXLSX } from '@/app/(dashboard)/reportes/export';
+import DateRangeModal from './DateRangeModal';
+import { getVentasReport, getStockReport, getClientesReport, getMovimientosCajaReport, getCajasReport } from '@/app/(dashboard)/reportes/actions';
+import { exportToPDF, exportToXLSX, exportClientsToXLSX, exportStockToXLSX, exportCajaToXLSX, exportCajasToXLSX } from '@/app/(dashboard)/reportes/export';
 
 export default function ReportesGenerator() {
     const [loading, setLoading] = useState<string | null>(null);
+    const [showDateModal, setShowDateModal] = useState(false);
+    const [selectedReport, setSelectedReport] = useState<string | null>(null);
 
     const handleGenerate = async (reportType: string) => {
+        if (reportType === 'Reporte de Ventas') {
+            setSelectedReport(reportType);
+            setShowDateModal(true);
+            return;
+        }
+        await processGenerate(reportType);
+    };
+
+    const handleDateGenerate = async (startDate: Date | null, endDate: Date | null) => {
+        if (selectedReport) {
+            await processGenerate(selectedReport, startDate, endDate);
+        }
+    };
+
+    const processGenerate = async (reportType: string, startDate?: Date | null, endDate?: Date | null) => {
         setLoading(reportType);
         try {
             const timestamp = new Date().toISOString().split('T')[0];
 
             switch (reportType) {
                 case 'Reporte de Ventas':
-                    const ventas = await getVentasReport();
+                    const ventas = await getVentasReport(startDate || undefined, endDate || undefined);
                     if (ventas && ventas.length > 0) {
-                        // Preparar datos planos para exportación
+                        // Preparar datos planos para exportación con formato mejorado
                         const data = ventas.map((v: any) => ({
-                            Fecha: new Date(v.created_at).toLocaleDateString(),
-                            Total: v.total,
-                            MetodoPago: v.metodo_pago,
-                            Estado: v.estado,
-                            Items: v.venta_items?.length || 0
+                            Fecha: new Date(v.created_at).toLocaleDateString() + ' ' + new Date(v.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                            Cliente: v.cliente?.nombre || 'Consumidor Final',
+                            Vendedor: v.usuario?.nombre || 'Desconocido',
+                            MetodoPago: v.metodo_pago?.toUpperCase(),
+                            Estado: v.estado?.toUpperCase(),
+                            Items: v.venta_items?.length || 0,
+                            Total: new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(v.total)
                         }));
 
-                        await exportToPDF(data, `ventas_${timestamp}`, 'Reporte de Ventas', ['Fecha', 'Total', 'MetodoPago', 'Estado']);
-                        // También exportar a Excel como ejemplo
-                        // await exportToXLSX(data, `ventas_${timestamp}`);
+                        await exportToPDF(
+                            data,
+                            `ventas_${timestamp}`,
+                            'Reporte de Ventas',
+                            ['Fecha', 'Cliente', 'Vendedor', 'MetodoPago', 'Estado', 'Items', 'Total']
+                        );
                     } else {
-                        alert('No hay datos de ventas para exportar.');
+                        alert('No hay datos de ventas para exportar en el rango seleccionado.');
                     }
                     break;
 
                 case 'Inventario y Stock':
                     const stock = await getStockReport();
                     if (stock && stock.length > 0) {
-                        const data = stock.map((p: any) => ({
-                            Codigo: p.codigo,
-                            Nombre: p.nombre,
-                            Categoria: p.categoria,
-                            Stock: p.stock_actual,
-                            Minimo: p.stock_minimo,
-                            PrecioVenta: p.precio_venta
-                        }));
-                        await exportToXLSX(data, `stock_${timestamp}`);
+                        await exportStockToXLSX(stock);
                     } else {
                         alert('No hay datos de stock para exportar.');
                     }
@@ -55,15 +70,25 @@ export default function ReportesGenerator() {
                 case 'Clientes y Deudas':
                     const clientes = await getClientesReport();
                     if (clientes && clientes.length > 0) {
-                        const data = clientes.map((c: any) => ({
-                            Nombre: c.nombre,
-                            DNI: c.dni,
-                            Telefono: c.telefono,
-                            Direccion: c.direccion
-                        }));
-                        await exportToXLSX(data, `clientes_${timestamp}`);
+                        await exportClientsToXLSX(clientes);
                     } else {
                         alert('No hay datos de clientes para exportar.');
+                    }
+                    break;
+
+                case 'Caja y Movimientos':
+                    // Intentamos obtener ambos reportes: Cierres y Movimientos
+                    const cajas = await getCajasReport(startDate || undefined, endDate || undefined);
+                    const movimientos = await getMovimientosCajaReport(startDate || undefined, endDate || undefined);
+
+                    if ((cajas && cajas.length > 0) || (movimientos && movimientos.length > 0)) {
+                        if (cajas && cajas.length > 0) {
+                            await exportCajasToXLSX(cajas);
+                        } else if (movimientos && movimientos.length > 0) {
+                            await exportCajaToXLSX(movimientos);
+                        }
+                    } else {
+                        alert('No hay datos de caja para exportar.');
                     }
                     break;
 
@@ -130,6 +155,13 @@ export default function ReportesGenerator() {
                     </div>
                 </div>
             )}
+
+            <DateRangeModal
+                isOpen={showDateModal}
+                onClose={() => setShowDateModal(false)}
+                onGenerate={handleDateGenerate}
+                title={`Filtrar ${selectedReport}`}
+            />
         </div>
     );
 }

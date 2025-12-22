@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     const supabase = await createClient();
 
     const body = await request.json();
-    const { nombre, razon_social, cuit, telefono, email } = body;
+    const { nombre, razon_social, cuit, telefono, email, direccion, ciudad, condicion_iva, observaciones } = body;
 
     if (!nombre) {
       return NextResponse.json(
@@ -48,6 +48,10 @@ export async function POST(request: Request) {
         cuit,
         telefono,
         email,
+        direccion,
+        ciudad,
+        condicion_iva,
+        observaciones,
         activo: true,
       })
       .select()

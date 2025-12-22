@@ -153,3 +153,24 @@ export async function registrarPago(
         return { success: false, error: error.message };
     }
 }
+
+export async function eliminarCliente(id: string) {
+    const supabase = await createClient();
+
+    // Check if client has active current account balance or movements?
+    // For now, we'll just do a soft delete if possible, but the table might not have 'activo'.
+    // Checked types/cliente.ts, it HAS 'activo'. So we do soft delete.
+
+    const { error } = await supabase
+        .from('clientes')
+        .update({ activo: false })
+        .eq('id', id);
+
+    if (error) {
+        console.error('Error al eliminar cliente:', error);
+        return { success: false, error: error.message };
+    }
+
+    revalidatePath('/clientes');
+    return { success: true };
+}

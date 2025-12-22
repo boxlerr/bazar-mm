@@ -3,13 +3,15 @@
 import { Cliente } from '@/types/cliente';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, User, ArrowRight, Wallet, Users, AlertCircle, Edit } from 'lucide-react';
+import { Search, Plus, User, ArrowRight, Wallet, Users, AlertCircle, Edit, Trash2, Download } from 'lucide-react';
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import ClienteForm from '@/app/(dashboard)/clientes/form';
-import { crearCliente, actualizarCliente } from '@/app/(dashboard)/clientes/actions';
+import { crearCliente, actualizarCliente, eliminarCliente } from '@/app/(dashboard)/clientes/actions';
 import { useToast } from '@/hooks/useToast';
+import DeleteConfirmationModal from '@/components/ui/DeleteConfirmationModal';
+import { exportClientsToXLSX } from '@/app/(dashboard)/reportes/export';
 
 interface ClientsListProps {
     initialClientes: Cliente[];
@@ -20,6 +22,9 @@ export default function ClientsList({ initialClientes, onSelect }: ClientsListPr
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedClient, setSelectedClient] = useState<Cliente | null>(null);
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [clientToDelete, setClientToDelete] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false);
     const { success, error } = useToast();
 
     const handleNewClient = () => {
@@ -48,6 +53,30 @@ export default function ClientsList({ initialClientes, onSelect }: ClientsListPr
             error(result.error || 'Error al guardar cliente');
             throw new Error(result.error);
         }
+    };
+
+    const handleDeleteClick = (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setClientToDelete(id);
+        setDeleteModalOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!clientToDelete) return;
+        setLoading(true);
+        const res = await eliminarCliente(clientToDelete);
+        if (res.success) {
+            success('Cliente eliminado');
+        } else {
+            error(res.error || 'Error al eliminar cliente');
+        }
+        setLoading(false);
+        setDeleteModalOpen(false);
+        setClientToDelete(null);
+    };
+
+    const handleExport = () => {
+        exportClientsToXLSX(initialClientes);
     };
 
     const filteredClientes = initialClientes.filter((cliente) =>
@@ -108,10 +137,19 @@ export default function ClientsList({ initialClientes, onSelect }: ClientsListPr
                         />
                     </div>
                     {/* Replaced Link with Button to open Modal */}
-                    <Button className="w-full sm:w-auto" onClick={handleNewClient}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Nuevo Cliente
-                    </Button>
+                    <div className="flex gap-2 w-full sm:w-auto">
+                        <Button
+                            onClick={handleExport}
+                            className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700 text-white"
+                        >
+                            <Download className="mr-2 h-4 w-4" />
+                            Exportar
+                        </Button>
+                        <Button className="flex-1 sm:flex-none" onClick={handleNewClient}>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Nuevo Cliente
+                        </Button>
+                    </div>
                 </div>
 
                 {/* Table */}
@@ -173,11 +211,30 @@ export default function ClientsList({ initialClientes, onSelect }: ClientsListPr
                                                     Seleccionar
                                                 </Button>
                                             ) : (
-                                                <Link href={`/clientes/${cliente.id}`} className="inline-block">
-                                                    <div className="p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-blue-600 transition-colors">
-                                                        <ArrowRight size={18} />
-                                                    </div>
-                                                </Link>
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleEditClient(cliente);
+                                                        }}
+                                                        className="p-2 hover:bg-blue-50 rounded-lg text-gray-400 hover:text-blue-600 transition-colors"
+                                                        title="Editar"
+                                                    >
+                                                        <Edit size={18} />
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => handleDeleteClick(cliente.id, e)}
+                                                        className="p-2 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-600 transition-colors"
+                                                        title="Eliminar"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                    <Link href={`/clientes/${cliente.id}`} className="inline-block">
+                                                        <div className="p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-blue-600 transition-colors">
+                                                            <ArrowRight size={18} />
+                                                        </div>
+                                                    </Link>
+                                                </div>
                                             )}
                                         </td>
                                     </motion.tr>
@@ -208,6 +265,15 @@ export default function ClientsList({ initialClientes, onSelect }: ClientsListPr
                     onCancel={() => setIsModalOpen(false)}
                 />
             </Modal>
+
+            <DeleteConfirmationModal
+                isOpen={deleteModalOpen}
+                onClose={() => setDeleteModalOpen(false)}
+                onConfirm={confirmDelete}
+                title="¿Eliminar Cliente?"
+                description="Esta acción eliminará el cliente del sistema. ¿Está seguro que desea continuar?"
+                loading={loading}
+            />
         </div >
     );
 }
