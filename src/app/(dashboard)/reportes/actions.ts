@@ -20,9 +20,25 @@ export interface RentabilidadItem {
 export async function getVentasPorVendedor(startDate?: Date, endDate?: Date) {
     const supabase = await createClient();
 
+    // 1. Fetch users first to have the mapping
+    const { data: usuarios, error: errorUsuarios } = await supabase
+        .from('usuarios')
+        .select('id, nombre');
+
+    if (errorUsuarios) {
+        console.error('Error fetching usuarios for report:', JSON.stringify(errorUsuarios, null, 2));
+        // Continue with empty map, will show as 'Desconocido'
+    }
+
+    const usuariosMap = new Map<string, string>();
+    usuarios?.forEach((u: any) => {
+        if (u.id && u.nombre) usuariosMap.set(u.id, u.nombre);
+    });
+
+    // 2. Fetch sales
     let query = supabase
         .from('ventas')
-        .select('total, usuario:usuarios(nombre)')
+        .select('total, usuario_id')
         .eq('estado', 'completada');
 
     if (startDate) query = query.gte('created_at', startDate.toISOString());
@@ -31,15 +47,16 @@ export async function getVentasPorVendedor(startDate?: Date, endDate?: Date) {
     const { data, error } = await query;
 
     if (error) {
-        console.error('Error fetching ventas por vendedor:', error);
+        console.error('Error fetching ventas por vendedor:', JSON.stringify(error, null, 2));
         return [];
     }
 
-    // Agrupar por usuario
+    // 3. Group by user
     const agrupado: Record<string, VentaPorUsuario> = {};
 
     data?.forEach((venta: any) => {
-        const nombre = venta.usuario?.nombre || 'Desconocido';
+        const nombre = usuariosMap.get(venta.usuario_id) || 'Desconocido';
+
         if (!agrupado[nombre]) {
             agrupado[nombre] = { usuario: nombre, total_ventas: 0, cantidad_tickets: 0 };
         }

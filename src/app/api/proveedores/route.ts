@@ -1,24 +1,22 @@
 import { NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { createClient } from '@/lib/supabase/server';
 
 export async function GET() {
   try {
-    const cookieStore = await cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
-    
+    const supabase = await createClient();
+
     const { data, error } = await supabase
       .from('proveedores')
       .select('id, nombre, razon_social')
       .eq('activo', true)
       .order('nombre');
-    
+
     if (error) {
       throw error;
     }
-    
+
     return NextResponse.json(data || []);
-    
+
   } catch (error) {
     console.error('Error obteniendo proveedores:', error);
     return NextResponse.json(
@@ -30,19 +28,18 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const cookieStore = await cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
-    
+    const supabase = await createClient();
+
     const body = await request.json();
     const { nombre, razon_social, cuit, telefono, email } = body;
-    
+
     if (!nombre) {
       return NextResponse.json(
         { error: 'El nombre es requerido' },
         { status: 400 }
       );
     }
-    
+
     const { data, error } = await supabase
       .from('proveedores')
       .insert({
@@ -55,13 +52,13 @@ export async function POST(request: Request) {
       })
       .select()
       .single();
-    
+
     if (error) {
       throw error;
     }
-    
+
     return NextResponse.json(data);
-    
+
   } catch (error) {
     console.error('Error creando proveedor:', error);
     return NextResponse.json(
@@ -73,30 +70,29 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const cookieStore = await cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
-    
+    const supabase = await createClient();
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
-    
+
     if (!id) {
       return NextResponse.json(
         { error: 'ID requerido' },
         { status: 400 }
       );
     }
-    
+
     const { error } = await supabase
       .from('proveedores')
       .update({ activo: false })
       .eq('id', id);
-    
+
     if (error) {
       throw error;
     }
-    
+
     return NextResponse.json({ success: true });
-    
+
   } catch (error) {
     console.error('Error eliminando proveedor:', error);
     return NextResponse.json(
