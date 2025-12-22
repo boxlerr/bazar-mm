@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Save, X, Trash2, Package, DollarSign, TrendingUp, Plus, Minus, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
 import { Producto } from '@/types/producto';
@@ -69,7 +70,7 @@ export default function ProductoDetallePage({ params }: Props) {
             await loadProducto();
         } catch (error) {
             console.error('Error al guardar:', error);
-            alert('Error al guardar los cambios');
+            toast.error('Error al guardar los cambios');
         } finally {
             setSaving(false);
         }
@@ -90,7 +91,7 @@ export default function ProductoDetallePage({ params }: Props) {
             router.push('/stock');
         } catch (error) {
             console.error('Error al eliminar:', error);
-            alert('Error al eliminar el producto');
+            toast.error('Error al eliminar el producto');
         }
     };
 

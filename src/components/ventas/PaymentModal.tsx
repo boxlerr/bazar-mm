@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, CreditCard, Banknote, Smartphone, Receipt } from 'lucide-react';
+import { X, CreditCard, Banknote, Smartphone, Receipt, AlertCircle, User } from 'lucide-react';
 
 interface PaymentModalProps {
     isOpen: boolean;
@@ -103,6 +103,12 @@ export default function PaymentModal({
                                             )}
                                         </div>
                                     )}
+                                    {selectedClient && (
+                                        <div className="mt-3 flex items-center justify-center gap-2 text-blue-600 bg-blue-50 py-1 px-3 rounded-full text-sm font-medium mx-auto w-fit">
+                                            <User className="w-4 h-4" />
+                                            <span>Cliente: {selectedClient.nombre}</span>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-3">
@@ -124,6 +130,16 @@ export default function PaymentModal({
                                         </button>
                                     ))}
                                 </div>
+
+                                {method === 'cuenta_corriente' && !selectedClient && (
+                                    <div className="flex items-start gap-3 p-4 bg-amber-50 text-amber-800 rounded-xl border border-amber-200">
+                                        <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                                        <div className="text-sm">
+                                            <p className="font-bold">Cliente Requerido</p>
+                                            <p>Para cobrar con Cuenta Corriente debe seleccionar un cliente primero. Cierre esta ventana y seleccione uno.</p>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {method === 'efectivo' && (
                                     <div className="bg-gray-50 p-4 rounded-xl space-y-3">

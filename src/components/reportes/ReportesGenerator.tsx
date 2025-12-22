@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { FileText, Package, Users, CreditCard, Download } from 'lucide-react';
+import { toast } from 'sonner';
 import ReportCard from './ReportCard';
 import DateRangeModal from './DateRangeModal';
 import { getVentasReport, getStockReport, getClientesReport, getMovimientosCajaReport, getCajasReport } from '@/app/(dashboard)/reportes/actions';
@@ -54,7 +55,7 @@ export default function ReportesGenerator() {
                             ['Fecha', 'Cliente', 'Vendedor', 'MetodoPago', 'Estado', 'Items', 'Total']
                         );
                     } else {
-                        alert('No hay datos de ventas para exportar en el rango seleccionado.');
+                        toast.warning('No hay datos de ventas para exportar en el rango seleccionado.');
                     }
                     break;
 
@@ -63,7 +64,7 @@ export default function ReportesGenerator() {
                     if (stock && stock.length > 0) {
                         await exportStockToXLSX(stock);
                     } else {
-                        alert('No hay datos de stock para exportar.');
+                        toast.warning('No hay datos de stock para exportar.');
                     }
                     break;
 
@@ -72,7 +73,7 @@ export default function ReportesGenerator() {
                     if (clientes && clientes.length > 0) {
                         await exportClientsToXLSX(clientes);
                     } else {
-                        alert('No hay datos de clientes para exportar.');
+                        toast.warning('No hay datos de clientes para exportar.');
                     }
                     break;
 
@@ -88,16 +89,16 @@ export default function ReportesGenerator() {
                             await exportCajaToXLSX(movimientos);
                         }
                     } else {
-                        alert('No hay datos de caja para exportar.');
+                        toast.warning('No hay datos de caja para exportar.');
                     }
                     break;
 
                 default:
-                    alert('Funcionalidad en desarrollo para este reporte.');
+                    toast.info('Funcionalidad en desarrollo para este reporte.');
             }
         } catch (error) {
             console.error('Error generando reporte:', error);
-            alert('Ocurrió un error al generar el reporte.');
+            toast.error('Ocurrió un error al generar el reporte.');
         } finally {
             setLoading(null);
         }
@@ -127,7 +128,7 @@ export default function ReportesGenerator() {
         },
         {
             title: 'Caja y Movimientos',
-            description: 'Historial de cierres de caja (Próximamente).',
+            description: 'Historial de cierres de caja.',
             icon: CreditCard,
             color: 'text-orange-600',
             bg: 'bg-orange-100',
@@ -136,7 +137,6 @@ export default function ReportesGenerator() {
 
     return (
         <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Generar Reportes</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {reports.map((report, index) => (
                     <ReportCard

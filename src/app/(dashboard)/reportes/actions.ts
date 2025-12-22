@@ -122,22 +122,47 @@ export async function getRentabilidadReport(startDate?: Date, endDate?: Date) {
 export async function getMovimientosCajaReport(startDate?: Date, endDate?: Date) {
     const supabase = await createClient();
 
+    // 1. Fetch movimientos with caja
     let query = supabase
         .from('movimientos_caja')
         .select(`
             *,
-            caja:caja(usuario:usuarios(nombre))
+            caja:caja(*)
         `)
         .order('created_at', { ascending: false });
 
     if (startDate) query = query.gte('created_at', startDate.toISOString());
     if (endDate) query = query.lte('created_at', endDate.toISOString());
 
-    const { data, error } = await query;
+    const { data: movimientos, error } = await query;
 
-    if (error) return [];
+    if (error || !movimientos) return [];
 
-    return data;
+    // 2. Fetch users manually to avoid join issues
+    const userIds = Array.from(new Set(movimientos.map((m: any) => m.caja?.usuario_id).filter(Boolean)));
+
+    let usuariosMap = new Map();
+    if (userIds.length > 0) {
+        const { data: users } = await supabase
+            .from('usuarios')
+            .select('id, nombre')
+            .in('id', userIds);
+
+        if (users) {
+            usuariosMap = new Map(users.map((u: any) => [u.id, u.nombre]));
+        }
+    }
+
+    // 3. Map users to movements
+    return movimientos.map((m: any) => ({
+        ...m,
+        caja: {
+            ...m.caja,
+            usuario: {
+                nombre: usuariosMap.get(m.caja?.usuario_id) || 'Desconocido'
+            }
+        }
+    }));
 }
 
 
@@ -299,6 +324,8 @@ export async function getSalesChartData(range: TimeRange = '7d') {
         .select('created_at, total')
         .gte('created_at', queryDate.toISOString());
 
+
+
     const chartDataMap = new Map<string, { day: string, value: number, fullDate: string, sortOrder: number }>();
 
     // Helper functions for formatting
@@ -326,6 +353,8 @@ export async function getSalesChartData(range: TimeRange = '7d') {
             return d.toLocaleDateString('es-AR', { weekday: 'short', timeZone });
         }
     };
+
+
 
     // Initialize buckets
     if (aggregation === 'daily') {
@@ -426,4 +455,40 @@ export async function getCajasReport(startDate?: Date, endDate?: Date) {
     }));
 
     return result;
+}
+
+export async function getRecentSales(limit: number = 10) {
+    const supabase = await createClient();
+
+    // 1. Fetch users for mapping
+    const { data: usuarios } = await supabase.from('usuarios').select('id, nombre');
+    const usuariosMap = new Map(usuarios?.map((u: any) => [u.id, u.nombre]));
+
+    // 2. Fetch recent sales
+    const { data: ventas, error } = await supabase
+        .from('ventas')
+        .select(`
+            id,
+            created_at,
+            total,
+            usuario_id,
+            cliente:clientes(nombre),
+            metodo_pago
+        `)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+    if (error) {
+        console.error('Error fetching recent sales:', error);
+        return [];
+    }
+
+    // 3. Map users
+    return ventas.map((v: any) => ({
+        ...v,
+        usuario: {
+            nombre: usuariosMap.get(v.usuario_id) || 'Desconocido'
+        },
+        cliente_nombre: v.cliente?.nombre || 'Consumidor Final'
+    }));
 }

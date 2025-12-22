@@ -153,7 +153,7 @@ export default function ClientsList({ initialClientes, onSelect }: ClientsListPr
                 </div>
 
                 {/* Table */}
-                <div className="overflow-x-auto">
+                <div className={`overflow-x-auto ${onSelect ? 'max-h-[60vh] overflow-y-auto' : ''}`}>
                     <table className="w-full">
                         <thead className="bg-gray-50/50">
                             <tr>

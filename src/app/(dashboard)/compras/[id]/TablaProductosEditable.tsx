@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Package, Edit2, Save, X, Trash2, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface ProductoItem {
@@ -122,7 +123,7 @@ export default function TablaProductosEditable({ items, compraId, total }: Props
       window.location.reload();
     } catch (error) {
       console.error('Error al guardar:', error);
-      alert('Error al guardar los cambios');
+      toast.error('Error al guardar los cambios');
     } finally {
       setLoading(false);
     }

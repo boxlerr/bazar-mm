@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Trash2, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { eliminarCompra } from '../actions';
@@ -23,12 +24,12 @@ export function PurchaseActions({ id }: Props) {
                 router.push('/compras');
                 router.refresh();
             } else {
-                alert(result.error || 'Error al eliminar la compra');
+                toast.error(result.error || 'Error al eliminar la compra');
                 setLoading(false);
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('Error al eliminar la compra');
+            toast.error('Error al eliminar la compra');
             setLoading(false);
         }
     };
