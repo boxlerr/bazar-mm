@@ -5,11 +5,13 @@ import { createClient } from '@/lib/supabase/client';
 import { LogOut, Search, Menu, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import NotificationsPopover from '@/components/notifications/NotificationsPopover';
+import { useSidebar } from '@/context/SidebarContext';
 
 export default function Header({ user }: { user: any }) {
   const router = useRouter();
   const pathname = usePathname();
   const supabase = createClient();
+  const { toggleMobileSidebar } = useSidebar();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -28,7 +30,13 @@ export default function Header({ user }: { user: any }) {
       <div className="flex justify-between items-center px-8 py-4">
         {/* Left: Breadcrumbs */}
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-neutral-400 font-medium">Inicio</span>
+          <button
+            onClick={toggleMobileSidebar}
+            className="md:hidden p-2 -ml-2 text-neutral-500 hover:bg-neutral-100 rounded-lg"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <span className="text-neutral-400 font-medium hidden sm:inline">Inicio</span>
           {breadcrumbs.map((crumb, index) => (
             <div key={crumb} className="flex items-center gap-2">
               <ChevronRight className="w-4 h-4 text-neutral-300" />
