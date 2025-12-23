@@ -31,6 +31,7 @@ export async function getEmpresaConfig(): Promise<EmpresaConfig> {
             return DEFAULT_CONFIG;
         }
 
+        console.log('getEmpresaConfig fetched:', data);
         return data as EmpresaConfig;
     } catch (error) {
         console.error('Unexpected error fetching config:', error);

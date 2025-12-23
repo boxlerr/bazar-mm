@@ -104,6 +104,7 @@ app.post("/imprimir/test", async (req, res) => {
 app.post("/imprimir/ticket", async (req, res) => {
   try {
     const { venta, items, empresa } = req.body;
+    console.log('Printer Server Received:', { empresa });
 
     // Formateadores
     const currency = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 2 });
@@ -116,11 +117,11 @@ app.post("/imprimir/ticket", async (req, res) => {
             <meta charset="UTF-8">
             <style>
                 body {
-                    margin: 0;
+                    margin: 0 auto;
                     padding: 0;
                     font-family: 'Courier New', Courier, monospace; /* Fuente monoespaciada para ticket */
-                    font-size: 12px;
-                    width: 80mm;
+                    font-size: 11px; /* Reducir un poco fuente */
+                    width: 72mm; /* Ancho seguro para evitar cortes */
                     color: #000;
                 }
                 .header { text-align: center; margin-bottom: 10px; }
@@ -142,7 +143,8 @@ app.post("/imprimir/ticket", async (req, res) => {
                 <div class="title">${empresa.nombre}</div>
                 <div class="info">${empresa.direccion}</div>
                 <div class="info">CUIT: ${empresa.cuit}</div>
-                <div class="info">Tel: -</div>
+                <div class="info">Tel: ${empresa.telefono || '-'}</div>
+                ${empresa.email ? `<div class="info">${empresa.email}</div>` : ''}
             </div>
 
             <div class="divider"></div>
@@ -185,7 +187,7 @@ app.post("/imprimir/ticket", async (req, res) => {
             </div>
 
             <div class="footer">
-                <p>¡Gracias por su compra!</p>
+                <p>${empresa.mensaje_footer || '¡Gracias por su compra!'}</p>
                 <p>Conserve este ticket</p>
             </div>
             <br><br>
@@ -205,5 +207,5 @@ app.post("/imprimir/ticket", async (req, res) => {
 
 // Start
 app.listen(3001, () => {
-  console.log("🔥 Printer server ON → http://localhost:3001");
+  console.log("🔥 Printer server ON → http://localhost:3001 (Updated Layout & Config)");
 });

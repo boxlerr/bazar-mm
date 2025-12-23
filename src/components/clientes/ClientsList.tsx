@@ -117,7 +117,7 @@ export default function ClientsList({ initialClientes, onSelect }: ClientsListPr
                     </div>
                     <div>
                         <p className="text-sm font-medium text-gray-500">Por Cobrar</p>
-                        <h3 className="text-2xl font-bold text-gray-900">${totalReceivables.toFixed(2)}</h3>
+                        <h3 className="text-2xl font-bold text-gray-900">${totalReceivables.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
                     </div>
                 </motion.div>
             </div>
@@ -197,7 +197,7 @@ export default function ClientsList({ initialClientes, onSelect }: ClientsListPr
                                                 : 'bg-green-50 text-green-700'
                                                 }`}>
                                                 {(cliente.saldo_cuenta_corriente || 0) > 0 && <AlertCircle size={12} className="mr-1" />}
-                                                ${(cliente.saldo_cuenta_corriente || 0).toFixed(2)}
+                                                ${(cliente.saldo_cuenta_corriente || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right">

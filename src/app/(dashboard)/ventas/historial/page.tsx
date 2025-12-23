@@ -69,9 +69,6 @@ export default async function HistorialVentasPage() {
                                 <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Total
                                 </th>
-                                <th scope="col" className="relative px-6 py-3">
-                                    <span className="sr-only">Acciones</span>
-                                </th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
@@ -101,12 +98,6 @@ export default async function HistorialVentasPage() {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 text-right">
                                             {formatCurrency(sale.total)}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            {/* Placeholder para futuras acciones */}
-                                            <button className="text-gray-400 hover:text-blue-600 transition-colors" title="Ver detalle">
-                                                <Eye className="w-5 h-5" />
-                                            </button>
                                         </td>
                                     </tr>
                                 ))

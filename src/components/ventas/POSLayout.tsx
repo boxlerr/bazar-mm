@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { usePOS } from '@/hooks/usePOS';
 import { User, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -26,6 +27,7 @@ export default function POSLayout() {
         updateQuantity,
         checkout,
         isCajaOpen,
+        isCajaLoading,
         selectedClient,
         setSelectedClient
     } = usePOS();
@@ -62,7 +64,7 @@ export default function POSLayout() {
     };
 
     return (
-        <div className="h-[calc(100vh-180px)] flex flex-col gap-4 pb-2">
+        <div className="relative h-[calc(100vh-180px)] flex flex-col gap-4 pb-2">
             {/* Buscador Superior */}
             <div className="flex-shrink-0">
                 <ProductSearch
@@ -141,6 +143,26 @@ export default function POSLayout() {
                 onClose={() => setIsClientModalOpen(false)}
                 onSelect={(client) => setSelectedClient(client)}
             />
+            {/* Modal de Bloqueo por Caja Cerrada */}
+            {!isCajaLoading && !isCajaOpen && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-xl">
+                    <div className="bg-white p-8 rounded-2xl shadow-2xl border border-red-100 max-w-md w-full text-center">
+                        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span className="text-3xl">🔒</span>
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2">Caja Cerrada</h2>
+                        <p className="text-gray-500 mb-8">
+                            Para realizar ventas, primero debe abrir la caja del día.
+                        </p>
+                        <Link
+                            href="/caja"
+                            className="inline-flex w-full items-center justify-center px-6 py-3 text-base font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-lg hover:shadow-xl translate-y-0 hover:-translate-y-0.5 transform duration-200"
+                        >
+                            Ir a Abrir Caja
+                        </Link>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

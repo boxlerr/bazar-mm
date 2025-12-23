@@ -57,7 +57,6 @@ const menuItems: MenuItem[] = [
       { name: 'General', href: '/configuracion', icon: Sliders },
       { name: 'Negocio', href: '/configuracion/empresa', icon: Building2 },
       { name: 'Notificaciones', href: '/configuracion/notificaciones', icon: Bell },
-      { name: 'Tickets', href: '/configuracion/ticket', icon: Receipt },
     ]
   },
 ];

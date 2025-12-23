@@ -51,7 +51,7 @@ export default function ClienteDetalleView({ cliente, movimientos }: ClienteDeta
 
                         <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Saldo a Pagar</h3>
                         <div className={`text-4xl font-bold mb-6 ${saldo > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                            ${saldo.toFixed(2)}
+                            ${saldo.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
 
                         <Button

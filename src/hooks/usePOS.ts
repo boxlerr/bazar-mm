@@ -10,6 +10,7 @@ import { processSale, searchProducts } from '@/app/(dashboard)/ventas/actions';
 
 import { Cliente } from '@/types/cliente';
 import { toast } from 'sonner';
+import { getEmpresaConfig } from '@/app/(dashboard)/configuracion/empresa/actions';
 
 export interface CartItem extends Producto {
     cantidad: number;
@@ -113,6 +114,10 @@ export function usePOS() {
 
     // Procesar venta
     const checkout = async (paymentMethod: string) => {
+        if (!isCajaOpen) {
+            toast.error('Debe abrir la caja antes de realizar una venta');
+            return;
+        }
         if (cart.length === 0) return;
         setLoading(true);
 
@@ -134,13 +139,17 @@ export function usePOS() {
             if (result.success && result.venta) {
                 // Intentar imprimir
                 try {
+                    // Obtener configuración de empresa actualizada
+                    const empresaConfig = await getEmpresaConfig();
+                    console.log('POS Checkout - Config Empresa:', empresaConfig);
+
                     // Construir objeto para impresión (adaptado a lo que espera el server)
                     // Esto es una simplificación, idealmente usamos el PrinterService
                     const ticketData = {
                         venta: {
                             ...result.venta,
-                            cliente_nombre: 'Cliente', // Deberíamos tener el nombre real si existe
-                            usuario_nombre: 'Cajero', // Placeholder
+                            cliente_nombre: selectedClient ? selectedClient.nombre : 'Consumidor Final',
+                            usuario_nombre: result.venta.usuarios?.nombre || 'Cajero',
                         },
                         items: cart.map(item => ({
                             nombre: item.nombre,
@@ -149,9 +158,12 @@ export function usePOS() {
                             subtotal: item.subtotal
                         })),
                         empresa: {
-                            nombre: 'BAZAR M&M',
-                            direccion: 'Dirección Local',
-                            cuit: '00-00000000-0'
+                            nombre: empresaConfig.nombre || 'BAZAR M&M',
+                            direccion: empresaConfig.direccion || 'Dirección Local',
+                            cuit: empresaConfig.cuit || '00-00000000-0',
+                            telefono: empresaConfig.telefono,
+                            email: empresaConfig.email,
+                            mensaje_footer: empresaConfig.mensaje_ticket
                         }
                     };
 
@@ -182,6 +194,7 @@ export function usePOS() {
 
     // Verificar estado de caja
     const [isCajaOpen, setIsCajaOpen] = useState(false);
+    const [isCajaLoading, setIsCajaLoading] = useState(true);
 
     useEffect(() => {
         checkCajaStatus();
@@ -189,11 +202,14 @@ export function usePOS() {
 
     const checkCajaStatus = async () => {
         try {
+            setIsCajaLoading(true);
             const { getCajaState } = await import('@/app/(dashboard)/caja/actions');
             const caja = await getCajaState();
             setIsCajaOpen(!!caja);
         } catch (error) {
             console.error('Error checking caja status:', error);
+        } finally {
+            setIsCajaLoading(false);
         }
     };
 
@@ -212,6 +228,7 @@ export function usePOS() {
         updateQuantity,
         checkout,
         isCajaOpen,
+        isCajaLoading,
         checkCajaStatus,
         selectedClient,
         setSelectedClient

@@ -67,7 +67,7 @@ export async function processSale(saleData: {
         estado: 'completada',
         usuario_id: user.id // Asignar explícitamente el usuario
       })
-      .select('*, clientes(nombre)')
+      .select('*, clientes(nombre), usuarios(nombre)')
       .single();
 
     if (ventaError) {
@@ -98,7 +98,7 @@ export async function processSale(saleData: {
       // Obtener stock actual antes de actualizar
       const { data: prod } = await supabase
         .from('productos')
-        .select('stock_actual')
+        .select('stock_actual, stock_minimo, nombre')
         .eq('id', item.producto_id)
         .single();
 
@@ -123,7 +123,7 @@ export async function processSale(saleData: {
         await notifyUsers(
           ['admin', 'gerente', 'vendedor'],
           'Stock Bajo',
-          `El producto ${item.producto_id} tiene stock bajo (${stockNuevo} unidades)`,
+          `El producto ${prod?.nombre || 'Desconocido'} tiene stock bajo (${stockNuevo} unidades)`,
           'warning',
           'stock',
           item.producto_id,
@@ -164,7 +164,12 @@ export async function processSale(saleData: {
         });
       }
     } else if (saleData.metodo_pago === 'cuenta_corriente' && saleData.cliente_id) {
-      // 5. Si es cuenta corriente, actualizar saldo cliente
+      // 5. Si es cuenta corriente, registramos el movimiento.
+      // NOTA: Se presume que existe un Trigger en la base de datos que actualiza el saldo del cliente
+      // al insertar en movimientos_cuenta_corriente. Si no existiera, se debería descomentar la actualización manual.
+
+      /* 
+      // Actualización manual (Comentada porque duplica el saldo si hay trigger)
       const { data: cliente } = await supabase
         .from('clientes')
         .select('saldo_cuenta_corriente')
@@ -177,7 +182,9 @@ export async function processSale(saleData: {
         .from('clientes')
         .update({ saldo_cuenta_corriente: nuevoSaldo })
         .eq('id', saleData.cliente_id);
+      */
 
+      // Solo insertamos el movimiento
       await supabase.from('movimientos_cuenta_corriente').insert({
         cliente_id: saleData.cliente_id,
         tipo: 'debito', // Venta es un débito (aumenta la deuda)
@@ -192,10 +199,11 @@ export async function processSale(saleData: {
     revalidatePath('/reportes');
 
     // Notificar a Admin y Gerente
+    const nombreVendedor = (venta.usuarios as any)?.nombre || 'Sistema';
     await notifyUsers(
       ['admin', 'gerente'],
       'Nueva Venta',
-      `Venta registrada por $${saleData.total} (Ticket #${venta.nro_ticket})`,
+      `Venta registrada por ${nombreVendedor} - $${saleData.total} (Ticket #${venta.nro_ticket})`,
       'success',
       'ventas',
       venta.id,
@@ -216,7 +224,8 @@ export async function getSalesHistory() {
     .from('ventas')
     .select(`
       *,
-      clientes (nombre)
+      clientes (nombre),
+      usuarios (nombre)
     `)
     .order('created_at', { ascending: false })
     .limit(50);

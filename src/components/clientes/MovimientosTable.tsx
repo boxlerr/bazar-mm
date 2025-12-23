@@ -57,7 +57,7 @@ export default function MovimientosTable({ movimientos }: { movimientos: Movimie
                                     </td>
                                     <td className={`px-6 py-4 whitespace-nowrap text-sm font-bold text-right ${isDebito ? 'text-red-600' : 'text-green-600'
                                         }`}>
-                                        {isDebito ? '+' : '-'}${mov.monto.toFixed(2)}
+                                        {isDebito ? '+' : '-'}${mov.monto.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </td>
                                 </tr>
                             );
