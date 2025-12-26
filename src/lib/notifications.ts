@@ -77,6 +77,34 @@ export async function notifyUsers(
                 .lt('created_at', thirtyDaysAgo);
         }
 
+        // ============================================
+        //  EMAIL NOTIFICATIONS INTEGRATION
+        // ============================================
+
+        // Check conditions: High priority (warning/error/success) or Stock module
+        // We do simplistic check here. In a real world, we check user preferences.
+        // For now, only STOCK ALERTS and important warnings trigger emails to ADMINs.
+
+        if (module === 'stock' && type === 'warning') {
+            const { sendStockAlert } = await import('@/services/resendService');
+            const { getNotificacionesConfig } = await import('@/app/(dashboard)/configuracion/notificaciones/actions');
+
+            const config = await getNotificacionesConfig();
+
+            if (config.alertas_stock && config.email_notificaciones) {
+                // Parse message to get product info if possible, or just send generic alert
+                // The message format is: "El producto X tiene stock bajo (Y unidades)"
+                // We create a "dummy" product object for the email template
+                const dummyProduct = {
+                    nombre: message, // We pass the full message as name for simplicity, or regex pars it
+                    stock_actual: 'Ver link',
+                    stock_minimo: config.stock_minimo_global
+                };
+
+                await sendStockAlert(config.email_notificaciones, [dummyProduct]);
+            }
+        }
+
     } catch (error) {
         console.error('Unexpected error in notifyUsers:', error);
     }

@@ -13,7 +13,7 @@ export const sendEmail = async ({
 }) => {
   try {
     const data = await resend.emails.send({
-      from: 'Bazar M&M <noreply@bazarmm.com>',
+      from: 'Bazar M&M <noreply@bazarmym.com>',
       to,
       subject,
       html,
