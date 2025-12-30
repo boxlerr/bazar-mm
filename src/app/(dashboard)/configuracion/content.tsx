@@ -119,10 +119,10 @@ export default function ConfiguracionContent() {
 
                         const CardContent = () => (
                             <>
-                                {section.badge && (
+                                {(section as any).badge && (
                                     <div className="absolute top-4 right-4">
                                         <span className={`px-3 py-1 bg-gradient-to-r ${section.color} text-white text-xs font-bold rounded-full shadow-lg`}>
-                                            {section.badge}
+                                            {(section as any).badge}
                                         </span>
                                     </div>
                                 )}

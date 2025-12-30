@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import Button from '@/components/ui/Button';
 import { Lock, Loader2, ArrowLeft, CheckCircle } from 'lucide-react';
@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
-export default function UpdatePasswordPage() {
+function UpdatePasswordContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const token = searchParams.get('token');
@@ -189,5 +189,20 @@ export default function UpdatePasswordPage() {
                 </form>
             </motion.div>
         </div>
+    );
+}
+
+export default function UpdatePasswordPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen w-full flex items-center justify-center bg-neutral-100 p-4">
+                <div className="bg-white rounded-3xl p-8 flex flex-col items-center animate-pulse">
+                    <div className="w-16 h-16 bg-gray-200 rounded-full mb-4"></div>
+                    <div className="h-4 bg-gray-200 rounded w-32"></div>
+                </div>
+            </div>
+        }>
+            <UpdatePasswordContent />
+        </Suspense>
     );
 }

@@ -20,8 +20,11 @@ interface UsuarioFormProps {
   onCancel: () => void;
 }
 
+// Extendemos el tipo Partial<Usuario> para incluir el password que es necesario en el formulario
+type UsuarioFormData = Partial<Usuario> & { password?: string };
+
 export default function UsuarioForm({ usuario, onSubmit, onCancel }: UsuarioFormProps) {
-  const [formData, setFormData] = useState<Partial<Usuario>>({
+  const [formData, setFormData] = useState<UsuarioFormData>({
     nombre: '',
     email: '',
     telefono: '',
