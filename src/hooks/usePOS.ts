@@ -81,9 +81,20 @@ export function usePOS() {
 
     // Agregar al carrito
     const addToCart = (product: Producto) => {
+        // Validación de stock inicial
+        if (product.stock_actual <= 0) {
+            toast.error('Producto sin stock');
+            return;
+        }
+
         setCart(prev => {
             const existing = prev.find(item => item.id === product.id);
             if (existing) {
+                // Validar si al sumar 1 superamos el stock
+                if (existing.cantidad + 1 > product.stock_actual) {
+                    toast.error(`Stock insuficiente. Solo hay ${product.stock_actual} unidades.`);
+                    return prev;
+                }
                 return prev.map(item =>
                     item.id === product.id
                         ? { ...item, cantidad: item.cantidad + 1, subtotal: (item.cantidad + 1) * item.precio_venta }
@@ -105,6 +116,18 @@ export function usePOS() {
             removeFromCart(productId);
             return;
         }
+
+        const itemInCart = cart.find(i => i.id === productId);
+        if (itemInCart) {
+            if (quantity > itemInCart.stock_actual) {
+                toast.error(`Stock insuficiente. Solo hay ${itemInCart.stock_actual} unidades.`);
+                // Opcional: ajustar al máximo posible
+                // quantity = itemInCart.stock_actual; 
+                // Por ahora solo retornamos sin cambios
+                return;
+            }
+        }
+
         setCart(prev => prev.map(item =>
             item.id === productId
                 ? { ...item, cantidad: quantity, subtotal: quantity * item.precio_venta }

@@ -121,26 +121,38 @@ export default function ProductSearch({
             {/* Resultados de búsqueda */}
             {searchResults.length > 0 && (
                 <div className="mt-4 max-h-60 overflow-y-auto divide-y divide-gray-100">
-                    {searchResults.map((product) => (
-                        <button
-                            key={product.id}
-                            onClick={() => onSelect(product)}
-                            className="w-full text-left px-3 py-2 hover:bg-gray-50 flex items-center justify-between group transition-colors rounded-md"
-                        >
-                            <div>
-                                <p className="text-sm font-medium text-gray-900">{capitalize(product.nombre)}</p>
-                                <p className="text-xs text-gray-500">
-                                    Código: {product.codigo} | Stock: {product.stock_actual}
-                                </p>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <span className="text-sm font-bold text-blue-600">
-                                    {formatPrice(product.precio_venta)}
-                                </span>
-                                <Plus className="w-4 h-4 text-gray-400 group-hover:text-blue-500" />
-                            </div>
-                        </button>
-                    ))}
+                    {searchResults.map((product) => {
+                        const hasStock = product.stock_actual > 0;
+                        return (
+                            <button
+                                key={product.id}
+                                onClick={() => hasStock && onSelect(product)}
+                                disabled={!hasStock}
+                                className={`w-full text-left px-3 py-2 flex items-center justify-between group transition-colors rounded-md ${hasStock
+                                        ? 'hover:bg-gray-50 cursor-pointer'
+                                        : 'opacity-50 cursor-not-allowed bg-gray-50'
+                                    }`}
+                            >
+                                <div>
+                                    <p className="text-sm font-medium text-gray-900">{capitalize(product.nombre)}</p>
+                                    <p className={`text-xs ${hasStock ? 'text-gray-500' : 'text-red-500 font-medium'}`}>
+                                        Código: {product.codigo} | Stock: {product.stock_actual}
+                                        {!hasStock && ' (Sin Stock)'}
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-sm font-bold text-blue-600">
+                                        {formatPrice(product.precio_venta)}
+                                    </span>
+                                    {hasStock ? (
+                                        <Plus className="w-4 h-4 text-gray-400 group-hover:text-blue-500" />
+                                    ) : (
+                                        <span className="text-xs font-bold text-red-500">AGOTADO</span>
+                                    )}
+                                </div>
+                            </button>
+                        );
+                    })}
                 </div>
             )}
         </div>

@@ -1,0 +1,33 @@
+# GUIA DE INSTALACION - SERVIDOR DE IMPRESION
+
+Para instalar este servidor en la PC del cliente, siga estos pasos:
+
+## 1. Requisitos Previos
+1. **Instalar Node.js**: Descargar e instalar la versión LTS desde [https://nodejs.org/](https://nodejs.org/).
+2. **Descargar SumatraPDF (Portable)**:
+   - Ir a [https://www.sumatrapdfreader.org/download-free-pdf-viewer](https://www.sumatrapdfreader.org/download-free-pdf-viewer)
+   - Descargar la versión **Portable** (.zip o .exe directo).
+   - Si descargó el .zip, extraigalo.
+   - **IMPORTANTE**: Copie el archivo `SumatraPDF.exe` dentro de esta carpeta `printer-server`. Debe estar junto a `server.js`.
+
+## 2. Instalación de Dependencias
+1. Abra esta carpeta en una terminal (o doble click en la barra de dirección, escriba `cmd` y enter).
+2. Ejecute el comando:
+   ```
+   npm install
+   ```
+   Esto descargará las librerías necesarias.
+
+## 3. Probar el Servidor
+1. Haga doble click en `start_server.bat`.
+2. Debería ver una ventana negra con letras verdes que dice "🔥 Printer server ON".
+3. Si ve un error sobre SumatraPDF, asegúrese de haber copiado el .exe aquí.
+
+## 4. Configurar Inicio Automático
+1. Haga doble click en `instalar_inicio.bat`.
+2. Esto creará un acceso directo en la carpeta de inicio de Windows.
+3. Reinicie la PC para probar que se abre solo.
+
+## ¿Cómo saber si está funcionando?
+El cliente debe ver siempre una ventana negra minimizada (o en la barra de tareas) que dice "**SERVIDOR DE IMPRESION - BAZAR M&M**".
+Si esa ventana se cierra, el servidor no está funcionando. Para reiniciarlo, solo deben hacer doble click en el icono "Iniciar Servidor Impresora" en el escritorio (si crea uno) o buscarlo en el menú inicio.

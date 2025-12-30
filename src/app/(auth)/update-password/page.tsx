@@ -3,37 +3,27 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Button from '@/components/ui/Button';
-import Link from 'next/link';
-import { Lock, Loader2, ArrowLeft } from 'lucide-react';
+import { Lock, Loader2, ArrowLeft, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { createClient } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 
 export default function UpdatePasswordPage() {
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const token = searchParams.get('token');
+
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
-    const router = useRouter();
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        // Check if we have a session (handled by Supabase automatically via hash)
-        const checkSession = async () => {
-            const supabase = createClient();
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
-                // If no session, wait a bit as it might be setting up from hash
-                setTimeout(async () => {
-                    const { data: { session: retrySession } } = await supabase.auth.getSession();
-                    if (!retrySession) {
-                        toast.error('Enlace inválido o expirado');
-                        // Optionally redirect to login
-                    }
-                }, 1000);
-            }
-        };
-        checkSession();
-    }, []);
+        if (!token) {
+            setError('Token no encontrado. Asegúrate de usar el enlace completo del correo.');
+        }
+    }, [token]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -49,28 +39,83 @@ export default function UpdatePasswordPage() {
         }
 
         setIsLoading(true);
-        const supabase = createClient();
+        setError(null);
 
         try {
-            const { error } = await supabase.auth.updateUser({ password });
+            const response = await fetch('/api/auth/update-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token, password }),
+            });
 
-            if (error) throw error;
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Error al actualizar contraseña');
+            }
 
             setIsSuccess(true);
             toast.success('Contraseña actualizada correctamente');
 
-            // Redirect after a 2 secons
             setTimeout(() => {
-                router.push('/ventas');
-            }, 2000);
+                router.push('/login');
+            }, 3000);
 
         } catch (error: any) {
             console.error(error);
-            toast.error(error.message || 'Error al actualizar contraseña');
+            setError(error.message);
+            toast.error(error.message);
         } finally {
             setIsLoading(false);
         }
     };
+
+    if (error) {
+        return (
+            <div className="min-h-screen w-full flex items-center justify-center bg-neutral-100 p-4">
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 text-center space-y-6"
+                >
+                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto text-red-600 mb-2">
+                        <Lock size={32} />
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-bold text-gray-900">Enlace inválido o expirado</h2>
+                        <p className="text-gray-500 text-sm mt-2">{error}</p>
+                    </div>
+                    <Link href="/forgot-password" className="block w-full">
+                        <Button className="w-full bg-neutral-900 text-white">
+                            Solicitar nuevo enlace
+                        </Button>
+                    </Link>
+                </motion.div>
+            </div>
+        );
+    }
+
+    if (isSuccess) {
+        return (
+            <div className="min-h-screen w-full flex items-center justify-center bg-neutral-100 p-4">
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 text-center space-y-6"
+                >
+                    <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto text-emerald-600 mb-2">
+                        <CheckCircle size={32} />
+                    </div>
+                    <div>
+                        <h2 className="text-2xl font-bold text-gray-900">¡Contraseña Actualizada!</h2>
+                        <p className="text-gray-500 text-sm mt-2">
+                            Tu contraseña ha sido cambiada con éxito. Redirigiendo al login...
+                        </p>
+                    </div>
+                </motion.div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen w-full flex items-center justify-center bg-neutral-100 p-4">
@@ -93,73 +138,55 @@ export default function UpdatePasswordPage() {
                     </p>
                 </div>
 
-                {isSuccess ? (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="space-y-6"
-                    >
-                        <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-6 text-center space-y-3 shadow-sm">
-                            <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center mx-auto text-emerald-600 mb-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                            </div>
-                            <h3 className="text-emerald-900 font-semibold text-lg">¡Actualizada!</h3>
-                            <p className="text-emerald-700/80 text-sm leading-relaxed">
-                                Tu contraseña ha sido cambiada. Redirigiendo...
-                            </p>
+                <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <label htmlFor="pass" className="text-sm font-semibold text-gray-700 ml-1">
+                                Nueva Contraseña
+                            </label>
+                            <input
+                                id="pass"
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="w-full px-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all duration-200"
+                                placeholder="••••••••"
+                                required
+                                minLength={6}
+                            />
                         </div>
-                    </motion.div>
-                ) : (
-                    <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <label htmlFor="pass" className="text-sm font-semibold text-gray-700 ml-1">
-                                    Nueva Contraseña
-                                </label>
-                                <input
-                                    id="pass"
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full px-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all duration-200"
-                                    placeholder="••••••••"
-                                    required
-                                    minLength={6}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label htmlFor="conf-pass" className="text-sm font-semibold text-gray-700 ml-1">
-                                    Confirmar Contraseña
-                                </label>
-                                <input
-                                    id="conf-pass"
-                                    type="password"
-                                    value={confirmPassword}
-                                    onChange={(e) => setConfirmPassword(e.target.value)}
-                                    className="w-full px-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all duration-200"
-                                    placeholder="••••••••"
-                                    required
-                                    minLength={6}
-                                />
-                            </div>
+                        <div className="space-y-2">
+                            <label htmlFor="conf-pass" className="text-sm font-semibold text-gray-700 ml-1">
+                                Confirmar Contraseña
+                            </label>
+                            <input
+                                id="conf-pass"
+                                type="password"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                className="w-full px-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all duration-200"
+                                placeholder="••••••••"
+                                required
+                                minLength={6}
+                            />
                         </div>
+                    </div>
 
-                        <Button
-                            type="submit"
-                            className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white py-4 rounded-xl font-bold text-lg shadow-lg shadow-red-500/25 hover:shadow-red-500/40 transition-all duration-200 transform hover:-translate-y-0.5"
-                            disabled={isLoading}
-                        >
-                            {isLoading ? (
-                                <>
-                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                    Actualizando...
-                                </>
-                            ) : (
-                                'Cambiar Contraseña'
-                            )}
-                        </Button>
-                    </form>
-                )}
+                    <Button
+                        type="submit"
+                        className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 hover:text-white text-white py-4 rounded-xl font-bold text-lg shadow-lg shadow-red-500/25 hover:shadow-red-500/40 transition-all duration-200 transform hover:-translate-y-0.5"
+                        disabled={isLoading}
+                    >
+                        {isLoading ? (
+                            <>
+                                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                Actualizando...
+                            </>
+                        ) : (
+                            'Cambiar Contraseña'
+                        )}
+                    </Button>
+                </form>
             </motion.div>
         </div>
     );
