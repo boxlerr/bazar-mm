@@ -3,7 +3,7 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const puppeteer = require("puppeteer");
-const { exec } = require("child_process");
+const { execFile } = require("child_process");
 const cors = require("cors");
 
 const app = express();
@@ -16,43 +16,81 @@ const PRINTER_NAME = "POS-80C";
 // Ruta PDF temporal
 const TEMP_PDF = path.join(os.tmpdir(), "ticket_bazar_mm.pdf");
 
-// Ruta de SumatraPDF (Relativa al script para portabilidad)
-// Se espera que SumatraPDF.exe esté en la misma carpeta o en una carpeta 'bin'
-const SUMATRA_PATH = path.join(__dirname, "SumatraPDF.exe");
+// Ruta de SumatraPDF
+// Intentamos usar la ruta proporcionada por el usuario o la local
+const SUMATRA_PATH = "C:\\Users\\boxle\\AppData\\Local\\SumatraPDF\\SumatraPDF.exe";
+
+// Variable global para la instancia del navegador
+let browserInstance = null;
+
+// Función para obtener/iniciar el navegador
+async function getBrowser() {
+  if (!browserInstance) {
+    console.log("🚀 Iniciando navegador Puppeteer...");
+    try {
+      browserInstance = await puppeteer.launch({
+        headless: "new",
+        args: ["--no-sandbox"],
+      });
+
+      // Manejar desconexión del navegador
+      browserInstance.on('disconnected', () => {
+        console.log("⚠️ Navegador desconectado. Se reiniciará en la próxima solicitud.");
+        browserInstance = null;
+      });
+      console.log("✅ Navegador Puppeteer LISTO para imprimir");
+    } catch (error) {
+      console.error("❌ Error iniciando Puppeteer:", error);
+      browserInstance = null;
+    }
+  }
+  return browserInstance;
+}
 
 // Generar ticket PDF 80mm
 async function generarPDF(html) {
-  const browser = await puppeteer.launch({
-    headless: "new",
-    args: ["--no-sandbox"],
-  });
+  let page = null;
+  try {
+    const browser = await getBrowser();
+    if (!browser) throw new Error("No se pudo iniciar el navegador");
 
-  const page = await browser.newPage();
-  await page.setContent(html, { waitUntil: "networkidle0" });
+    page = await browser.newPage();
 
-  await page.pdf({
-    path: TEMP_PDF,
-    width: "80mm",
-    printBackground: true,
-  });
+    // Optimizamos waitUntil a 'load' ya que no cargamos recursos externos pesados
+    await page.setContent(html, { waitUntil: "load" });
 
-  await browser.close();
+    await page.pdf({
+      path: TEMP_PDF,
+      width: "80mm",
+      printBackground: true,
+    });
+  } catch (error) {
+    console.error("Error generando PDF:", error);
+    // Si falla algo crítico, intentamos cerrar la página o el browser
+    if (browserInstance) {
+      // En caso de error grave dejamos que se cierre o reinicie
+    }
+    throw error;
+  } finally {
+    if (page) await page.close().catch(() => { });
+  }
 }
 
 // Imprimir usando SumatraPDF
 function imprimirPDF() {
   return new Promise((resolve, reject) => {
-    // Usamos "noscale" para respetar medidas exactas del PDF
-    const comando = `${SUMATRA_PATH} -print-to "${PRINTER_NAME}" -print-settings "noscale" "${TEMP_PDF}"`;
+    // Usamos execFile que es más seguro y maneja mejor las comillas en rutas
+    const args = [
+      '-print-to', PRINTER_NAME,
+      '-print-settings', 'noscale',
+      TEMP_PDF
+    ];
 
-    exec(comando, (error, stdout, stderr) => {
-      console.log("📄 Resultado de impresión:", stdout || stderr);
-
+    execFile(SUMATRA_PATH, args, (error, stdout, stderr) => {
       if (error) {
         console.error("❌ Error al imprimir:", error);
         return reject(error);
       }
-
       resolve();
     });
   });
@@ -70,7 +108,7 @@ app.post("/imprimir/test", async (req, res) => {
         padding: 0;
         font-family: 'Verdana', sans-serif;
         font-size: 12px;
-        width: 71mm; /* Reducido un poco mas para evitar cortes */
+        width: 71mm;
         color: #000;
       }
 
@@ -113,7 +151,7 @@ app.post("/imprimir/test", async (req, res) => {
 app.post("/imprimir/ticket", async (req, res) => {
   try {
     const { venta, items, empresa } = req.body;
-    console.log('Printer Server Received:', { empresa });
+    console.log('Printer Server Received ticket for:', venta.id);
 
     // Formateadores
     const currency = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 2 });
@@ -215,7 +253,17 @@ app.post("/imprimir/ticket", async (req, res) => {
   }
 });
 
+// Limpieza al cerrar
+process.on('SIGINT', async () => {
+  console.log("🛑 Cerrando servidor...");
+  if (browserInstance) await browserInstance.close();
+  process.exit();
+});
+
 // Start
-app.listen(3001, () => {
-  console.log("🔥 Printer server ON → http://localhost:3001 (Updated Layout & Config)");
+app.listen(3001, async () => {
+  console.log("🔥 Printer server ON → http://localhost:3001 (Optimized V2.2)");
+  console.log("📂 Configured Sumatra Path:", SUMATRA_PATH);
+  // Pre-lanzar el navegador para que la primera impresión sea rápida
+  await getBrowser();
 });
