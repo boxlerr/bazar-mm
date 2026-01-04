@@ -245,7 +245,7 @@ export default function TablaStock({ productos, onRefresh }: TablaStockProps) {
       {/* Tabla */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[1000px]">
             <thead className="bg-gray-50/50 border-b border-gray-100">
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -297,7 +297,10 @@ export default function TablaStock({ productos, onRefresh }: TablaStockProps) {
                       exit={{ opacity: 0, x: 20 }}
                       transition={{ duration: 0.2, delay: idx * 0.03 }}
                       className="hover:bg-blue-50/50 cursor-pointer transition-colors group"
-                      onClick={() => window.location.href = `/stock/${producto.id}`}
+                      onClick={() => {
+                        if (editingId === producto.id) return;
+                        window.location.href = `/stock/${producto.id}`;
+                      }}
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-mono font-medium text-gray-900">

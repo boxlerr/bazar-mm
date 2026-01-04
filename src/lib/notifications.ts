@@ -92,16 +92,31 @@ export async function notifyUsers(
             const config = await getNotificacionesConfig();
 
             if (config.alertas_stock && config.email_notificaciones) {
-                // Parse message to get product info if possible, or just send generic alert
-                // The message format is: "El producto X tiene stock bajo (Y unidades)"
-                // We create a "dummy" product object for the email template
-                const dummyProduct = {
-                    nombre: message, // We pass the full message as name for simplicity, or regex pars it
-                    stock_actual: 'Ver link',
-                    stock_minimo: config.stock_minimo_global
-                };
+                let productData = null;
 
-                await sendStockAlert(config.email_notificaciones, [dummyProduct]);
+                // Intentar obtener datos reales del producto si hay referencia
+                if (referenceId) {
+                    const { data: realProduct } = await supabase
+                        .from('productos')
+                        .select('nombre, stock_actual, stock_minimo')
+                        .eq('id', referenceId)
+                        .single();
+
+                    if (realProduct) {
+                        productData = realProduct;
+                    }
+                }
+
+                // Fallback si no se encontró el producto
+                if (!productData) {
+                    productData = {
+                        nombre: message,
+                        stock_actual: 'Ver link',
+                        stock_minimo: config.stock_minimo_global
+                    };
+                }
+
+                await sendStockAlert(config.email_notificaciones, [productData]);
             }
         }
 
