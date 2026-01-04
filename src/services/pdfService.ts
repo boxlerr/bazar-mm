@@ -1,6 +1,6 @@
 import { PDFParseResult, ProductoExtraido } from '@/types/compra';
 
-// pdf-parse v2.x usage will be lazy-loaded to prevent top-level build issues
+// pdf-parse standard version lazy loaded
 
 /**
  * Servicio para extraer información de PDFs de órdenes de compra
@@ -13,31 +13,21 @@ export class PDFService {
    */
   static async extractDataFromPDF(buffer: Buffer): Promise<PDFParseResult> {
     try {
-      console.log('🔄 Iniciando parseo de PDF v2.x...');
+      console.log('🔄 Iniciando parseo de PDF (Standard v1.x)...');
       console.log('🔍 Buffer recibido, tamaño:', buffer.length);
 
-      // Lazy load pdf-parse
+      // Lazy load standard pdf-parse
       // @ts-ignore
-      const pdfModule = require('pdf-parse');
-      const { PDFParse } = pdfModule;
+      const pdf = require('pdf-parse');
 
-      // Crear instancia del parser pasando el buffer en las opciones
-      console.log('📘 Creando parser con buffer en opciones...');
-      const parser = new PDFParse({
-        data: buffer, // Pasar buffer directamente
-        max: 0, // Sin límite de páginas
-        verbosity: 0,
-      });
+      // Standard API: pdf(buffer, options) -> Promise<Result>
+      const data = await pdf(buffer);
 
-      console.log('📘 Extrayendo texto con getText()...');
-      const result = await parser.getText();
+      console.log('✅ PDF parseado exitosamente');
 
-      console.log('✅ getText() completado');
+      // La data.text contiene el texto extraído
+      const text = data.text;
 
-      // getText() devuelve un objeto, necesitamos extraer el texto
-      const text = typeof result === 'string' ? result : (result?.text || result?.content || JSON.stringify(result));
-
-      console.log('📄 PDF procesado exitosamente');
       console.log('📝 Texto extraído, longitud:', text.length);
       console.log('📝 RAW TEXT START:\n', text.substring(0, 2000), '\nRAW TEXT END');
 
@@ -134,16 +124,23 @@ export class PDFService {
   private static extractDGProductos(text: string): ProductoExtraido[] {
     const productos: ProductoExtraido[] = [];
     const lines = text.split('\n').map(l => l.trim());
+    console.log('🔍 [DG] Total líneas:', lines.length);
+    console.log('🔍 [DG] Primeras 5 líneas:', lines.slice(0, 5));
 
     let startIndex = -1;
     let endIndex = lines.length;
 
     for (let i = 0; i < lines.length; i++) {
+      // Debug para encontrar el header
+      if (lines[i].includes('Producto')) console.log('🔍 [DG] Línea candidata header:', lines[i]);
+
       if (lines[i].includes('Producto') && lines[i].includes('Cantidad') && lines[i].includes('Precio')) {
         startIndex = i + 1;
+        console.log('✅ [DG] Header encontrado en línea:', i);
       }
       if (lines[i].match(/^Subtotal\s*\(/i)) {
         endIndex = i;
+        console.log('✅ [DG] Footer encontrado en línea:', i);
         break;
       }
     }
@@ -244,15 +241,36 @@ export class PDFService {
   private static extractInfinityProductos(text: string): ProductoExtraido[] {
     const productos: ProductoExtraido[] = [];
     const lines = text.split('\n').map(l => l.trim());
+    console.log('🔍 [Infinity] Total líneas:', lines.length);
 
-    // Buscar encabezado: "Codigo Descripcion Precio unitario      Cantidad Total"
-    // O similar. En el raw text: "Codigo Descripcion Precio unitario      Cantidad Total"
     let startIndex = -1;
 
+    // Estrategia de detección de header relajada
+    // Buscamos líneas que contengan palabras clave, incluso si están en líneas separadas
+    const keywords = ['Codigo', 'Descripcion', 'Precio', 'Cantidad', 'Total'];
+
     for (let i = 0; i < lines.length; i++) {
-      if (lines[i].includes('Codigo') && lines[i].includes('Descripcion') && lines[i].includes('Precio')) {
+      const line = lines[i].replace(/\s/g, ''); // Ignorar espacios para comparar
+      // "CodigoDescripcion" aparece junto en el log
+      if (line.includes('CodigoDescripcion') || (line.includes('Codigo') && line.includes('Descripcion'))) {
         startIndex = i + 1;
+        console.log('✅ [Infinity] Header encontrado (Tipo A) en línea:', i);
         break;
+      }
+      // A veces los headers están distribuidos en varias líneas, si encontramos una secuencia densa, empezamos luego
+      // Hack: si encontramos la fecha "Fecha:" y luego "P", asumimos que los productos vienen poco despues
+      // Mejor: Buscar la primera línea que parezca un producto válido
+    }
+
+    // Si no encontramos header claro, intentar buscar patrón de producto
+    if (startIndex === -1) {
+      console.log('⚠️ [Infinity] Header no encontrado, buscando primer producto por patrón...');
+      for (let i = 0; i < lines.length; i++) {
+        if (/\d+\.\d{2}\d+/.test(lines[i]) && lines[i].length > 20) { // Tiene pinta de tener precios pegados
+          startIndex = i;
+          console.log('✅ [Infinity] Inicio deducido por patrón de datos en línea:', i);
+          break;
+        }
       }
     }
 
@@ -265,33 +283,70 @@ export class PDFService {
       const line = lines[i];
 
       if (!line || line.length === 0) continue;
-      if (line.includes('TOTAL') && line.includes('.')) break; // Stop at total line
 
-      // Format: "CORTINA DE BAÑO ... 5790.00       424 23160.00    4 0.00"
-      // Reverse parse: Discount -> Qty -> Total -> Code -> Price -> Description
+      // Stop at total line ONLY if it looks like the footer total (e.g. "TOTAL 1234.56")
+      // Ignorar "Total" si es parte del header (longitud corta o sin numeros)
+      if (line.match(/^TOTAL/i)) {
+        // Si es solo "Total" o "Total:" es header o basura
+        if (line.length < 10 && !/\d/.test(line)) {
+          console.log('⚠️ [Infinity] Ignorando línea "Total" (posible header) en línea:', i);
+          continue;
+        }
+        console.log('✅ [Infinity] Fin de tabla detectado en línea:', i);
+        break;
+      }
 
-      // Regex for the end part: Price Code Total Qty Discount
-      // Note: The raw text shows: "5790.00       424 23160.00    4 0.00"
-      // Wait, looking at raw text again:
-      // "CORTINA DE BAÑO 180X180 340GR 50% 5790.00       424 23160.00    4 0.00"
-      // Description | Price | Code | Total | Qty | Discount
+      // Ignorar líneas del header que se mezclaron
+      if (['Precio unitario', 'Cantidad', 'DTO %:', 'Codigo', 'Descripcion'].some(k => line.includes(k))) {
+        continue;
+      }
 
-      // Let's try to match the numbers at the end
-      // (\d+\.\d{2}) \s+ (\d+) \s+ (\d+\.\d{2}) \s+ (\d+) \s+ (\d+\.\d{2}) $
-      // Price          Code      Total          Qty      Discount
+      // Intentar regex para números "pegados" (Squashed)
+      // Formato observado: Desc... Price Code Total Qty Discount
+      // 5790.00 424 23160.00 4 0.00 -> 5790.0042423160.0040.00
+      // Regex: (\d+\.\d{2}) (\d+) (\d+\.\d{2}) (\d+) (\d+\.\d{2})$
 
-      const endPattern = /(\d+(?:\.\d{2})?)\s+(\d+)\s+(\d+(?:\.\d{2})?)\s+(\d+)\s+(\d+(?:\.\d{2})?)$/;
-      const match = line.match(endPattern);
+      // Regex estricto anclado al final
+      const squashedPattern = /(\d+\.\d{2})(\d+)(\d+\.\d{2})(\d+)(\d+\.\d{2})$/;
+      const match = line.match(squashedPattern);
 
       if (match) {
+        // match[1] = Precio (5790.00)
+        // match[2] = Codigo (424)
+        // match[3] = Total (23160.00)
+        // match[4] = Cantidad (4)
+        // match[5] = Descuento (0.00)
+
+        const description = line.substring(0, match.index).trim();
         const precioStr = match[1];
         const codigoStr = match[2];
         const totalStr = match[3];
         const cantidadStr = match[4];
-        // const descuentoStr = match[5];
 
-        // Description is everything before the match
-        const description = line.substring(0, match.index).trim();
+        console.log(`📦 [Infinity] Producto detectado: ${description} | $${precioStr} | x${cantidadStr}`);
+
+        productos.push({
+          sku: codigoStr,
+          nombre: description,
+          cantidad: parseInt(cantidadStr),
+          precio_unitario: parseFloat(precioStr),
+          total: parseFloat(totalStr)
+        });
+        continue;
+      }
+
+      // Fallback: Regex con espacios (Original) por si acaso
+      const spacedPattern = /(\d+(?:\.\d{2})?)\s+(\d+)\s+(\d+(?:\.\d{2})?)\s+(\d+)\s+(\d+(?:\.\d{2})?)$/;
+      const matchSpaced = line.match(spacedPattern);
+
+      if (matchSpaced) {
+        const description = line.substring(0, matchSpaced.index).trim();
+        const precioStr = matchSpaced[1];
+        const codigoStr = matchSpaced[2];
+        const totalStr = matchSpaced[3];
+        const cantidadStr = matchSpaced[4];
+
+        console.log(`📦 [Infinity] Producto detectado (espaciado): ${description}`);
 
         productos.push({
           sku: codigoStr,
