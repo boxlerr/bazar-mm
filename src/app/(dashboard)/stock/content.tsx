@@ -27,6 +27,7 @@ export default function StockContent() {
         const { data } = await supabase
             .from('productos')
             .select('*')
+            .eq('activo', true)
             .order('nombre');
 
         if (data) {
@@ -215,7 +216,7 @@ export default function StockContent() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.5 }}
             >
-                <TablaStock productos={filteredProductos} />
+                <TablaStock productos={filteredProductos} onRefresh={loadProductos} />
             </motion.div>
         </motion.div>
     );

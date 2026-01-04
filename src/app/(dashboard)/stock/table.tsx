@@ -1,23 +1,37 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Filter, Package, AlertTriangle, Eye, ChevronLeft, ChevronRight, DollarSign } from 'lucide-react';
+import { Search, Filter, Package, AlertTriangle, Eye, ChevronLeft, ChevronRight, DollarSign, Pencil, Trash2, Check, X, Save, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Producto } from '@/types/producto';
 import { getDolarBlue, getDolarOficial, convertirPrecioADolares } from '@/services/dolarService';
+import { createClient } from '@/lib/supabase/client';
+import DeleteConfirmationModal from '@/components/ui/DeleteConfirmationModal';
+import { toast } from 'sonner';
 
 interface TablaStockProps {
   productos: Producto[];
+  onRefresh: () => void;
 }
 
-export default function TablaStock({ productos }: TablaStockProps) {
+export default function TablaStock({ productos, onRefresh }: TablaStockProps) {
   const [busqueda, setBusqueda] = useState('');
   const [categoriaFiltro, setCategoriaFiltro] = useState('todos');
   const [stockFiltro, setStockFiltro] = useState('todos');
   const [paginaActual, setPaginaActual] = useState(1);
   const [dolarBlue, setDolarBlue] = useState<number>(0);
   const [dolarOficial, setDolarOficial] = useState<number>(0);
+
+  // Estados para edición
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValues, setEditValues] = useState<{ stock: number; precio: number }>({ stock: 0, precio: 0 });
+  const [loadingAction, setLoadingAction] = useState<string | null>(null);
+
+  // Estados para eliminación
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Producto | null>(null);
+
   const itemsPorPagina = 15;
 
   useEffect(() => {
@@ -78,6 +92,74 @@ export default function TablaStock({ productos }: TablaStockProps) {
       'Bazar': 'bg-pink-100 text-pink-700 border-pink-200',
     };
     return colors[categoria] || 'bg-gray-100 text-gray-700 border-gray-200';
+  };
+
+  const startEditing = (producto: Producto) => {
+    setEditingId(producto.id);
+    setEditValues({
+      stock: producto.stock_actual,
+      precio: producto.precio_venta
+    });
+  };
+
+  const cancelEditing = () => {
+    setEditingId(null);
+    setEditValues({ stock: 0, precio: 0 });
+  };
+
+  const saveChanges = async (id: string) => {
+    setLoadingAction(id);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('productos')
+        .update({
+          stock_actual: editValues.stock,
+          precio_venta: editValues.precio
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast.success('Producto actualizado correctamente');
+      setEditingId(null);
+      onRefresh();
+    } catch (error) {
+      console.error('Error updating product:', error);
+      toast.error('Error al actualizar el producto');
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const confirmDelete = (producto: Producto) => {
+    setProductToDelete(producto);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!productToDelete) return;
+
+    setLoadingAction('deleting');
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('productos')
+        .update({ activo: false })
+        .eq('id', productToDelete.id);
+
+      if (error) throw error;
+
+      toast.success('Producto eliminado correctamente');
+      setDeleteModalOpen(false);
+      setProductToDelete(null);
+      onRefresh();
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      toast.error('Error al eliminar el producto');
+    } finally {
+      setLoadingAction(null);
+    }
   };
 
   return (
@@ -245,35 +327,61 @@ export default function TablaStock({ productos }: TablaStockProps) {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-3">
                           <div className="flex-1 max-w-[120px]">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className={`text-sm font-bold ${producto.stock_actual <= producto.stock_minimo
-                                ? 'text-red-600'
-                                : 'text-gray-900'
-                                }`}>
-                                {producto.stock_actual}
-                              </span>
-                            </div>
+                            {editingId === producto.id ? (
+                              <input
+                                type="number"
+                                value={editValues.stock}
+                                onChange={(e) => setEditValues({ ...editValues, stock: Number(e.target.value) })}
+                                className="w-20 px-2 py-1 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            ) : (
+                              <div className="flex items-center justify-between mb-1">
+                                <span className={`text-sm font-bold ${producto.stock_actual <= producto.stock_minimo
+                                  ? 'text-red-600'
+                                  : 'text-gray-900'
+                                  }`}>
+                                  {producto.stock_actual}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
-                        <div className="text-sm font-bold text-gray-900 mb-1">
-                          ${formatNumber(producto.precio_venta)}
-                        </div>
-                        <div className="flex flex-col gap-0.5 items-end">
-                          {dolarBlue > 0 && (
-                            <div className="text-xs font-medium text-blue-600 flex items-center gap-1" title="Dólar Blue">
-                              <span className="text-[10px] text-gray-400 font-normal">Blue:</span>
-                              {formatNumber(producto.precio_venta / dolarBlue)} USD
+                        {editingId === producto.id ? (
+                          <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
+                            <div className="relative w-28">
+                              <span className="absolute left-2 top-1.5 text-gray-500 text-sm">$</span>
+                              <input
+                                type="number"
+                                value={editValues.precio}
+                                onChange={(e) => setEditValues({ ...editValues, precio: Number(e.target.value) })}
+                                className="w-full pl-6 pr-2 py-1 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-right"
+                              />
                             </div>
-                          )}
-                          {dolarOficial > 0 && (
-                            <div className="text-xs font-medium text-green-600 flex items-center gap-1" title="Dólar Oficial">
-                              <span className="text-[10px] text-gray-400 font-normal">Oficial:</span>
-                              {formatNumber(producto.precio_venta / dolarOficial)} USD
+                          </div>
+                        ) : (
+                          <>
+                            <div className="text-sm font-bold text-gray-900 mb-1">
+                              ${formatNumber(producto.precio_venta)}
                             </div>
-                          )}
-                        </div>
+                            <div className="flex flex-col gap-0.5 items-end">
+                              {dolarBlue > 0 && (
+                                <div className="text-xs font-medium text-blue-600 flex items-center gap-1" title="Dólar Blue">
+                                  <span className="text-[10px] text-gray-400 font-normal">Blue:</span>
+                                  {formatNumber(producto.precio_venta / dolarBlue)} USD
+                                </div>
+                              )}
+                              {dolarOficial > 0 && (
+                                <div className="text-xs font-medium text-green-600 flex items-center gap-1" title="Dólar Oficial">
+                                  <span className="text-[10px] text-gray-400 font-normal">Oficial:</span>
+                                  {formatNumber(producto.precio_venta / dolarOficial)} USD
+                                </div>
+                              )}
+                            </div>
+                          </>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         {producto.stock_actual <= producto.stock_minimo ? (
@@ -288,14 +396,56 @@ export default function TablaStock({ productos }: TablaStockProps) {
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
-                        <Link
-                          href={`/stock/${producto.id}`}
-                          className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-700 font-medium text-sm opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Eye className="w-4 h-4" />
-                          Ver
-                        </Link>
+                        <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                          {editingId === producto.id ? (
+                            <>
+                              <button
+                                onClick={() => saveChanges(producto.id)}
+                                disabled={loadingAction === producto.id}
+                                className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                title="Guardar"
+                              >
+                                {loadingAction === producto.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Check className="w-4 h-4" />
+                                )}
+                              </button>
+                              <button
+                                onClick={cancelEditing}
+                                disabled={!!loadingAction}
+                                className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Cancelar"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => startEditing(producto)}
+                                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                title="Editar rápido"
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </button>
+                              <Link
+                                href={`/stock/${producto.id}`}
+                                className="p-1.5 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                title="Ver detalles"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Link>
+                              <button
+                                onClick={() => confirmDelete(producto)}
+                                className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                title="Eliminar"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </td>
                     </motion.tr>
                   ))
@@ -331,6 +481,16 @@ export default function TablaStock({ productos }: TablaStockProps) {
           </div>
         )}
       </div>
-    </div>
+
+
+      <DeleteConfirmationModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleDelete}
+        title="Eliminar Producto"
+        description={`¿Estás seguro que deseas eliminar el producto "${productToDelete?.nombre}"? Esta acción no se puede deshacer.`}
+        loading={loadingAction === 'deleting'}
+      />
+    </div >
   );
 }
