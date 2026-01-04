@@ -25,10 +25,14 @@ export async function registrarAjuste(
     const cantidadReal = tipo === 'salida' ? -Math.abs(cantidad) : Math.abs(cantidad);
 
     try {
-        // 1. Obtener stock actual
+        // Obtener configuración de notificaciones
+        const { getNotificacionesConfig } = await import('@/app/(dashboard)/configuracion/notificaciones/actions');
+        const config = await getNotificacionesConfig();
+
+        // 1. Obtener stock actual y datos del producto
         const { data: prod, error: prodError } = await supabase
             .from('productos')
-            .select('stock_actual')
+            .select('stock_actual, stock_minimo, nombre')
             .eq('id', productoId)
             .single();
 
@@ -62,16 +66,31 @@ export async function registrarAjuste(
 
         revalidatePath('/stock');
 
-        // Notificar ajuste
+        // Notificar ajuste (Log de acción)
         await notifyUsers(
             ['admin'],
             'Ajuste de Stock',
-            `Ajuste manual (${tipo}) de ${cantidad} unidades en producto. Motivo: ${motivo}`,
-            'warning',
+            `Ajuste manual (${tipo}) de ${cantidad} unidades en producto ${prod.nombre}. Motivo: ${motivo}`,
+            'info', // Cambiado a info para no disparar alertas críticas/emails confusos si no es necesario
             'stock',
             productoId,
             `/stock/${productoId}`
         );
+
+        // Verificar stock bajo y notificar ALERTA (que dispara email)
+        const limiteStock = prod.stock_minimo ?? config.stock_minimo_global;
+
+        if (stockNuevo <= limiteStock) {
+            await notifyUsers(
+                ['admin', 'gerente'],
+                'Stock Bajo',
+                `El producto ${prod.nombre} tiene stock bajo (${stockNuevo} unidades) tras ajuste manual.`,
+                'warning',
+                'stock',
+                productoId,
+                `/stock/${productoId}`
+            );
+        }
 
         return { success: true };
     } catch (error: any) {

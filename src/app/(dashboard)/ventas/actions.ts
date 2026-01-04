@@ -55,6 +55,10 @@ export async function processSale(saleData: {
       return { success: false, error: 'Debe abrir la caja antes de realizar una venta.' };
     }
 
+    // Obtener configuración de notificaciones
+    const { getNotificacionesConfig } = await import('@/app/(dashboard)/configuracion/notificaciones/actions');
+    const config = await getNotificacionesConfig();
+
     // 1. Crear la venta
     const { data: venta, error: ventaError } = await supabase
       .from('ventas')
@@ -119,7 +123,10 @@ export async function processSale(saleData: {
       }
 
       // Verificar stock bajo y notificar
-      if (stockNuevo <= (prod?.stock_minimo || 5)) {
+      // Usar stock mínimo del producto o el global de la configuración
+      const limiteStock = prod?.stock_minimo ?? config.stock_minimo_global;
+
+      if (stockNuevo <= limiteStock) {
         await notifyUsers(
           ['admin', 'gerente', 'vendedor'],
           'Stock Bajo',

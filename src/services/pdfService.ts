@@ -1,10 +1,6 @@
 import { PDFParseResult, ProductoExtraido } from '@/types/compra';
 
-// pdf-parse v2.x usa una nueva API de clases completamente diferente
-const pdfModule = require('pdf-parse');
-const { PDFParse } = pdfModule;
-
-console.log('✅ PDFParse v2.x cargado');
+// pdf-parse v2.x usage will be lazy-loaded to prevent top-level build issues
 
 /**
  * Servicio para extraer información de PDFs de órdenes de compra
@@ -19,6 +15,11 @@ export class PDFService {
     try {
       console.log('🔄 Iniciando parseo de PDF v2.x...');
       console.log('🔍 Buffer recibido, tamaño:', buffer.length);
+
+      // Lazy load pdf-parse
+      // @ts-ignore
+      const pdfModule = require('pdf-parse');
+      const { PDFParse } = pdfModule;
 
       // Crear instancia del parser pasando el buffer en las opciones
       console.log('📘 Creando parser con buffer en opciones...');
