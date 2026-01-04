@@ -66,16 +66,18 @@ export async function POST(request: NextRequest) {
       data,
     });
 
-  } catch (error) {
-    console.error('❌ Error procesando PDF:', error);
+  } catch (error: any) {
+    console.error('❌ Error procesando PDF - DETALLES COMPLETOS:', error);
+    console.error('❌ Stack:', error.stack);
 
-    const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-
+    // Devolvemos el error detallado para debug en producción
     return NextResponse.json(
       {
         success: false,
-        error: 'Error al procesar el PDF',
-        details: errorMessage
+        error: 'Error interno del servidor al procesar el PDF',
+        details: error.message,
+        stack: error.stack, // Debug info
+        type: error.constructor.name
       },
       {
         status: 500,
