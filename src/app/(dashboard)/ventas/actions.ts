@@ -97,30 +97,23 @@ export async function processSale(saleData: {
       throw new Error(`Error al crear items: ${itemsError.message}`);
     }
 
-    // 3. Actualizar stock y registrar movimiento
+    // 3. Registrar movimiento y verificar stock bajo
     for (const item of saleData.items) {
-      // Obtener stock actual antes de actualizar
+      // NOTA: El stock se descuenta automáticamente mediante un Trigger en la base de datos al insertar en venta_items.
+      // No debemos descontarlo manualmente aquí para evitar doble descuento.
+
+      // Obtener stock actual para registrar el movimiento (referencial)
       const { data: prod } = await supabase
         .from('productos')
         .select('stock_actual, stock_minimo, nombre')
         .eq('id', item.producto_id)
         .single();
 
+      // Calculamos el nuevo stock restando lo que se acaba de vender, asumiendo que el trigger ya corrió o correrá.
+      // Para el log de kardex esto es una aproximación, lo ideal sería leer el stock post-trigger, 
+      // pero para evitar otra query asumimos la resta.
       const stockAnterior = prod?.stock_actual || 0;
       const stockNuevo = stockAnterior - item.cantidad;
-
-      const { error: rpcError } = await supabase.rpc('actualizar_stock', {
-        p_producto_id: item.producto_id,
-        p_cantidad: -item.cantidad,
-      });
-
-      if (rpcError) {
-        console.warn('RPC actualizar_stock failed, trying manual update', rpcError);
-        await supabase
-          .from('productos')
-          .update({ stock_actual: stockNuevo })
-          .eq('id', item.producto_id);
-      }
 
       // Verificar stock bajo y notificar
       // Usar stock mínimo del producto o el global de la configuración
@@ -182,9 +175,9 @@ export async function processSale(saleData: {
         .select('saldo_cuenta_corriente')
         .eq('id', saleData.cliente_id)
         .single();
-
+  
       const nuevoSaldo = (cliente?.saldo_cuenta_corriente || 0) + saleData.total;
-
+  
       await supabase
         .from('clientes')
         .update({ saldo_cuenta_corriente: nuevoSaldo })
