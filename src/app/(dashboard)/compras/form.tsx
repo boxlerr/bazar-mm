@@ -38,6 +38,7 @@ export default function CompraForm() {
   const [metodo_pago, setMetodoPago] = useState('efectivo');
   const [observaciones, setObservaciones] = useState('');
   const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [descuento, setDescuento] = useState<number>(0);
 
   // Items de la compra
   const [items, setItems] = useState<CompraItemForm[]>([]);
@@ -135,13 +136,19 @@ export default function CompraForm() {
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        throw new Error(result.error || result.details || 'Error procesando PDF');
+        const errorMsg = result.error || 'Error procesando PDF';
+        const details = result.details && Array.isArray(result.details) ? result.details.join('. ') : '';
+        throw new Error(details ? `${errorMsg}: ${details}` : errorMsg);
       }
 
       const pdfData: PDFParseResult = result.data;
 
       if (pdfData.numero_orden) {
         setNumeroOrden(pdfData.numero_orden);
+      }
+
+      if (pdfData.descuento) {
+        setDescuento(pdfData.descuento);
       }
 
       const newItems: CompraItemForm[] = pdfData.productos.map(p => ({
@@ -156,11 +163,36 @@ export default function CompraForm() {
       }));
 
       setItems(newItems);
+
+      // Auto-calcular descuento si el total del PDF es menor que la suma de items
+      const sumItems = newItems.reduce((acc, item) => acc + (item.cantidad * item.precio_costo), 0);
+      if (pdfData.total && sumItems > pdfData.total) {
+        const diff = sumItems - pdfData.total;
+        // Si la diferencia es positiva, asumimos que es un descuento global no distribuido
+        setDescuento(parseFloat(diff.toFixed(2)));
+      } else if (pdfData.total === undefined && pdfData.descuento) {
+        // Si no hay total explícito pero sí descuento, lo seteamos
+        setDescuento(pdfData.descuento);
+      }
+
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
 
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error procesando PDF');
+    } catch (err: any) {
+      console.error('Error detallado upload PDF:', err);
+      let errorMessage = 'Error procesando PDF';
+
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+
+      // Intentar extraer detalles si vienen en el error
+      // Esto depende de cómo el cliente (fetch/axios) maneje el error.
+      // Si el fetch throwea por !response.ok con el mensaje del JSON, bien.
+      // Pero aquí estamos lanzando el error en linea 139 con result.error.
+      // Modificamos linea 139 para incluir detalles en el mensaje o manejarlos diferente.
+
+      setError(errorMessage);
     } finally {
       setProcessingPDF(false);
     }
@@ -194,7 +226,8 @@ export default function CompraForm() {
   };
 
   const calculateTotal = () => {
-    return items.reduce((sum, item) => sum + (item.cantidad * item.precio_costo), 0);
+    const sum = items.reduce((sum, item) => sum + (item.cantidad * item.precio_costo), 0);
+    return Math.max(0, sum - descuento);
   };
 
   const formatNumber = (num: number) => {
@@ -213,13 +246,35 @@ export default function CompraForm() {
       if (!proveedor_id) throw new Error('Selecciona un proveedor');
       if (items.length === 0) throw new Error('Agrega al menos un producto');
 
+      const finalTotal = calculateTotal();
+
+      // Distribuir el descuento entre los items para que el total coincida
+      // Esto asegura que el costo de inventario sea real (neto de descuentos globales)
+      const itemsConDescuento = items.map(item => {
+        if (descuento > 0 && finalTotal > 0) {
+          const subtotalOriginal = item.cantidad * item.precio_costo;
+          const sumItems = items.reduce((s, i) => s + (i.cantidad * i.precio_costo), 0);
+          // Factor de descuento = (1 - (Descuento / SumaOriginal))
+          const factor = 1 - (descuento / sumItems);
+          const nuevoCosto = item.precio_costo * factor;
+          // Redondear a 2 decimales para consistencia? Mejor dejar precision y que la DB maneje o redondear?
+          // Redondeamos para evitar desajustes de centavos locos
+          return {
+            ...item,
+            precio_costo: parseFloat(nuevoCosto.toFixed(4)), // 4 decimales para precisión en costos
+            // Precio venta se mantiene o se recalcula? Se mantiene el calculado por el usuario en el form
+          };
+        }
+        return item;
+      });
+
       const formData = new FormData();
       formData.append('proveedor_id', proveedor_id);
       formData.append('numero_orden', numero_orden);
       formData.append('metodo_pago', metodo_pago);
       formData.append('observaciones', observaciones);
-      formData.append('total', calculateTotal().toString());
-      formData.append('items', JSON.stringify(items));
+      formData.append('total', finalTotal.toString());
+      formData.append('items', JSON.stringify(itemsConDescuento));
 
       if (pdfFile) {
         formData.append('pdf', pdfFile);
@@ -567,6 +622,21 @@ export default function CompraForm() {
                 <div className="flex justify-end items-end gap-2">
                   <span className="text-gray-500 font-medium mb-1">Total Compra:</span>
                   <span className="text-3xl font-bold text-gray-900">${formatNumber(calculateTotal())}</span>
+                </div>
+                {/* Visualización del cálculo de descuento si aplica */}
+                <div className="flex justify-end items-center gap-4 mt-2">
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-gray-500">Descuento Global:</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1.5 text-gray-400 text-sm">$</span>
+                      <input
+                        type="number"
+                        value={descuento}
+                        onChange={(e) => setDescuento(parseFloat(e.target.value) || 0)}
+                        className="w-32 border border-gray-200 rounded-lg pl-6 pr-3 py-1 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent text-right"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

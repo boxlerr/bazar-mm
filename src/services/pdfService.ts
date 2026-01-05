@@ -188,9 +188,35 @@ export class PDFService {
   }
 
   private static extractDGTotal(text: string): number | undefined {
+    // Buscar explícitamente "Total:" al inicio de línea o precedido por espacios, para evitar "Subtotal"
+    // Y también buscar el valor final si hay varios
     const patterns = [
-      /Total[:\s]+\$?\s*([\d.,]+)/i,
+      /\bTotal[:\s]+\$?\s*([\d.,]+)/i,
       /TOTAL[:\s]+\$?\s*([\d.,]+)/i,
+    ];
+
+    // Reverse lines search to find the "Final" Total
+    const lines = text.split('\n').reverse();
+    for (const line of lines) {
+      for (const pattern of patterns) {
+        const match = line.match(pattern);
+        if (match) return this.parsePrice(match[1]);
+      }
+    }
+
+    // Fallback search in full text if line search fails
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match) return this.parsePrice(match[1]);
+    }
+    return undefined;
+  }
+
+  // Nuevo método para extraer descuentos (D&G / Genérico)
+  private static extractDGDescuento(text: string): number | undefined {
+    const patterns = [
+      /Descuento[:\s]+\$?\s*([\d.,]+)/i,
+      /Discount[:\s]+\$?\s*([\d.,]+)/i,
     ];
     for (const pattern of patterns) {
       const match = text.match(pattern);
@@ -209,6 +235,20 @@ export class PDFService {
     const proveedor = 'INFINITY IMPORT S.A.';
     const productos = this.extractInfinityProductos(text);
     const total = this.extractInfinityTotal(text, productos);
+
+    // Validación estricta: Suma de items vs Total PDF
+    // Tolerancia de $10 por cuestiones de redondeo, aunque debería ser exacto
+    if (total !== undefined) {
+      const sumProductos = productos.reduce((sum, p) => sum + p.total, 0);
+      const diff = Math.abs(sumProductos - total);
+
+      console.log(`💰 [Infinity] Validación: Suma items $${sumProductos} vs Total PDF $${total}`);
+
+      if (diff > 50) { // Tolerancia amplia por si acaso, pero suficiente para detectar el error de $1.3M vs $500k
+        console.error(`⚠️ IMPORTACIÓN CON DIFERENCIA: La suma de los items ($${sumProductos}) no coincide con el total del comprobante ($${total}). Diferencia: $${diff}.`);
+        // throw new Error(`⚠️ ERROR CRÍTICO DE IMPORTACIÓN: La suma de los items ($${sumProductos}) no coincide con el total del comprobante ($${total}). Diferencia: $${diff}. Posible error de lectura de precios.`);
+      }
+    }
 
     return {
       numero_orden,
@@ -243,118 +283,108 @@ export class PDFService {
     const lines = text.split('\n').map(l => l.trim());
     console.log('🔍 [Infinity] Total líneas:', lines.length);
 
-    let startIndex = -1;
-
-    // Estrategia de detección de header relajada
-    // Buscamos líneas que contengan palabras clave, incluso si están en líneas separadas
-    const keywords = ['Codigo', 'Descripcion', 'Precio', 'Cantidad', 'Total'];
-
     for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].replace(/\s/g, ''); // Ignorar espacios para comparar
-      // "CodigoDescripcion" aparece junto en el log
-      if (line.includes('CodigoDescripcion') || (line.includes('Codigo') && line.includes('Descripcion'))) {
-        startIndex = i + 1;
-        console.log('✅ [Infinity] Header encontrado (Tipo A) en línea:', i);
-        break;
-      }
-      // A veces los headers están distribuidos en varias líneas, si encontramos una secuencia densa, empezamos luego
-      // Hack: si encontramos la fecha "Fecha:" y luego "P", asumimos que los productos vienen poco despues
-      // Mejor: Buscar la primera línea que parezca un producto válido
-    }
-
-    // Si no encontramos header claro, intentar buscar patrón de producto
-    if (startIndex === -1) {
-      console.log('⚠️ [Infinity] Header no encontrado, buscando primer producto por patrón...');
-      for (let i = 0; i < lines.length; i++) {
-        if (/\d+\.\d{2}\d+/.test(lines[i]) && lines[i].length > 20) { // Tiene pinta de tener precios pegados
-          startIndex = i;
-          console.log('✅ [Infinity] Inicio deducido por patrón de datos en línea:', i);
-          break;
-        }
-      }
-    }
-
-    if (startIndex === -1) {
-      console.warn('⚠️ No se encontró inicio de tabla de productos (Infinity)');
-      return productos;
-    }
-
-    for (let i = startIndex; i < lines.length; i++) {
       const line = lines[i];
-
       if (!line || line.length === 0) continue;
 
-      // Stop at total line ONLY if it looks like the footer total (e.g. "TOTAL 1234.56")
-      // Ignorar "Total" si es parte del header (longitud corta o sin numeros)
-      if (line.match(/^TOTAL/i)) {
-        // Si es solo "Total" o "Total:" es header o basura
-        if (line.length < 10 && !/\d/.test(line)) {
-          console.log('⚠️ [Infinity] Ignorando línea "Total" (posible header) en línea:', i);
-          continue;
+      // Ignorar headers y footers
+      if (line.includes('Descripcion') && line.includes('Precio')) continue;
+      if (line.match(/^TOTAL\s+\d/i)) continue;
+      if (line.match(/^TOTAL$/i)) continue;
+      if (line.startsWith('DTO %:')) continue;
+
+      // Find all currency-like patterns (digits + separator + 2 digits)
+      const decimalPattern = /(\d+[.,]\d{2})/g;
+      // Obtenemos todas las coincidencias de "números con decimales"
+      const matches = [...line.matchAll(decimalPattern)].map(m => m[0]);
+      // Also keep track of indices if needed, but matchAll results gives it.
+      const matchInfos = [...line.matchAll(decimalPattern)];
+
+      // Si hay menos de 3 "bloques decimales"
+      if (matches.length < 3) continue;
+
+      // Asumimos que los últimos 3 matches forman la estructura:
+      // [Price] [Code + Total] [Qty + Dto]
+
+      // m1 es el candidato a Precio, pero puede contener "ruido" al principio (ej: "20X72590.00")
+      const m1 = matches[matches.length - 3];
+      const m1Info = matchInfos[matches.length - 3];
+
+      const m2 = matches[matches.length - 2];
+      const m3 = matches[matches.length - 1];
+
+      // M3: Qty + Dto
+      const sepIndex = m3.indexOf('.') !== -1 ? m3.indexOf('.') : m3.indexOf(',');
+      let validQtyDto: { qty: number, dto: string }[] = [];
+
+      for (let j = 1; j <= sepIndex; j++) {
+        const qtyStr = m3.substring(0, j);
+        const dtoStr = m3.substring(j);
+        if (dtoStr.match(/^[.,]\d{2}$/) || dtoStr.match(/^\d+[.,]\d{2}$/)) {
+          validQtyDto.push({ qty: parseInt(qtyStr), dto: dtoStr });
         }
-        console.log('✅ [Infinity] Fin de tabla detectado en línea:', i);
-        break;
       }
 
-      // Ignorar líneas del header que se mezclaron
-      if (['Precio unitario', 'Cantidad', 'DTO %:', 'Codigo', 'Descripcion'].some(k => line.includes(k))) {
-        continue;
+      // M2: Code + Total
+      let validCodeTotal: { code: string, total: number }[] = [];
+      const sepIndex2 = m2.indexOf('.') !== -1 ? m2.indexOf('.') : m2.indexOf(',');
+
+      for (let j = 1; j <= sepIndex2; j++) {
+        const codeStr = m2.substring(0, j);
+        const totalStr = m2.substring(j);
+        if (totalStr.match(/^[.,]\d{2}$/) || totalStr.match(/^\d+[.,]\d{2}$/)) {
+          validCodeTotal.push({ code: codeStr, total: this.parsePrice(totalStr) });
+        }
       }
 
-      // Intentar regex para números "pegados" (Squashed)
-      // Formato observado: Desc... Price Code Total Qty Discount
-      // 5790.00 424 23160.00 4 0.00 -> 5790.0042423160.0040.00
-      // Regex: (\d+\.\d{2}) (\d+) (\d+\.\d{2}) (\d+) (\d+\.\d{2})$
+      // Probar combinaciones iterando sobre posibles recortes de m1 (Precio)
+      // m1 puede ser "72590.00" -> probamos "72590.00", "2590.00", "590.00"...
 
-      // Regex estricto anclado al final
-      const squashedPattern = /(\d+\.\d{2})(\d+)(\d+\.\d{2})(\d+)(\d+\.\d{2})$/;
-      const match = line.match(squashedPattern);
+      let found = false;
 
-      if (match) {
-        // match[1] = Precio (5790.00)
-        // match[2] = Codigo (424)
-        // match[3] = Total (23160.00)
-        // match[4] = Cantidad (4)
-        // match[5] = Descuento (0.00)
+      for (let k = 0; k < m1.length; k++) {
+        const priceStrCandidate = m1.substring(k);
 
-        const description = line.substring(0, match.index).trim();
-        const precioStr = match[1];
-        const codigoStr = match[2];
-        const totalStr = match[3];
-        const cantidadStr = match[4];
+        // Debe respetar formato precio minímo
+        if (!priceStrCandidate.match(/^\d+[.,]\d{2}$/)) break; // No cortar dentro de los decimales
 
-        console.log(`📦 [Infinity] Producto detectado: ${description} | $${precioStr} | x${cantidadStr}`);
+        const priceVal = this.parsePrice(priceStrCandidate);
 
-        productos.push({
-          sku: codigoStr,
-          nombre: description,
-          cantidad: parseInt(cantidadStr),
-          precio_unitario: parseFloat(precioStr),
-          total: parseFloat(totalStr)
-        });
-        continue;
-      }
+        for (const qd of validQtyDto) {
+          for (const ct of validCodeTotal) {
+            // Chequeo Matemático
+            const expected = priceVal * qd.qty;
+            const diff = Math.abs(expected - ct.total);
 
-      // Fallback: Regex con espacios (Original) por si acaso
-      const spacedPattern = /(\d+(?:\.\d{2})?)\s+(\d+)\s+(\d+(?:\.\d{2})?)\s+(\d+)\s+(\d+(?:\.\d{2})?)$/;
-      const matchSpaced = line.match(spacedPattern);
+            if (diff < 2.0) {
+              // MATCH ENCONTRADO
 
-      if (matchSpaced) {
-        const description = line.substring(0, matchSpaced.index).trim();
-        const precioStr = matchSpaced[1];
-        const codigoStr = matchSpaced[2];
-        const totalStr = matchSpaced[3];
-        const cantidadStr = matchSpaced[4];
+              // Reconstruir Descripción
+              // La descripción original terminaba antes de m1.
+              // Pero si cortamos m1 (k > 0), los caracteres cortados pertenecen a la descripción
+              const idx1 = m1Info.index!;
+              const prefix = m1.substring(0, k); // "7" de "72590.00"
 
-        console.log(`📦 [Infinity] Producto detectado (espaciado): ${description}`);
+              // Tomamos todo desde el inicio de linea hasta donde empezaba m1, y le sumamos el prefix
+              let description = line.substring(0, idx1) + prefix;
+              description = description.trim();
 
-        productos.push({
-          sku: codigoStr,
-          nombre: description,
-          cantidad: parseInt(cantidadStr),
-          precio_unitario: parseFloat(precioStr),
-          total: parseFloat(totalStr)
-        });
+              if (!description) description = 'Producto sin nombre';
+
+              productos.push({
+                sku: ct.code,
+                nombre: description,
+                cantidad: qd.qty,
+                precio_unitario: priceVal,
+                total: ct.total
+              });
+              found = true;
+            }
+            if (found) break;
+          }
+          if (found) break;
+        }
+        if (found) break;
       }
     }
 

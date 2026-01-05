@@ -35,6 +35,7 @@ export interface PDFParseResult {
   numero_orden?: string;
   fecha?: string;
   total?: number;
+  descuento?: number;
   proveedor?: string;
 }
 
