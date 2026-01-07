@@ -28,6 +28,11 @@ export default function TablaStock({ productos, onRefresh }: TablaStockProps) {
   const [editValues, setEditValues] = useState<{ stock: number; precio: number }>({ stock: 0, precio: 0 });
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
+  // Bulk Edit State
+  const [isBulkEditing, setIsBulkEditing] = useState(false);
+  const [bulkEdits, setBulkEdits] = useState<{ [key: string]: { stock: number | string; costo: number | string; margen: number | string; precio: number | string } }>({});
+  const [savingBulk, setSavingBulk] = useState(false);
+
   // Estados para eliminación
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Producto | null>(null);
@@ -129,6 +134,98 @@ export default function TablaStock({ productos, onRefresh }: TablaStockProps) {
       toast.error('Error al actualizar el producto');
     } finally {
       setLoadingAction(null);
+    }
+  };
+
+  const handleBulkChange = (id: string, field: 'stock' | 'costo' | 'margen' | 'precio', value: string) => {
+    setBulkEdits(prev => {
+      const current = prev[id] || {
+        stock: productos.find(p => p.id === id)?.stock_actual || 0,
+        costo: productos.find(p => p.id === id)?.precio_costo || 0,
+        precio: productos.find(p => p.id === id)?.precio_venta || 0,
+        margen: 0 // Will calc below
+      };
+
+      // Recalcular margen inicial si no existe
+      if (!prev[id]) {
+        const p = productos.find(p => p.id === id);
+        if (p && p.precio_costo > 0) {
+          current.margen = ((p.precio_venta / p.precio_costo) - 1) * 100;
+        }
+      }
+
+      const changes = { ...current, [field]: value };
+
+      // Si el valor es vacio, no recalculamos nada más para permitir borrar
+      if (value === '') {
+        return { ...prev, [id]: changes };
+      }
+
+      const numValue = Number(value);
+      const invalidCost = typeof current.costo === 'string' || current.costo === 0;
+      const invalidMargen = typeof current.margen === 'string';
+
+      // Lógica de recálculo
+      if (field === 'costo') {
+        // Precio = Costo * (1 + Margen/100)
+        // Solo recalculamos si hay un margen válido
+        if (!invalidMargen) {
+          changes.precio = numValue * (1 + (Number(current.margen) / 100));
+        }
+      } else if (field === 'margen') {
+        // Precio = Costo * (1 + Margen/100)
+        // Solo recalculamos si hay costo válido
+        if (!invalidCost) {
+          changes.precio = Number(current.costo) * (1 + (numValue / 100));
+        }
+      } else if (field === 'precio') {
+        // Margen = ((Precio / Costo) - 1) * 100
+        // Solo recalculamos si hay costo válido
+        if (!invalidCost) {
+          changes.margen = ((numValue / Number(current.costo)) - 1) * 100;
+        }
+      }
+
+      return { ...prev, [id]: changes };
+    });
+  };
+
+  const saveBulkChanges = async () => {
+    setSavingBulk(true);
+    try {
+      const supabase = createClient();
+      const updates = Object.entries(bulkEdits).map(async ([id, changes]) => {
+        const { error } = await supabase
+          .from('productos')
+          .update({
+            stock_actual: changes.stock,
+            precio_costo: changes.costo,
+            precio_venta: changes.precio
+          })
+          .eq('id', id);
+        if (error) throw error;
+      });
+
+      await Promise.all(updates);
+      toast.success('Cambios guardados correctamente');
+      setIsBulkEditing(false);
+      setBulkEdits({});
+      onRefresh();
+    } catch (error) {
+      console.error('Error saving bulk edits:', error);
+      toast.error('Error al guardar los cambios');
+    } finally {
+      setSavingBulk(false);
+    }
+  };
+
+  const toggleBulkEdit = () => {
+    if (isBulkEditing) {
+      setIsBulkEditing(false);
+      setBulkEdits({});
+    } else {
+      setIsBulkEditing(true);
+      // Inicializar edicion para todos? No, mejor on-demand al escribir.
     }
   };
 
@@ -242,6 +339,48 @@ export default function TablaStock({ productos, onRefresh }: TablaStockProps) {
         </div>
       </div>
 
+      {/* Bulk Edit Toolbar */}
+      {isBulkEditing && (
+        <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end gap-3 animate-in fade-in slide-in-from-top-2">
+          <button
+            onClick={toggleBulkEdit}
+            disabled={savingBulk}
+            className="px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition font-medium"
+          >
+            Cancelar Edición
+          </button>
+          <button
+            onClick={saveBulkChanges}
+            disabled={savingBulk || Object.keys(bulkEdits).length === 0}
+            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition font-bold shadow-lg shadow-green-600/20 flex items-center gap-2"
+          >
+            {savingBulk ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Guardando...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" />
+                Guardar Cambios ({Object.keys(bulkEdits).length})
+              </>
+            )}
+          </button>
+        </div>
+      )}
+      {!isBulkEditing && (
+        <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">
+          <button
+            onClick={toggleBulkEdit}
+            className="px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition font-medium flex items-center gap-2 border border-blue-200"
+          >
+            <Pencil className="w-4 h-4" />
+            Edición Múltiple
+          </button>
+        </div>
+      )}
+
+
       {/* Tabla */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
@@ -257,15 +396,23 @@ export default function TablaStock({ productos, onRefresh }: TablaStockProps) {
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Categoría
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">
                   Stock
                 </th>
-                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Precio Venta (ARS / USD)
+                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-32">
+                  Costo
                 </th>
-                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Estado
+                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">
+                  Margen %
                 </th>
+                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-40">
+                  Precio Venta (ARS)
+                </th>
+                {!isBulkEditing && (
+                  <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Estado
+                  </th>
+                )}
                 <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Acciones
                 </th>
@@ -298,7 +445,7 @@ export default function TablaStock({ productos, onRefresh }: TablaStockProps) {
                       transition={{ duration: 0.2, delay: idx * 0.03 }}
                       className="hover:bg-blue-50/50 cursor-pointer transition-colors group"
                       onClick={() => {
-                        if (editingId === producto.id) return;
+                        if (editingId === producto.id || isBulkEditing) return;
                         window.location.href = `/stock/${producto.id}`;
                       }}
                     >
@@ -327,42 +474,73 @@ export default function TablaStock({ productos, onRefresh }: TablaStockProps) {
                           {producto.categoria}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-3">
-                          <div className="flex-1 max-w-[120px]">
-                            {editingId === producto.id ? (
-                              <input
-                                type="number"
-                                value={editValues.stock}
-                                onChange={(e) => setEditValues({ ...editValues, stock: Number(e.target.value) })}
-                                className="w-20 px-2 py-1 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                onClick={(e) => e.stopPropagation()}
-                              />
-                            ) : (
-                              <div className="flex items-center justify-between mb-1">
-                                <span className={`text-sm font-bold ${producto.stock_actual <= producto.stock_minimo
-                                  ? 'text-red-600'
-                                  : 'text-gray-900'
-                                  }`}>
-                                  {producto.stock_actual}
-                                </span>
-                              </div>
-                            )}
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        {isBulkEditing ? (
+                          <input
+                            type="number"
+                            value={bulkEdits[producto.id]?.stock ?? producto.stock_actual}
+                            onChange={(e) => handleBulkChange(producto.id, 'stock', e.target.value)}
+                            onFocus={(e) => e.target.select()}
+                            className="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-center font-bold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                        ) : (
+                          <span className={`text-sm font-bold ${producto.stock_actual <= producto.stock_minimo ? 'text-red-600' : 'text-gray-900'}`}>
+                            {producto.stock_actual}
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        {isBulkEditing ? (
+                          <div className="relative">
+                            <span className="absolute left-2 top-1.5 text-gray-400 text-xs">$</span>
+                            <input
+                              type="number"
+                              value={bulkEdits[producto.id]?.costo ?? producto.precio_costo}
+                              onChange={(e) => handleBulkChange(producto.id, 'costo', e.target.value)}
+                              onFocus={(e) => e.target.select()}
+                              className="w-24 pl-5 pr-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            />
                           </div>
-                        </div>
+                        ) : (
+                          <div className="text-sm font-medium text-gray-600">
+                            ${formatNumber(producto.precio_costo)}
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
-                        {editingId === producto.id ? (
-                          <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
-                            <div className="relative w-28">
-                              <span className="absolute left-2 top-1.5 text-gray-500 text-sm">$</span>
-                              <input
-                                type="number"
-                                value={editValues.precio}
-                                onChange={(e) => setEditValues({ ...editValues, precio: Number(e.target.value) })}
-                                className="w-full pl-6 pr-2 py-1 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-right"
-                              />
-                            </div>
+                        {isBulkEditing ? (
+                          <div className="relative">
+                            <input
+                              type="number"
+                              value={bulkEdits[producto.id]?.margen !== undefined ? bulkEdits[producto.id]?.margen : (producto.precio_costo > 0 ? Math.round(((producto.precio_venta / producto.precio_costo) - 1) * 100) : 0)}
+                              onChange={(e) => handleBulkChange(producto.id, 'margen', e.target.value)}
+                              onFocus={(e) => e.target.select()}
+                              className="w-20 pr-6 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-right font-bold text-blue-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            />
+                            <span className="absolute right-2 top-1.5 text-gray-400 text-xs">%</span>
+                          </div>
+                        ) : (
+                          <div className="text-sm font-bold text-blue-600">
+                            {producto.precio_costo > 0
+                              ? Math.round(((producto.precio_venta / producto.precio_costo) - 1) * 100)
+                              : 0
+                            }%
+                          </div>
+                        )}
+                      </td>
+
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        {isBulkEditing ? (
+                          <div className="relative">
+                            <span className="absolute left-2 top-1.5 text-gray-400 text-xs">$</span>
+                            <input
+                              type="number"
+                              value={bulkEdits[producto.id]?.precio !== undefined ? bulkEdits[producto.id]?.precio : Math.round(producto.precio_venta)}
+                              onChange={(e) => handleBulkChange(producto.id, 'precio', e.target.value)}
+                              onFocus={(e) => e.target.select()}
+                              className="w-28 pl-5 pr-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-right font-bold text-gray-900 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            />
                           </div>
                         ) : (
                           <>
@@ -386,18 +564,21 @@ export default function TablaStock({ productos, onRefresh }: TablaStockProps) {
                           </>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
-                        {producto.stock_actual <= producto.stock_minimo ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-50 text-red-700 text-xs font-bold rounded-full border border-red-200">
-                            <AlertTriangle className="w-3 h-3" />
-                            Bajo Stock
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-50 text-green-700 text-xs font-bold rounded-full border border-green-200">
-                            Normal
-                          </span>
-                        )}
-                      </td>
+
+                      {!isBulkEditing && (
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                          {producto.stock_actual <= producto.stock_minimo ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-50 text-red-700 text-xs font-bold rounded-full border border-red-200">
+                              <AlertTriangle className="w-3 h-3" />
+                              Bajo Stock
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-50 text-green-700 text-xs font-bold rounded-full border border-green-200">
+                              Normal
+                            </span>
+                          )}
+                        </td>
+                      )}
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                           {editingId === producto.id ? (

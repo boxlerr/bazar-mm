@@ -28,6 +28,7 @@ export default function ClientSelectionModal({ isOpen, onClose, onSelect }: Clie
         const { data, error } = await supabase
             .from('clientes')
             .select('*')
+            .eq('activo', true)
             .order('nombre', { ascending: true });
 
         if (data) {

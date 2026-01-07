@@ -211,6 +211,7 @@ export async function getStockReport() {
     const { data, error } = await supabase
         .from('productos')
         .select('*')
+        .eq('activo', true)
         .order('nombre');
 
     if (error) {
@@ -266,7 +267,10 @@ export async function getDashboardStats() {
 
     // Para alertas de stock correcto, necesitamos comparar columnas. Supabase JS client no soporta col vs col directo en filter facil.
     // Vamos a traer los productos y filtrar en memoria por ahora (asumiendo no son millones).
-    const { data: productos } = await supabase.from('productos').select('stock_actual, stock_minimo');
+    const { data: productos } = await supabase
+        .from('productos')
+        .select('stock_actual, stock_minimo')
+        .eq('activo', true);
     const lowStockCount = productos?.filter(p => p.stock_actual <= p.stock_minimo).length || 0;
 
     return {
