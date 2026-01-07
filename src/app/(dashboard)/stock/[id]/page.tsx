@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Save, X, Trash2, Package, DollarSign, TrendingUp, Plus, Minus, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, X, Trash2, Package, DollarSign, TrendingUp, Plus, Minus, Loader2, Scissors, Barcode, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
@@ -23,6 +23,12 @@ export default function ProductoDetallePage({ params }: Props) {
     const [saving, setSaving] = useState(false);
     const [editando, setEditando] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+    // Split States
+    const [showSplitModal, setShowSplitModal] = useState(false);
+    const [splitUnits, setSplitUnits] = useState(1);
+    const [splitBarcode, setSplitBarcode] = useState('');
+
     const { permissions } = useRole();
 
     const [historial, setHistorial] = useState<any[]>([]);
@@ -74,6 +80,7 @@ export default function ProductoDetallePage({ params }: Props) {
                     stock_actual: producto.stock_actual,
                     stock_minimo: producto.stock_minimo,
                     activo: producto.activo,
+                    units_per_pack: producto.units_per_pack,
                 })
                 .eq('id', producto.id);
 
@@ -114,6 +121,51 @@ export default function ProductoDetallePage({ params }: Props) {
             ...producto,
             stock_actual: Math.max(0, producto.stock_actual + amount)
         });
+    };
+
+    const handleSplitPack = async () => {
+        if (!producto) return;
+        if (splitUnits <= 1) {
+            toast.error('Las unidades deben ser mayores a 1');
+            return;
+        }
+
+        try {
+            const newStock = producto.stock_actual * splitUnits;
+            const newPrice = producto.precio_venta / splitUnits; // Sugerencia de precio
+            const newCost = producto.precio_costo / splitUnits;
+
+            const supabase = createClient();
+            const { error } = await supabase
+                .from('productos')
+                .update({
+                    stock_actual: newStock,
+                    precio_venta: newPrice,
+                    precio_costo: newCost,
+                    units_per_pack: splitUnits,
+                    codigo_barra: splitBarcode || producto.codigo_barra,
+                })
+                .eq('id', producto.id);
+
+            if (error) throw error;
+
+            // Registrar movimiento
+            await supabase.from('movimientos_stock').insert({
+                producto_id: producto.id,
+                tipo: 'ajuste_manual',
+                cantidad: newStock - producto.stock_actual,
+                stock_nuevo: newStock,
+                motivo: `Desglose de Pack (x${splitUnits})`,
+                usuario_id: (await supabase.auth.getUser()).data.user?.id
+            });
+
+            toast.success('Pack desglosado correctamente');
+            setShowSplitModal(false);
+            loadProducto();
+        } catch (error) {
+            console.error(error);
+            toast.error('Error al desglosar pack');
+        }
     };
 
     const calcularMargen = () => {
@@ -242,6 +294,22 @@ export default function ProductoDetallePage({ params }: Props) {
                                     )}
                                 </button>
                             </>
+                        )}
+
+
+                        {/* Split Button (visible si no está editando) */}
+                        {!editando && (
+                            <button
+                                onClick={() => {
+                                    setSplitUnits(producto.units_per_pack && producto.units_per_pack > 1 ? producto.units_per_pack : 1);
+                                    setShowSplitModal(true);
+                                }}
+                                className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-xl transition-all font-medium shadow-sm hover:shadow"
+                                title="Desglosar Pack en Unidades"
+                            >
+                                <Scissors className="w-4 h-4" />
+                                Desglosar
+                            </button>
                         )}
                     </div>
                 </div>
@@ -544,7 +612,99 @@ export default function ProductoDetallePage({ params }: Props) {
                     </div>
                 )}
             </AnimatePresence>
-            {/* Historial de Movimientos */}
+
+            {/* Split Modal */}
+            <AnimatePresence>
+                {showSplitModal && producto && (
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6"
+                        >
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                                    <Scissors className="w-5 h-5 text-purple-600" />
+                                    Desglosar Pack
+                                </h3>
+                                <button onClick={() => setShowSplitModal(false)} className="text-gray-400 hover:text-gray-600">
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            <div className="space-y-6">
+                                <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 text-sm text-blue-800">
+                                    <p>
+                                        Estás a punto de convertir <strong>{producto.stock_actual} packs</strong> en unidades individuales.
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Unidades por Pack
+                                    </label>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="number"
+                                            min="2"
+                                            value={splitUnits}
+                                            onChange={(e) => setSplitUnits(parseInt(e.target.value) || 0)}
+                                            className="flex-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-bold text-lg"
+                                        />
+                                        <span className="text-gray-500 font-medium">unidades</span>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Nuevo Código de Barra (Unitario)
+                                    </label>
+                                    <div className="relative">
+                                        <Barcode className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" />
+                                        <input
+                                            type="text"
+                                            value={splitBarcode}
+                                            onChange={(e) => setSplitBarcode(e.target.value)}
+                                            placeholder="Escanear..."
+                                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono"
+                                        />
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-1">Dejar vacío para mantener: {producto.codigo_barra}</p>
+                                </div>
+
+                                <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                                    <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Vista Previa</h4>
+
+                                    <div className="flex items-center justify-between text-sm mb-2">
+                                        <span className="text-gray-500">Stock:</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-bold">{producto.stock_actual}</span>
+                                            <ArrowRight className="w-4 h-4 text-gray-400" />
+                                            <span className="font-bold text-green-600">{producto.stock_actual * splitUnits}</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="text-gray-500">Precio Venta:</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-bold">${formatNumber(producto.precio_venta)}</span>
+                                            <ArrowRight className="w-4 h-4 text-gray-400" />
+                                            <span className="font-bold text-green-600">${formatNumber(producto.precio_venta / splitUnits)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={handleSplitPack}
+                                    className="w-full bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-xl transition font-bold shadow-lg shadow-purple-600/20"
+                                >
+                                    Confirmar Desglose
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}

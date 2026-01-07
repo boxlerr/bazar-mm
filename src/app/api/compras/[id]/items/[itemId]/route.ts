@@ -66,6 +66,7 @@ export async function PATCH(
           nombre: producto.nombre,
           codigo_barra: producto.codigo_barra,
           categoria: producto.categoria,
+          units_per_pack: producto.units_per_pack,
         })
         .eq('id', itemAnterior.producto_id);
 

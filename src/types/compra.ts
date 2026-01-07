@@ -58,4 +58,5 @@ export interface CompraItemForm {
   precio_costo: number;
   precio_venta: number;
   es_nuevo: boolean; // Si el producto no existe y hay que crearlo
+  units_per_pack?: number;
 }

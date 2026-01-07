@@ -30,7 +30,7 @@ export default async function DetalleCompraPage({ params }: Props) {
       proveedor:proveedores(nombre, razon_social, cuit, telefono, email),
       items:compra_items(
         id,
-        producto:productos(nombre, codigo, codigo_barra, categoria),
+        producto:productos(nombre, codigo, codigo_barra, categoria, units_per_pack),
         cantidad,
         precio_unitario,
         subtotal

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { CompraItemForm, PDFParseResult } from '@/types/compra';
-import { Upload, FileText, Trash2, Plus, Check, X, AlertCircle, Save, ArrowLeft, Loader2, Search } from 'lucide-react';
+import { Upload, FileText, Trash2, Plus, Check, X, AlertCircle, Save, ArrowLeft, Loader2, Search, Scissors, Barcode, Package, ArrowRight, Zap } from 'lucide-react';
 import { crearCompra } from './actions';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -42,6 +42,55 @@ export default function CompraForm() {
 
   // Items de la compra
   const [items, setItems] = useState<CompraItemForm[]>([]);
+
+  // Split States
+  const [splitState, setSplitState] = useState<{ index: number; item: CompraItemForm } | null>(null);
+  const [splitUnits, setSplitUnits] = useState(1);
+  const [splitBarcode, setSplitBarcode] = useState('');
+
+  const extractPackSize = (name: string): number | null => {
+    const regex = /(?:PACK|SET|CAJA).*?X\s*(\d+)|X\s*(\d+)\s*(?:UNIDADES|UNIDS|U\.|U)|\sX\s?(\d+)\b/i;
+    const match = name.match(regex);
+    if (match) return parseInt(match[1] || match[2] || match[3]);
+    if (name.toUpperCase().includes('X6')) return 6;
+    if (name.toUpperCase().includes('X12')) return 12;
+    if (name.toUpperCase().includes('X4')) return 4;
+    return null;
+  };
+
+  const openSplitModal = (index: number, item: CompraItemForm) => {
+    setSplitState({ index, item });
+
+    // Detectar cantidad
+    const detected = extractPackSize(item.nombre);
+    setSplitUnits(detected && detected > 1 ? detected : 1);
+    setSplitBarcode(item.codigo || item.sku || '');
+  };
+
+  const handleSplitConfirm = () => {
+    if (!splitState) return;
+    if (splitUnits <= 1) {
+      // Si es 1, no hacemos nada o mostramos error? Mejor error.
+      setError('Las unidades por pack deben ser mayores a 1'); // Usando el estado de error general o toast
+      return;
+    }
+
+    const { index, item } = splitState;
+    const newItems = [...items];
+
+    // Actualizar item
+    newItems[index] = {
+      ...item,
+      cantidad: item.cantidad * splitUnits,
+      precio_costo: item.precio_costo / splitUnits,
+      precio_venta: item.precio_venta / splitUnits,
+      units_per_pack: splitUnits, // Guardamos para saber que fue pack
+      codigo: splitBarcode || item.codigo
+    };
+
+    setItems(newItems);
+    setSplitState(null);
+  };
 
   // Alertas y errores
   const [error, setError] = useState<string | null>(null);
@@ -512,12 +561,12 @@ export default function CompraForm() {
                       <div className="grid grid-cols-12 gap-4">
                         <div className="col-span-12 md:col-span-5">
                           <label className="block text-xs font-medium text-gray-500 mb-1">Producto</label>
-                          <input
-                            type="text"
+                          <textarea
                             value={item.nombre}
                             onChange={(e) => handleItemChange(index, 'nombre', e.target.value)}
                             required
-                            className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            rows={2}
+                            className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y bg-white"
                             placeholder="Nombre del producto"
                           />
                         </div>
@@ -609,6 +658,19 @@ export default function CompraForm() {
                           >
                             <Trash2 className="w-5 h-5" />
                           </button>
+
+                          {/* Split Button */}
+                          <button
+                            type="button"
+                            onClick={() => openSplitModal(index, item)}
+                            className={`p-2 rounded-lg transition-colors ${(item.nombre.toUpperCase().includes('PACK') || item.nombre.toUpperCase().includes('X'))
+                              ? 'text-purple-600 bg-purple-50 hover:bg-purple-100'
+                              : 'text-gray-400 hover:text-purple-600 hover:bg-purple-50'
+                              }`}
+                            title="Desglosar Pack"
+                          >
+                            <Scissors className="w-5 h-5" />
+                          </button>
                         </div>
                       </div>
                     </motion.div>
@@ -675,6 +737,99 @@ export default function CompraForm() {
           </button>
         </div>
       </div>
+
+      {/* Split Modal */}
+      <AnimatePresence>
+        {splitState && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <Scissors className="w-5 h-5 text-purple-600" />
+                  Desglosar Pack
+                </h3>
+                <button type="button" onClick={() => setSplitState(null)} className="text-gray-400 hover:text-gray-600">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 text-sm text-blue-800">
+                  <p className="font-bold mb-1">{splitState.item.nombre}</p>
+                  <p>
+                    Estás convirtiendo <strong>{splitState.item.cantidad} packs</strong>.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Unidades por Pack
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="2"
+                      value={splitUnits}
+                      onChange={(e) => setSplitUnits(parseInt(e.target.value) || 0)}
+                      className="flex-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-bold text-lg"
+                    />
+                    <span className="text-gray-500 font-medium">unidades</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Código de Barra Unitario
+                  </label>
+                  <div className="relative">
+                    <Barcode className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" />
+                    <input
+                      type="text"
+                      value={splitBarcode}
+                      onChange={(e) => setSplitBarcode(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                  <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Vista Previa</h4>
+
+                  <div className="flex items-center justify-between text-sm mb-2">
+                    <span className="text-gray-500">Cantidad:</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold">{splitState.item.cantidad}</span>
+                      <ArrowRight className="w-4 h-4 text-gray-400" />
+                      <span className="font-bold text-green-600">{splitState.item.cantidad * splitUnits}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-500">Costo Unit.:</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold">${formatNumber(splitState.item.precio_costo)}</span>
+                      <ArrowRight className="w-4 h-4 text-gray-400" />
+                      <span className="font-bold text-green-600">${formatNumber(splitState.item.precio_costo / splitUnits)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleSplitConfirm}
+                  className="w-full bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-xl transition font-bold shadow-lg shadow-purple-600/20"
+                >
+                  Confirmar Desglose
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Modal Nuevo Proveedor */}
       <AnimatePresence>

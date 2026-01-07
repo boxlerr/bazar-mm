@@ -12,6 +12,7 @@ export interface Producto {
   proveedor_id?: string;
   proveedor?: string;
   activo: boolean;
+  units_per_pack?: number;
   created_at: string;
   updated_at: string;
 }
