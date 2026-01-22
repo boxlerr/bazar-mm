@@ -477,7 +477,12 @@ export async function getRecentSales(limit: number = 10) {
             total,
             usuario_id,
             cliente:clientes(nombre),
-            metodo_pago
+            metodo_pago,
+            venta_items (
+                cantidad,
+                precio_unitario,
+                productos (nombre)
+            )
         `)
         .order('created_at', { ascending: false })
         .limit(limit);

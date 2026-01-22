@@ -225,7 +225,12 @@ export async function getSalesHistory() {
     .select(`
       *,
       clientes (nombre),
-      usuarios (nombre)
+      usuarios (nombre),
+      venta_items (
+        cantidad,
+        precio_unitario,
+        productos (nombre)
+      )
     `)
     .order('created_at', { ascending: false })
     .limit(50);
@@ -236,4 +241,85 @@ export async function getSalesHistory() {
   }
 
   return data;
+}
+
+export async function getDataForEditSale() {
+  const supabase = await createClient();
+
+  const { data: clientes } = await supabase
+    .from('clientes')
+    .select('id, nombre')
+    .order('nombre');
+
+  const { data: usuarios } = await supabase
+    .from('usuarios')
+    .select('id, nombre')
+    .order('nombre');
+
+  return {
+    clientes: clientes || [],
+    usuarios: usuarios || []
+  };
+}
+
+export async function updateSale(saleId: string, data: {
+  created_at: string;
+  cliente_id?: string;
+  usuario_id?: string;
+  metodo_pago: string;
+  total: number;
+}) {
+  const supabase = await createClient();
+
+  try {
+    const { error } = await supabase
+      .from('ventas')
+      .update({
+        created_at: data.created_at,
+        cliente_id: data.cliente_id || null,
+        usuario_id: data.usuario_id || null,
+        metodo_pago: data.metodo_pago,
+        total: data.total
+      })
+      .eq('id', saleId);
+
+    if (error) throw error;
+
+    revalidatePath('/ventas');
+    revalidatePath('/reportes');
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error updating sale:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function deleteSale(saleId: string) {
+  const supabase = await createClient();
+
+  try {
+    // 1. Eliminar dependencias manualmente para evitar error de FK
+    await supabase.from('movimientos_caja').delete().eq('venta_id', saleId);
+    await supabase.from('movimientos_cuenta_corriente').delete().eq('venta_id', saleId);
+    await supabase.from('movimientos_stock').delete().eq('referencia_id', saleId); // En mov stock usamos referencia_id
+    await supabase.from('venta_items').delete().eq('venta_id', saleId);
+
+    // 2. Eliminar la venta
+    const { error } = await supabase
+      .from('ventas')
+      .delete()
+      .eq('id', saleId);
+
+    if (error) throw error;
+
+    revalidatePath('/ventas');
+    revalidatePath('/reportes');
+    revalidatePath('/stock');
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error deleting sale:', error);
+    return { success: false, error: error.message };
+  }
 }
