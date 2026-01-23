@@ -73,7 +73,7 @@ export default function PaymentModal({
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="bg-white rounded-xl shadow-2xl w-full max-w-md pointer-events-auto overflow-hidden"
+                            className="bg-white rounded-xl shadow-2xl w-full max-w-4xl pointer-events-auto overflow-hidden transition-all duration-300"
                         >
                             <div className="flex items-center justify-between p-6 border-b border-gray-100">
                                 <h3 className="text-xl font-bold text-gray-900">Confirmar Pago</h3>
@@ -111,7 +111,7 @@ export default function PaymentModal({
                                     )}
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-3">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                     {methods.map((m) => (
                                         <button
                                             key={m.id}
@@ -137,6 +137,64 @@ export default function PaymentModal({
                                         <div className="text-sm">
                                             <p className="font-bold">Cliente Requerido</p>
                                             <p>Para cobrar con Cuenta Corriente debe seleccionar un cliente primero. Cierre esta ventana y seleccione uno.</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {method === 'transferencia' && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="bg-purple-50 p-4 rounded-xl border border-purple-100">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <div className="p-1.5 bg-purple-100 rounded-lg">
+                                                    <Banknote className="w-4 h-4 text-purple-600" />
+                                                </div>
+                                                <h4 className="font-bold text-gray-900 text-sm">Opción 1 - Banco</h4>
+                                            </div>
+                                            <div className="space-y-1.5 text-sm">
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-500">Titular</span>
+                                                    <span className="font-medium text-gray-900 text-right">MAIDANA, AGUSTIN</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-500">CUIL</span>
+                                                    <span className="font-medium text-gray-900">20-43679729-0</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-500">Nº Cuenta</span>
+                                                    <span className="font-medium text-gray-900">CC $ 015004784326</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-500">CBU</span>
+                                                    <span className="font-medium text-gray-900 select-all">3860015705000047843269</span>
+                                                </div>
+                                                <div className="flex justify-between pt-1 border-t border-purple-200/50">
+                                                    <span className="text-gray-500 font-medium">Alias</span>
+                                                    <span className="font-bold text-purple-700 select-all">agustint29</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <div className="p-1.5 bg-blue-100 rounded-lg">
+                                                    <Smartphone className="w-4 h-4 text-blue-600" />
+                                                </div>
+                                                <h4 className="font-bold text-gray-900 text-sm">Opción 2 - Mercado Pago</h4>
+                                            </div>
+                                            <div className="space-y-1.5 text-sm">
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-500">Titular</span>
+                                                    <span className="font-medium text-gray-900 text-right">Franco Agustin Paccot</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-500">CVU</span>
+                                                    <span className="font-medium text-gray-900 select-all">0000003100056794337958</span>
+                                                </div>
+                                                <div className="flex justify-between pt-1 border-t border-blue-200/50">
+                                                    <span className="text-gray-500 font-medium">Alias</span>
+                                                    <span className="font-bold text-blue-700 select-all">peic.lqnf</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
