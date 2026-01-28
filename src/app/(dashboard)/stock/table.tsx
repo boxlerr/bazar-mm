@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Search, Filter, Package, AlertTriangle, Eye, ChevronLeft, ChevronRight, DollarSign, Pencil, Trash2, Check, X, Save, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+
 import { Producto } from '@/types/producto';
 import { getDolarBlue, getDolarOficial, convertirPrecioADolares } from '@/services/dolarService';
 import { createClient } from '@/lib/supabase/client';
@@ -16,10 +17,17 @@ interface TablaStockProps {
 }
 
 export default function TablaStock({ productos, onRefresh }: TablaStockProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const [busqueda, setBusqueda] = useState('');
   const [categoriaFiltro, setCategoriaFiltro] = useState('todos');
   const [stockFiltro, setStockFiltro] = useState('todos');
-  const [paginaActual, setPaginaActual] = useState(1);
+
+  // Obtener página actual de la URL o default a 1
+  const paginaActual = Number(searchParams.get('page')) || 1;
+
   const [dolarBlue, setDolarBlue] = useState<number>(0);
   const [dolarOficial, setDolarOficial] = useState<number>(0);
 
@@ -38,6 +46,13 @@ export default function TablaStock({ productos, onRefresh }: TablaStockProps) {
   const [productToDelete, setProductToDelete] = useState<Producto | null>(null);
 
   const itemsPorPagina = 15;
+
+  // Función para cambiar de página actualizando la URL
+  const setPaginaActual = (nuevaPagina: number) => {
+    const params = new URLSearchParams(searchParams);
+    params.set('page', nuevaPagina.toString());
+    router.push(`${pathname}?${params.toString()}`);
+  };
 
   useEffect(() => {
     const fetchDolar = async () => {
@@ -419,222 +434,211 @@ export default function TablaStock({ productos, onRefresh }: TablaStockProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              <AnimatePresence mode="popLayout">
-                {productosPaginados.length === 0 ? (
-                  <motion.tr
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
+              {productosPaginados.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center">
+                    <div className="flex flex-col items-center gap-3 text-gray-400">
+                      <Package className="w-12 h-12" />
+                      <p className="text-gray-900 font-medium">No se encontraron productos</p>
+                      <p className="text-sm">Intenta ajustar los filtros de búsqueda</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                productosPaginados.map((producto, idx) => (
+                  <tr
+                    key={producto.id}
+                    className="hover:bg-blue-50/50 cursor-pointer transition-colors group"
+                    onClick={() => {
+                      if (editingId === producto.id || isBulkEditing) return;
+                      router.push(`/stock/${producto.id}`);
+                    }}
                   >
-                    <td colSpan={7} className="px-6 py-12 text-center">
-                      <div className="flex flex-col items-center gap-3 text-gray-400">
-                        <Package className="w-12 h-12" />
-                        <p className="text-gray-900 font-medium">No se encontraron productos</p>
-                        <p className="text-sm">Intenta ajustar los filtros de búsqueda</p>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-mono font-medium text-gray-900">
+                        {producto.codigo}
                       </div>
+                      {producto.codigo_barra && (
+                        <div className="text-xs text-gray-500 font-mono">
+                          {producto.codigo_barra}
+                        </div>
+                      )}
                     </td>
-                  </motion.tr>
-                ) : (
-                  productosPaginados.map((producto, idx) => (
-                    <motion.tr
-                      key={producto.id}
-                      layout
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      transition={{ duration: 0.2, delay: idx * 0.03 }}
-                      className="hover:bg-blue-50/50 cursor-pointer transition-colors group"
-                      onClick={() => {
-                        if (editingId === producto.id || isBulkEditing) return;
-                        window.location.href = `/stock/${producto.id}`;
-                      }}
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-mono font-medium text-gray-900">
-                          {producto.codigo}
+                    <td className="px-6 py-4">
+                      <div className="text-sm font-bold text-gray-900">
+                        {producto.nombre}
+                      </div>
+                      {producto.descripcion && (
+                        <div className="text-xs text-gray-500 truncate max-w-xs">
+                          {producto.descripcion}
                         </div>
-                        {producto.codigo_barra && (
-                          <div className="text-xs text-gray-500 font-mono">
-                            {producto.codigo_barra}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-bold text-gray-900">
-                          {producto.nombre}
-                        </div>
-                        {producto.descripcion && (
-                          <div className="text-xs text-gray-500 truncate max-w-xs">
-                            {producto.descripcion}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full border ${getCategoryColor(producto.categoria)}`}>
-                          {producto.categoria}
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full border ${getCategoryColor(producto.categoria)}`}>
+                        {producto.categoria}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      {isBulkEditing ? (
+                        <input
+                          type="number"
+                          value={bulkEdits[producto.id]?.stock ?? producto.stock_actual}
+                          onChange={(e) => handleBulkChange(producto.id, 'stock', e.target.value)}
+                          onFocus={(e) => e.target.select()}
+                          className="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-center font-bold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                      ) : (
+                        <span className={`text-sm font-bold ${producto.stock_actual <= producto.stock_minimo ? 'text-red-600' : 'text-gray-900'}`}>
+                          {producto.stock_actual}
                         </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
-                        {isBulkEditing ? (
+                      )}
+                    </td>
+
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      {isBulkEditing ? (
+                        <div className="relative">
+                          <span className="absolute left-2 top-1.5 text-gray-400 text-xs">$</span>
                           <input
                             type="number"
-                            value={bulkEdits[producto.id]?.stock ?? producto.stock_actual}
-                            onChange={(e) => handleBulkChange(producto.id, 'stock', e.target.value)}
+                            value={bulkEdits[producto.id]?.costo ?? producto.precio_costo}
+                            onChange={(e) => handleBulkChange(producto.id, 'costo', e.target.value)}
                             onFocus={(e) => e.target.select()}
-                            className="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-center font-bold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="w-24 pl-5 pr-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           />
+                        </div>
+                      ) : (
+                        <div className="text-sm font-medium text-gray-600">
+                          ${formatNumber(producto.precio_costo)}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      {isBulkEditing ? (
+                        <div className="relative">
+                          <input
+                            type="number"
+                            value={bulkEdits[producto.id]?.margen !== undefined ? bulkEdits[producto.id]?.margen : (producto.precio_costo > 0 ? Math.round(((producto.precio_venta / producto.precio_costo) - 1) * 100) : 0)}
+                            onChange={(e) => handleBulkChange(producto.id, 'margen', e.target.value)}
+                            onFocus={(e) => e.target.select()}
+                            className="w-20 pr-6 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-right font-bold text-blue-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                          <span className="absolute right-2 top-1.5 text-gray-400 text-xs">%</span>
+                        </div>
+                      ) : (
+                        <div className="text-sm font-bold text-blue-600">
+                          {producto.precio_costo > 0
+                            ? Math.round(((producto.precio_venta / producto.precio_costo) - 1) * 100)
+                            : 0
+                          }%
+                        </div>
+                      )}
+                    </td>
+
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      {isBulkEditing ? (
+                        <div className="relative">
+                          <span className="absolute left-2 top-1.5 text-gray-400 text-xs">$</span>
+                          <input
+                            type="number"
+                            value={bulkEdits[producto.id]?.precio !== undefined ? bulkEdits[producto.id]?.precio : Math.round(producto.precio_venta)}
+                            onChange={(e) => handleBulkChange(producto.id, 'precio', e.target.value)}
+                            onFocus={(e) => e.target.select()}
+                            className="w-28 pl-5 pr-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-right font-bold text-gray-900 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                        </div>
+                      ) : (
+                        <>
+                          <div className="text-sm font-bold text-gray-900 mb-1">
+                            ${formatNumber(producto.precio_venta)}
+                          </div>
+                          <div className="flex flex-col gap-0.5 items-end">
+                            {dolarBlue > 0 && (
+                              <div className="text-xs font-medium text-blue-600 flex items-center gap-1" title="Dólar Blue">
+                                <span className="text-[10px] text-gray-400 font-normal">Blue:</span>
+                                {formatNumber(producto.precio_venta / dolarBlue)} USD
+                              </div>
+                            )}
+                            {dolarOficial > 0 && (
+                              <div className="text-xs font-medium text-green-600 flex items-center gap-1" title="Dólar Oficial">
+                                <span className="text-[10px] text-gray-400 font-normal">Oficial:</span>
+                                {formatNumber(producto.precio_venta / dolarOficial)} USD
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </td>
+
+                    {!isBulkEditing && (
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        {producto.stock_actual <= producto.stock_minimo ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-50 text-red-700 text-xs font-bold rounded-full border border-red-200">
+                            <AlertTriangle className="w-3 h-3" />
+                            Bajo Stock
+                          </span>
                         ) : (
-                          <span className={`text-sm font-bold ${producto.stock_actual <= producto.stock_minimo ? 'text-red-600' : 'text-gray-900'}`}>
-                            {producto.stock_actual}
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-50 text-green-700 text-xs font-bold rounded-full border border-green-200">
+                            Normal
                           </span>
                         )}
                       </td>
-
-                      <td className="px-6 py-4 whitespace-nowrap text-right">
-                        {isBulkEditing ? (
-                          <div className="relative">
-                            <span className="absolute left-2 top-1.5 text-gray-400 text-xs">$</span>
-                            <input
-                              type="number"
-                              value={bulkEdits[producto.id]?.costo ?? producto.precio_costo}
-                              onChange={(e) => handleBulkChange(producto.id, 'costo', e.target.value)}
-                              onFocus={(e) => e.target.select()}
-                              className="w-24 pl-5 pr-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            />
-                          </div>
-                        ) : (
-                          <div className="text-sm font-medium text-gray-600">
-                            ${formatNumber(producto.precio_costo)}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right">
-                        {isBulkEditing ? (
-                          <div className="relative">
-                            <input
-                              type="number"
-                              value={bulkEdits[producto.id]?.margen !== undefined ? bulkEdits[producto.id]?.margen : (producto.precio_costo > 0 ? Math.round(((producto.precio_venta / producto.precio_costo) - 1) * 100) : 0)}
-                              onChange={(e) => handleBulkChange(producto.id, 'margen', e.target.value)}
-                              onFocus={(e) => e.target.select()}
-                              className="w-20 pr-6 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-right font-bold text-blue-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            />
-                            <span className="absolute right-2 top-1.5 text-gray-400 text-xs">%</span>
-                          </div>
-                        ) : (
-                          <div className="text-sm font-bold text-blue-600">
-                            {producto.precio_costo > 0
-                              ? Math.round(((producto.precio_venta / producto.precio_costo) - 1) * 100)
-                              : 0
-                            }%
-                          </div>
-                        )}
-                      </td>
-
-                      <td className="px-6 py-4 whitespace-nowrap text-right">
-                        {isBulkEditing ? (
-                          <div className="relative">
-                            <span className="absolute left-2 top-1.5 text-gray-400 text-xs">$</span>
-                            <input
-                              type="number"
-                              value={bulkEdits[producto.id]?.precio !== undefined ? bulkEdits[producto.id]?.precio : Math.round(producto.precio_venta)}
-                              onChange={(e) => handleBulkChange(producto.id, 'precio', e.target.value)}
-                              onFocus={(e) => e.target.select()}
-                              className="w-28 pl-5 pr-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-right font-bold text-gray-900 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            />
-                          </div>
+                    )}
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                        {editingId === producto.id ? (
+                          <>
+                            <button
+                              onClick={() => saveChanges(producto.id)}
+                              disabled={loadingAction === producto.id}
+                              className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                              title="Guardar"
+                            >
+                              {loadingAction === producto.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Check className="w-4 h-4" />
+                              )}
+                            </button>
+                            <button
+                              onClick={cancelEditing}
+                              disabled={!!loadingAction}
+                              className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Cancelar"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </>
                         ) : (
                           <>
-                            <div className="text-sm font-bold text-gray-900 mb-1">
-                              ${formatNumber(producto.precio_venta)}
-                            </div>
-                            <div className="flex flex-col gap-0.5 items-end">
-                              {dolarBlue > 0 && (
-                                <div className="text-xs font-medium text-blue-600 flex items-center gap-1" title="Dólar Blue">
-                                  <span className="text-[10px] text-gray-400 font-normal">Blue:</span>
-                                  {formatNumber(producto.precio_venta / dolarBlue)} USD
-                                </div>
-                              )}
-                              {dolarOficial > 0 && (
-                                <div className="text-xs font-medium text-green-600 flex items-center gap-1" title="Dólar Oficial">
-                                  <span className="text-[10px] text-gray-400 font-normal">Oficial:</span>
-                                  {formatNumber(producto.precio_venta / dolarOficial)} USD
-                                </div>
-                              )}
-                            </div>
+                            <button
+                              onClick={() => startEditing(producto)}
+                              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                              title="Editar rápido"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <Link
+                              href={`/stock/${producto.id}`}
+                              className="p-1.5 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                              title="Ver detalles"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Link>
+                            <button
+                              onClick={() => confirmDelete(producto)}
+                              className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                              title="Eliminar"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </>
                         )}
-                      </td>
-
-                      {!isBulkEditing && (
-                        <td className="px-6 py-4 whitespace-nowrap text-center">
-                          {producto.stock_actual <= producto.stock_minimo ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-50 text-red-700 text-xs font-bold rounded-full border border-red-200">
-                              <AlertTriangle className="w-3 h-3" />
-                              Bajo Stock
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-50 text-green-700 text-xs font-bold rounded-full border border-green-200">
-                              Normal
-                            </span>
-                          )}
-                        </td>
-                      )}
-                      <td className="px-6 py-4 whitespace-nowrap text-right">
-                        <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                          {editingId === producto.id ? (
-                            <>
-                              <button
-                                onClick={() => saveChanges(producto.id)}
-                                disabled={loadingAction === producto.id}
-                                className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                                title="Guardar"
-                              >
-                                {loadingAction === producto.id ? (
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  <Check className="w-4 h-4" />
-                                )}
-                              </button>
-                              <button
-                                onClick={cancelEditing}
-                                disabled={!!loadingAction}
-                                className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                title="Cancelar"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button
-                                onClick={() => startEditing(producto)}
-                                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                                title="Editar rápido"
-                              >
-                                <Pencil className="w-4 h-4" />
-                              </button>
-                              <Link
-                                href={`/stock/${producto.id}`}
-                                className="p-1.5 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                                title="Ver detalles"
-                              >
-                                <Eye className="w-4 h-4" />
-                              </Link>
-                              <button
-                                onClick={() => confirmDelete(producto)}
-                                className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                                title="Eliminar"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </motion.tr>
-                  ))
-                )}
-              </AnimatePresence>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -648,18 +652,18 @@ export default function TablaStock({ productos, onRefresh }: TablaStockProps) {
             </div>
             <div className="flex gap-2">
               <button
-                onClick={() => setPaginaActual(p => Math.max(1, p - 1))}
+                onClick={() => setPaginaActual(Math.max(1, paginaActual - 1))}
                 disabled={paginaActual === 1}
-                className="px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors bg-white shadow-sm"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-5 h-5 text-gray-700" />
               </button>
               <button
-                onClick={() => setPaginaActual(p => Math.min(totalPaginas, p + 1))}
+                onClick={() => setPaginaActual(Math.min(totalPaginas, paginaActual + 1))}
                 disabled={paginaActual === totalPaginas}
-                className="px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors bg-white shadow-sm"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-5 h-5 text-gray-700" />
               </button>
             </div>
           </div>

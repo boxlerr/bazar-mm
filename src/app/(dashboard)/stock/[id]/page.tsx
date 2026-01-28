@@ -218,13 +218,13 @@ export default function ProductoDetallePage({ params }: Props) {
         >
             {/* Header */}
             <div className="mb-8">
-                <Link
-                    href="/stock"
+                <button
+                    onClick={() => router.back()}
                     className="inline-flex items-center gap-2 text-gray-500 hover:text-blue-600 mb-6 font-medium transition-colors"
                 >
                     <ArrowLeft className="w-4 h-4" />
                     Volver al Stock
-                </Link>
+                </button>
 
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
