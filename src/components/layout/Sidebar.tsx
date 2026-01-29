@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShoppingCart,
@@ -136,14 +137,22 @@ export default function Sidebar() {
               className="hidden md:flex justify-center w-full group cursor-pointer"
               title="Expandir sidebar"
             >
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center shadow-lg shadow-red-900/20 group-hover:scale-110 group-hover:shadow-xl group-hover:shadow-red-900/30 transition-all">
-                <span className="font-bold text-xl text-white">M</span>
+              <div className="w-10 h-10 flex items-center justify-center group-hover:scale-110 transition-all">
+                <img
+                  src="/logo.png"
+                  alt="Logo"
+                  className="w-10 h-10 object-contain"
+                />
               </div>
             </button>
           ) : (
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center shadow-lg shadow-red-900/20">
-                <span className="font-bold text-xl text-white">M</span>
+              <div className="w-10 h-10 flex items-center justify-center">
+                <img
+                  src="/logo.png"
+                  alt="Logo"
+                  className="w-10 h-10 object-contain"
+                />
               </div>
               <div>
                 <h1 className="text-xl font-bold text-white tracking-tight whitespace-nowrap">

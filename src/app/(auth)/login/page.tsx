@@ -27,8 +27,12 @@ export default function LoginPage() {
             transition={{ delay: 0.5 }}
             className="flex items-center gap-3"
           >
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg shadow-red-600/30 backdrop-blur-sm border border-white/10">
-              <span className="font-bold text-2xl">M</span>
+            <div className="w-12 h-12 flex items-center justify-center">
+              <img
+                src="/logo.png"
+                alt="Logo"
+                className="w-12 h-12 object-contain"
+              />
             </div>
             <span className="text-2xl font-semibold tracking-tight">Bazar M&M</span>
           </motion.div>
@@ -81,8 +85,12 @@ export default function LoginPage() {
         <div className="w-full max-w-[420px] space-y-10 relative z-10">
           <div className="text-center lg:text-left space-y-3">
             <div className="lg:hidden flex justify-center mb-8">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg shadow-red-600/30">
-                <span className="font-bold text-3xl text-white">M</span>
+              <div className="w-14 h-14 flex items-center justify-center mb-8">
+                <img
+                  src="/logo.png"
+                  alt="Logo"
+                  className="w-14 h-14 object-contain"
+                />
               </div>
             </div>
             <h2 className="text-4xl font-bold tracking-tight text-neutral-900">
