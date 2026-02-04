@@ -222,7 +222,7 @@ export async function getSalesHistory() {
       )
     `)
     .order('created_at', { ascending: false })
-    .limit(50);
+    .limit(1000);
 
   if (error) {
     console.error('Error fetching sales history:', JSON.stringify(error, null, 2));

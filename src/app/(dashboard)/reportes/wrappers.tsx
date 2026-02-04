@@ -23,7 +23,7 @@ export async function VentasVendedorWrapper() {
 }
 
 export async function RecentSalesWrapper() {
-    const data = await getRecentSales(50);
+    const data = await getRecentSales(200);
     return <SalesList data={data} />;
 }
 

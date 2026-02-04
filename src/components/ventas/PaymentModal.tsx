@@ -8,7 +8,7 @@ interface PaymentModalProps {
     isOpen: boolean;
     onClose: () => void;
     total: number;
-    onConfirm: (pagos: { metodo: string; monto: number }[]) => Promise<void>;
+    onConfirm: (pagos: { metodo: string; monto: number }[], descuento?: number) => Promise<void>;
     loading: boolean;
     selectedClient: import('@/types/cliente').Cliente | null;
     dolarBlue?: number;
@@ -26,6 +26,7 @@ export default function PaymentModal({
     dolarOficial = 0
 }: PaymentModalProps) {
     const [pagos, setPagos] = useState<{ metodo: string; monto: number }[]>([]);
+    const [discountPercentage, setDiscountPercentage] = useState<string>('');
 
     // Estado para la selección actual
     const [currentMethod, setCurrentMethod] = useState<string>('efectivo');
@@ -36,13 +37,19 @@ export default function PaymentModal({
         if (isOpen) {
             setPagos([]);
             setCurrentMethod('efectivo');
+            setDiscountPercentage('');
             setCurrentAmount(total.toFixed(2));
         }
     }, [isOpen, total]);
 
     // Calcular totales
+    // Calcular totales con descuento
+    const discountValue = (parseFloat(discountPercentage) || 0);
+    const totalDescuento = (total * discountValue) / 100;
+    const finalTotal = total - totalDescuento;
+
     const totalPagado = pagos.reduce((sum, p) => sum + p.monto, 0);
-    const faltante = total - totalPagado;
+    const faltante = finalTotal - totalPagado;
 
     // Actualizar el monto sugerido automáticamente
     useEffect(() => {
@@ -51,7 +58,7 @@ export default function PaymentModal({
         } else {
             setCurrentAmount('0.00');
         }
-    }, [totalPagado, total]);
+    }, [totalPagado, finalTotal]);
 
     const methods = [
         { id: 'efectivo', label: 'Efectivo', icon: Banknote, color: 'text-green-600', bg: 'bg-green-100', border: 'hover:border-green-200 hover:bg-green-50' },
@@ -95,15 +102,15 @@ export default function PaymentModal({
     const handleConfirm = async () => {
         // Ajuste automático si es efectivo y hay vuelto (único pago)
         let pagosFinales = [...pagos];
-        if (pagos.length === 1 && pagos[0].metodo === 'efectivo' && pagos[0].monto > total) {
-            pagosFinales[0].monto = total;
+        if (pagos.length === 1 && pagos[0].metodo === 'efectivo' && pagos[0].monto > finalTotal) {
+            pagosFinales[0].monto = finalTotal;
         }
-        await onConfirm(pagosFinales);
+        await onConfirm(pagosFinales, totalDescuento);
     };
 
     const vuelto = (pagos.length === 1 && pagos[0].metodo === 'efectivo')
-        ? pagos[0].monto - total
-        : (totalPagado > total ? totalPagado - total : 0);
+        ? pagos[0].monto - finalTotal
+        : (totalPagado > finalTotal ? totalPagado - finalTotal : 0);
 
     const isComplete = faltante <= 0.05; // Tolerancia pequeña
 
@@ -260,19 +267,47 @@ export default function PaymentModal({
                                 <div className="p-8 text-center flex-shrink-0">
                                     <p className="text-gray-500 text-sm font-medium uppercase tracking-wide mb-2">Total a Pagar</p>
                                     <div className="text-5xl font-black text-gray-900 tracking-tight mb-4">
-                                        {formatPrice(total)}
+                                        {formatPrice(finalTotal)}
                                     </div>
+
+                                    <div className="flex items-center justify-center gap-2 mb-4">
+                                        <label className="text-sm font-bold text-gray-500">Descuento %</label>
+                                        <div className="relative w-24">
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max="100"
+                                                value={discountPercentage}
+                                                onChange={(e) => {
+                                                    const val = parseFloat(e.target.value);
+                                                    if (val < 0 || val > 100) return;
+                                                    setDiscountPercentage(e.target.value);
+                                                }}
+                                                className="w-full pl-3 pr-8 py-1.5 border-2 border-gray-200 rounded-lg font-bold text-center text-gray-900 focus:border-blue-500 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                placeholder="0"
+                                                inputMode="decimal"
+                                                onFocus={(e) => e.target.select()}
+                                            />
+                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">%</span>
+                                        </div>
+                                    </div>
+
+                                    {totalDescuento > 0 && (
+                                        <div className="mb-4 text-sm font-medium text-green-600 bg-green-50 px-3 py-1 rounded-full inline-block">
+                                            Ahorro: {formatPrice(totalDescuento)}
+                                        </div>
+                                    )}
 
                                     {(dolarBlue || dolarOficial) && (
                                         <div className="flex flex-wrap justify-center gap-2">
                                             {dolarBlue && (
                                                 <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-full border border-blue-100">
-                                                    Blue: {formatUSD(total / dolarBlue)}
+                                                    Blue: {formatUSD(finalTotal / dolarBlue)}
                                                 </span>
                                             )}
                                             {dolarOficial && (
                                                 <span className="px-3 py-1 bg-green-50 text-green-700 text-xs font-bold rounded-full border border-green-100">
-                                                    Oficial: {formatUSD(total / dolarOficial)}
+                                                    Oficial: {formatUSD(finalTotal / dolarOficial)}
                                                 </span>
                                             )}
                                         </div>

@@ -136,7 +136,7 @@ export function usePOS() {
     };
 
     // Procesar venta
-    const checkout = async (pagos: { metodo: string; monto: number }[]) => {
+    const checkout = async (pagos: { metodo: string; monto: number }[], descuento: number = 0) => {
         if (!isCajaOpen) {
             toast.error('Debe abrir la caja antes de realizar una venta');
             return;
@@ -145,6 +145,8 @@ export function usePOS() {
         setLoading(true);
 
         try {
+            const finalTotal = total - descuento;
+
             const saleData = {
                 cliente_id: selectedClient?.id,
                 items: cart.map(item => ({
@@ -152,9 +154,10 @@ export function usePOS() {
                     cantidad: item.cantidad,
                     precio_unitario: item.precio_venta
                 })),
-                subtotal, // Pasamos el subtotal calculado
-                total,
-                pagos
+                subtotal, // Pasamos el subtotal calculado (sin descuento)
+                total: finalTotal, // El total final guardado en la venta es CON descuento aplicado
+                pagos,
+                descuento // Enviamos el monto del descuento para registro
             };
 
             const result = await processSale(saleData);

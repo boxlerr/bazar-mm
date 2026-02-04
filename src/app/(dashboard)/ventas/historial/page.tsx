@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { getSalesHistory } from '../actions';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
-import SalesHistoryTable from '@/components/ventas/SalesHistoryTable';
+import SalesList from '@/components/reportes/SalesList';
 
 export const metadata: Metadata = {
     title: 'Historial de Ventas | Bazar M&M',
@@ -29,7 +29,7 @@ export default async function HistorialVentasPage() {
                 </div>
             </div>
 
-            <SalesHistoryTable initialSales={sales} />
+            <SalesList data={sales} />
         </div>
     );
 }

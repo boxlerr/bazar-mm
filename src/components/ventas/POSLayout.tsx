@@ -53,9 +53,9 @@ export default function POSLayout() {
         fetchRates();
     }, []);
 
-    const handleCheckout = async (pagos: { metodo: string; monto: number }[]) => {
-        // @ts-ignore - checkout ahora espera array, aunque en types podria estar desactualizado
-        const result = await checkout(pagos);
+    const handleCheckout = async (pagos: { metodo: string; monto: number }[], descuento: number = 0) => {
+        // @ts-ignore - checkout ahora espera array y descuento
+        const result = await checkout(pagos, descuento);
         if (result && result.success) {
             setIsPaymentModalOpen(false);
         } else {

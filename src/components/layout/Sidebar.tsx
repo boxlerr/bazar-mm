@@ -22,6 +22,7 @@ import {
   Building2,
   Bell,
   Truck,
+  ClipboardList,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRole } from '@/hooks/useRole';
@@ -47,6 +48,7 @@ const menuItems: MenuItem[] = [
   { name: 'Stock', href: '/stock', icon: Package },
   { name: 'Clientes', href: '/clientes', icon: Users },
   { name: 'Caja', href: '/caja', icon: Wallet },
+  { name: 'Presupuestos', href: '/presupuestos', icon: ClipboardList },
   { name: 'Reportes', href: '/reportes', icon: BarChart3, permission: 'reportes' },
   { name: 'Usuarios', href: '/usuarios', icon: UserCircle, permission: 'usuarios' },
   {
