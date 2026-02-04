@@ -15,7 +15,7 @@ export default function VentasPorVendedorChart({ data }: VentasPorVendedorChartP
     const maxVal = Math.max(...data.map(d => d.total_ventas), 1);
 
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6">
             <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
                 <User size={20} className="text-orange-500" />
                 Ventas por Vendedor

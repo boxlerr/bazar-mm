@@ -396,8 +396,8 @@ export default function TablaStock({ productos, onRefresh }: TablaStockProps) {
       )}
 
 
-      {/* Tabla */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      {/* Tabla (Desktop) */}
+      <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1000px]">
             <thead className="bg-gray-50/50 border-b border-gray-100">
@@ -436,7 +436,7 @@ export default function TablaStock({ productos, onRefresh }: TablaStockProps) {
             <tbody className="divide-y divide-gray-100">
               {productosPaginados.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center">
+                  <td colSpan={9} className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center gap-3 text-gray-400">
                       <Package className="w-12 h-12" />
                       <p className="text-gray-900 font-medium">No se encontraron productos</p>
@@ -662,6 +662,181 @@ export default function TablaStock({ productos, onRefresh }: TablaStockProps) {
                 onClick={() => setPaginaActual(Math.min(totalPaginas, paginaActual + 1))}
                 disabled={paginaActual === totalPaginas}
                 className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors bg-white shadow-sm"
+              >
+                <ChevronRight className="w-5 h-5 text-gray-700" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Vista Móvil (Cards) */}
+      <div className="md:hidden space-y-4">
+        {productosPaginados.length === 0 ? (
+          <div className="bg-white rounded-xl p-8 text-center border border-gray-100">
+            <div className="flex flex-col items-center gap-3 text-gray-400">
+              <Package className="w-12 h-12" />
+              <p className="text-gray-900 font-medium">No se encontraron productos</p>
+              <p className="text-sm">Intenta ajustar los filtros de búsqueda</p>
+            </div>
+          </div>
+        ) : (
+          productosPaginados.map((producto) => (
+            <div
+              key={producto.id}
+              onClick={() => {
+                if (isBulkEditing) return;
+                router.push(`/stock/${producto.id}`);
+              }}
+              className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 active:scale-[0.99] transition-transform"
+            >
+              <div className="flex justify-between items-start mb-3">
+                <div>
+                  <div className="text-xs font-mono text-gray-500 mb-0.5">
+                    {producto.codigo}
+                  </div>
+                  <h3 className="font-bold text-gray-900 line-clamp-2">
+                    {producto.nombre}
+                  </h3>
+                </div>
+                <span className={`px-2.5 py-1 text-[10px] font-bold rounded-full border ${getCategoryColor(producto.categoria)}`}>
+                  {producto.categoria}
+                </span>
+              </div>
+
+              {/* Grid de Precio y Stock */}
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div className="bg-gray-50 rounded-lg p-2.5">
+                  <span className="text-xs text-gray-500 block mb-1">Precio Venta</span>
+                  {isBulkEditing ? (
+                    <input
+                      type="number"
+                      value={bulkEdits[producto.id]?.precio !== undefined ? bulkEdits[producto.id]?.precio : Math.round(producto.precio_venta)}
+                      onChange={(e) => handleBulkChange(producto.id, 'precio', e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-full bg-white border border-gray-200 rounded px-2 py-1 text-sm font-bold"
+                    />
+                  ) : (
+                    <div className="text-lg font-bold text-gray-900">
+                      ${formatNumber(producto.precio_venta)}
+                    </div>
+                  )}
+                  {!isBulkEditing && (
+                    <div className="flex flex-col mt-1">
+                      {dolarBlue > 0 && (
+                        <div className="text-[10px] text-blue-600">
+                          Blue: {formatNumber(producto.precio_venta / dolarBlue)} USD
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className={`rounded-lg p-2.5 ${producto.stock_actual <= producto.stock_minimo ? 'bg-red-50 border border-red-100' : 'bg-gray-50'}`}>
+                  <span className="text-xs text-gray-500 block mb-1">Stock Actual</span>
+                  {isBulkEditing ? (
+                    <input
+                      type="number"
+                      value={bulkEdits[producto.id]?.stock ?? producto.stock_actual}
+                      onChange={(e) => handleBulkChange(producto.id, 'stock', e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-full bg-white border border-gray-200 rounded px-2 py-1 text-sm font-bold text-center"
+                    />
+                  ) : (
+                    <div className={`text-lg font-bold flex items-center gap-2 ${producto.stock_actual <= producto.stock_minimo ? 'text-red-700' : 'text-gray-900'}`}>
+                      {producto.stock_actual}
+                      {producto.stock_actual <= producto.stock_minimo && (
+                        <AlertTriangle className="w-4 h-4 text-red-500" />
+                      )}
+                    </div>
+                  )}
+                  {!isBulkEditing && (
+                    <span className="text-[10px] text-gray-400">Min: {producto.stock_minimo}</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Info secundaria expandible o fija */}
+              <div className="flex items-center justify-between pt-3 border-t border-gray-50">
+                <div className="flex gap-4 text-xs text-gray-500">
+                  <div>
+                    <span className="block text-[10px] uppercase text-gray-400">Costo</span>
+                    {isBulkEditing ? (
+                      <input
+                        type="number"
+                        value={bulkEdits[producto.id]?.costo ?? producto.precio_costo}
+                        onChange={(e) => handleBulkChange(producto.id, 'costo', e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-16 bg-white border border-gray-200 rounded px-1 py-0.5 text-xs"
+                      />
+                    ) : (
+                      <span className="font-medium">${formatNumber(producto.precio_costo)}</span>
+                    )}
+                  </div>
+                  <div>
+                    <span className="block text-[10px] uppercase text-gray-400">Margen</span>
+                    {isBulkEditing ? (
+                      <input
+                        type="number"
+                        value={bulkEdits[producto.id]?.margen !== undefined ? bulkEdits[producto.id]?.margen : (producto.precio_costo > 0 ? Math.round(((producto.precio_venta / producto.precio_costo) - 1) * 100) : 0)}
+                        onChange={(e) => handleBulkChange(producto.id, 'margen', e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-12 bg-white border border-gray-200 rounded px-1 py-0.5 text-xs"
+                      />
+                    ) : (
+                      <span className="font-medium text-blue-600">
+                        {producto.precio_costo > 0 ? Math.round(((producto.precio_venta / producto.precio_costo) - 1) * 100) : 0}%
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {!isBulkEditing && (
+                  <div className="flex gap-1">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        startEditing(producto);
+                      }}
+                      className="p-2 text-blue-600 bg-blue-50 rounded-lg"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        confirmDelete(producto);
+                      }}
+                      className="p-2 text-red-600 bg-red-50 rounded-lg"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+
+        {/* Paginación Mobile */}
+        {totalPaginas > 1 && (
+          <div className="flex items-center justify-between pt-2 pb-6">
+            <div className="text-xs text-gray-500">
+              Página <span className="font-semibold text-gray-900">{paginaActual}</span> de{' '}
+              <span className="font-semibold text-gray-900">{totalPaginas}</span>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPaginaActual(Math.max(1, paginaActual - 1))}
+                disabled={paginaActual === 1}
+                className="p-2 border border-gray-300 rounded-lg hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors bg-white shadow-sm"
+              >
+                <ChevronLeft className="w-5 h-5 text-gray-700" />
+              </button>
+              <button
+                onClick={() => setPaginaActual(Math.min(totalPaginas, paginaActual + 1))}
+                disabled={paginaActual === totalPaginas}
+                className="p-2 border border-gray-300 rounded-lg hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors bg-white shadow-sm"
               >
                 <ChevronRight className="w-5 h-5 text-gray-700" />
               </button>

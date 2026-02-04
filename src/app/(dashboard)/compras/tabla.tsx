@@ -15,7 +15,8 @@ import {
     Eye,
     MoreVertical,
     ArrowUpDown,
-    Download
+    Download,
+    Package
 } from 'lucide-react';
 
 interface TablaComprasProps {
@@ -100,8 +101,8 @@ export default function TablaCompras({ compras }: TablaComprasProps) {
                 </div>
             </div>
 
-            {/* Tabla */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            {/* Tabla Desktop */}
+            <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead className="bg-gray-50/50 border-b border-gray-100">
@@ -146,7 +147,7 @@ export default function TablaCompras({ compras }: TablaComprasProps) {
                                         </td>
                                     </motion.tr>
                                 ) : (
-                                    comprasPaginadas.map((compra, index) => (
+                                    comprasPaginadas.map((compra) => (
                                         <motion.tr
                                             key={compra.id}
                                             variants={item}
@@ -235,7 +236,7 @@ export default function TablaCompras({ compras }: TablaComprasProps) {
                     </table>
                 </div>
 
-                {/* Paginación */}
+                {/* Paginación Desktop */}
                 {totalPaginas > 1 && (
                     <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
                         <button
@@ -254,6 +255,91 @@ export default function TablaCompras({ compras }: TablaComprasProps) {
                             className="p-2 rounded-lg hover:bg-white hover:shadow-sm disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:shadow-none transition-all text-gray-500"
                         >
                             <ChevronRight className="w-5 h-5" />
+                        </button>
+                    </div>
+                )}
+            </div>
+
+            {/* Mobile View (Cards) */}
+            <div className="md:hidden space-y-4">
+                {comprasPaginadas.length === 0 ? (
+                    <div className="text-center py-12 bg-white rounded-xl border border-dashed border-gray-300">
+                        <FileText className="w-12 h-12 mb-3 mx-auto text-gray-300" />
+                        <p className="text-gray-500">No se encontraron compras</p>
+                    </div>
+                ) : (
+                    comprasPaginadas.map((compra) => (
+                        <motion.div
+                            key={compra.id}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            onClick={() => window.location.href = `/compras/${compra.id}`}
+                            className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden active:scale-[0.98] transition-transform"
+                        >
+                            <div className="p-4">
+                                <div className="flex justify-between items-start mb-3">
+                                    <div className="flex items-center gap-2">
+                                        <div className="p-1.5 bg-blue-50 rounded-lg">
+                                            <FileText className="w-4 h-4 text-blue-500" />
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-gray-900 text-sm">#{compra.numero_orden || 'S/N'}</p>
+                                            <p className="text-[10px] text-gray-500">{new Date(compra.created_at).toLocaleDateString('es-AR')}</p>
+                                        </div>
+                                    </div>
+                                    <span
+                                        className={`px-2 py-0.5 inline-flex text-[10px] font-bold uppercase rounded-full border ${compra.estado === 'completada'
+                                            ? 'bg-green-50 text-green-700 border-green-100'
+                                            : compra.estado === 'pendiente'
+                                                ? 'bg-yellow-50 text-yellow-700 border-yellow-100'
+                                                : 'bg-red-50 text-red-700 border-red-100'
+                                            }`}
+                                    >
+                                        {compra.estado}
+                                    </span>
+                                </div>
+
+                                <div className="mb-3">
+                                    <p className="text-xs text-gray-500 mb-0.5">Proveedor</p>
+                                    <p className="font-semibold text-gray-900 text-sm">{compra.proveedor?.nombre || 'N/A'}</p>
+                                </div>
+
+                                <div className="flex justify-between items-center pt-3 border-t border-gray-50">
+                                    <div className="flex items-center gap-1.5 text-gray-500">
+                                        <Package className="w-3.5 h-3.5" />
+                                        <span className="text-xs">{compra.items?.length || 0} items</span>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-[10px] text-gray-400">Total</p>
+                                        <p className="text-lg font-bold text-gray-900">
+                                            {new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(compra.total)}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    ))
+                )}
+
+                {/* Paginación Mobile */}
+                {totalPaginas > 1 && (
+                    <div className="flex items-center justify-between pt-2">
+                        <button
+                            onClick={() => setPaginaActual(p => Math.max(1, p - 1))}
+                            disabled={paginaActual === 1}
+                            className="p-2 bg-white rounded-lg shadow-sm border border-gray-100 disabled:opacity-50"
+                        >
+                            <ChevronLeft className="w-5 h-5 text-gray-600" />
+                        </button>
+                        <span className="text-xs font-medium text-gray-500">
+                            {paginaActual} / {totalPaginas}
+                        </span>
+                        <button
+                            onClick={() => setPaginaActual(p => Math.min(totalPaginas, p + 1))}
+                            disabled={paginaActual === totalPaginas}
+                            className="p-2 bg-white rounded-lg shadow-sm border border-gray-100 disabled:opacity-50"
+                        >
+                            <ChevronRight className="w-5 h-5 text-gray-600" />
                         </button>
                     </div>
                 )}

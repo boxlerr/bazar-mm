@@ -57,25 +57,22 @@ export default async function DetalleCompraPage({ params }: Props) {
       transition={{ duration: 0.5 }}
       className="max-w-7xl mx-auto pb-10"
     >
-      <div className="mb-8">
+      <div className="mb-6 md:mb-8">
         <Link
           href="/compras"
-          className="inline-flex items-center gap-2 text-gray-500 hover:text-blue-600 mb-6 font-medium transition-colors"
+          className="inline-flex items-center gap-2 text-gray-500 hover:text-blue-600 mb-4 md:mb-6 font-medium transition-colors text-sm md:text-base"
         >
           <ArrowLeft className="w-4 h-4" />
           Volver a Compras
         </Link>
-
-
-
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+        <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-start">
+          <div className="space-y-2">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight break-all sm:break-normal">
                 Compra #{compra.numero_orden || compra.id.slice(0, 8)}
               </h1>
               <span
-                className={`px-3 py-1 text-sm font-bold rounded-full border ${compra.estado === 'completada'
+                className={`self-start sm:self-auto px-2.5 py-0.5 md:px-3 md:py-1 text-xs md:text-sm font-bold rounded-full border ${compra.estado === 'completada'
                   ? 'bg-green-50 text-green-700 border-green-200'
                   : compra.estado === 'pendiente'
                     ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
@@ -85,7 +82,7 @@ export default async function DetalleCompraPage({ params }: Props) {
                 {compra.estado.toUpperCase()}
               </span>
             </div>
-            <div className="flex items-center gap-2 text-gray-500">
+            <div className="flex items-center gap-2 text-gray-500 text-sm md:text-base">
               <Calendar className="w-4 h-4" />
               <p>
                 Registrada el {new Date(compra.created_at).toLocaleDateString('es-AR', {
@@ -99,53 +96,55 @@ export default async function DetalleCompraPage({ params }: Props) {
             </div>
           </div>
 
-          <PurchaseActions id={compra.id} />
+          <div className="w-full md:w-auto">
+            <PurchaseActions id={compra.id} />
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
         {/* Información del Proveedor */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.1 }}
-          className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow"
+          className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 hover:shadow-md transition-shadow"
         >
-          <div className="flex items-center gap-3 mb-4 border-b border-gray-100 pb-4">
-            <div className="bg-blue-50 p-2.5 rounded-lg">
-              <User className="w-5 h-5 text-blue-600" />
+          <div className="flex items-center gap-3 mb-3 md:mb-4 border-b border-gray-100 pb-3 md:pb-4">
+            <div className="bg-blue-50 p-2 md:p-2.5 rounded-lg">
+              <User className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
             </div>
-            <h2 className="text-lg font-bold text-gray-900">Proveedor</h2>
+            <h2 className="text-base md:text-lg font-bold text-gray-900">Proveedor</h2>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-2 md:space-y-3">
             <div>
-              <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Nombre</p>
-              <p className="text-gray-900 font-bold text-lg">{compra.proveedor?.nombre}</p>
+              <p className="text-[10px] md:text-xs text-gray-500 uppercase font-semibold mb-0.5 md:mb-1">Nombre</p>
+              <p className="text-gray-900 font-bold text-base md:text-lg">{compra.proveedor?.nombre}</p>
             </div>
             {compra.proveedor?.razon_social && (
               <div>
-                <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Razón Social</p>
+                <p className="text-[10px] md:text-xs text-gray-500 uppercase font-semibold mb-0.5 md:mb-1">Razón Social</p>
                 <p className="text-sm text-gray-700">{compra.proveedor.razon_social}</p>
               </div>
             )}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3 md:gap-4">
               {compra.proveedor?.cuit && (
                 <div>
-                  <p className="text-xs text-gray-500 uppercase font-semibold mb-1">CUIT</p>
-                  <p className="text-sm text-gray-700">{compra.proveedor.cuit}</p>
+                  <p className="text-[10px] md:text-xs text-gray-500 uppercase font-semibold mb-0.5 md:mb-1">CUIT</p>
+                  <p className="text-xs md:text-sm text-gray-700 font-mono">{compra.proveedor.cuit}</p>
                 </div>
               )}
               {compra.proveedor?.telefono && (
                 <div>
-                  <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Teléfono</p>
-                  <p className="text-sm text-gray-700">{compra.proveedor.telefono}</p>
+                  <p className="text-[10px] md:text-xs text-gray-500 uppercase font-semibold mb-0.5 md:mb-1">Teléfono</p>
+                  <p className="text-xs md:text-sm text-gray-700">{compra.proveedor.telefono}</p>
                 </div>
               )}
             </div>
             {compra.proveedor?.email && (
               <div>
-                <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Email</p>
-                <p className="text-sm text-gray-700">{compra.proveedor.email}</p>
+                <p className="text-[10px] md:text-xs text-gray-500 uppercase font-semibold mb-0.5 md:mb-1">Email</p>
+                <p className="text-xs md:text-sm text-gray-700 truncate">{compra.proveedor.email}</p>
               </div>
             )}
           </div>
@@ -156,24 +155,24 @@ export default async function DetalleCompraPage({ params }: Props) {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.2 }}
-          className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow"
+          className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 hover:shadow-md transition-shadow"
         >
-          <div className="flex items-center gap-3 mb-4 border-b border-gray-100 pb-4">
-            <div className="bg-green-50 p-2.5 rounded-lg">
-              <CreditCard className="w-5 h-5 text-green-600" />
+          <div className="flex items-center gap-3 mb-3 md:mb-4 border-b border-gray-100 pb-3 md:pb-4">
+            <div className="bg-green-50 p-2 md:p-2.5 rounded-lg">
+              <CreditCard className="w-4 h-4 md:w-5 md:h-5 text-green-600" />
             </div>
-            <h2 className="text-lg font-bold text-gray-900">Pago</h2>
+            <h2 className="text-base md:text-lg font-bold text-gray-900">Pago</h2>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-3 md:space-y-4">
             <div>
-              <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Método de Pago</p>
-              <p className="text-gray-900 font-bold capitalize flex items-center gap-2">
+              <p className="text-[10px] md:text-xs text-gray-500 uppercase font-semibold mb-0.5 md:mb-1">Método de Pago</p>
+              <p className="text-gray-900 font-bold capitalize flex items-center gap-2 text-sm md:text-base">
                 {compra.metodo_pago}
               </p>
             </div>
-            <div className="bg-green-50 rounded-xl p-4 border border-green-100">
-              <p className="text-sm text-green-700 font-medium mb-1">Total de Compra</p>
-              <p className="text-3xl font-bold text-green-700">${formatNumber(compra.total)}</p>
+            <div className="bg-green-50 rounded-xl p-3 md:p-4 border border-green-100">
+              <p className="text-xs md:text-sm text-green-700 font-medium mb-0.5 md:mb-1">Total de Compra</p>
+              <p className="text-2xl md:text-3xl font-bold text-green-700">${formatNumber(compra.total)}</p>
             </div>
           </div>
         </motion.div>
@@ -183,26 +182,26 @@ export default async function DetalleCompraPage({ params }: Props) {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.3 }}
-          className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow"
+          className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 hover:shadow-md transition-shadow"
         >
-          <div className="flex items-center gap-3 mb-4 border-b border-gray-100 pb-4">
-            <div className="bg-purple-50 p-2.5 rounded-lg">
-              <FileText className="w-5 h-5 text-purple-600" />
+          <div className="flex items-center gap-3 mb-3 md:mb-4 border-b border-gray-100 pb-3 md:pb-4">
+            <div className="bg-purple-50 p-2 md:p-2.5 rounded-lg">
+              <FileText className="w-4 h-4 md:w-5 md:h-5 text-purple-600" />
             </div>
-            <h2 className="text-lg font-bold text-gray-900">Detalles</h2>
+            <h2 className="text-base md:text-lg font-bold text-gray-900">Detalles</h2>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-3 md:space-y-4">
             {compra.numero_orden && (
               <div>
-                <p className="text-xs text-gray-500 uppercase font-semibold mb-1">N° de Orden</p>
-                <p className="text-gray-900 font-bold">{compra.numero_orden}</p>
+                <p className="text-[10px] md:text-xs text-gray-500 uppercase font-semibold mb-0.5 md:mb-1">N° de Orden</p>
+                <p className="text-gray-900 font-bold text-sm md:text-base">{compra.numero_orden}</p>
               </div>
             )}
             <div>
-              <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Total de Productos</p>
+              <p className="text-[10px] md:text-xs text-gray-500 uppercase font-semibold mb-0.5 md:mb-1">Total de Productos</p>
               <div className="flex items-center gap-2">
-                <Package className="w-4 h-4 text-gray-400" />
-                <p className="text-gray-900 font-bold">{compra.items?.length || 0} items</p>
+                <Package className="w-3.5 h-3.5 md:w-4 md:h-4 text-gray-400" />
+                <p className="text-gray-900 font-bold text-sm md:text-base">{compra.items?.length || 0} items</p>
               </div>
             </div>
             {compra.pdf_url && (
@@ -211,7 +210,7 @@ export default async function DetalleCompraPage({ params }: Props) {
                   href={compra.pdf_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium bg-blue-50 px-4 py-2 rounded-lg transition-colors w-full justify-center"
+                  className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium bg-blue-50 px-4 py-2 rounded-lg transition-colors w-full justify-center text-sm"
                 >
                   <FileText className="w-4 h-4" />
                   Ver PDF Original

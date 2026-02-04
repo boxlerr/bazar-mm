@@ -31,20 +31,22 @@ export default function ComprasContent() {
 
     const stats = [
         {
-            label: 'Total Compras',
-            value: compras.length,
-            icon: ShoppingCart,
-            color: 'text-blue-600',
-            bg: 'bg-blue-50',
-            border: 'border-blue-100'
-        },
-        {
             label: 'Total Invertido',
             value: `$${compras.reduce((sum, c) => sum + c.total, 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
             icon: DollarSign,
             color: 'text-green-600',
             bg: 'bg-green-50',
-            border: 'border-green-100'
+            border: 'border-green-100',
+            className: 'col-span-2 md:col-span-1'
+        },
+        {
+            label: 'Total Compras',
+            value: compras.length,
+            icon: ShoppingCart,
+            color: 'text-blue-600',
+            bg: 'bg-blue-50',
+            border: 'border-blue-100',
+            className: 'col-span-1'
         },
         {
             label: 'Productos Ingresados',
@@ -52,7 +54,8 @@ export default function ComprasContent() {
             icon: Package,
             color: 'text-purple-600',
             bg: 'bg-purple-50',
-            border: 'border-purple-100'
+            border: 'border-purple-100',
+            className: 'col-span-1'
         },
     ];
 
@@ -86,24 +89,24 @@ export default function ComprasContent() {
             </div>
 
             {/* Estadísticas rápidas */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6 mb-6 md:mb-8">
                 {stats.map((stat, index) => (
                     <motion.div
                         key={stat.label}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.3, delay: index * 0.1 }}
-                        className={`bg-white rounded-xl shadow-sm p-6 border ${stat.border} hover:shadow-md transition-shadow`}
+                        className={`bg-white rounded-xl shadow-sm p-3 md:p-6 border ${stat.border} hover:shadow-md transition-shadow ${stat.className || ''}`}
                     >
                         <div className="flex items-center justify-between">
                             <div>
-                                <div className={`text-3xl font-bold ${stat.color}`}>
+                                <div className={`text-xl md:text-3xl font-bold ${stat.color}`}>
                                     {stat.value}
                                 </div>
-                                <div className="text-gray-600 text-sm mt-1 font-medium">{stat.label}</div>
+                                <div className="text-gray-600 text-[10px] md:text-sm mt-0.5 md:mt-1 font-medium truncate">{stat.label}</div>
                             </div>
-                            <div className={`p-3 rounded-lg ${stat.bg}`}>
-                                <stat.icon className={`w-6 h-6 ${stat.color}`} />
+                            <div className={`p-1.5 md:p-3 rounded-lg ${stat.bg}`}>
+                                <stat.icon className={`w-4 h-4 md:w-6 md:h-6 ${stat.color}`} />
                             </div>
                         </div>
                     </motion.div>

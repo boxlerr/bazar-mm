@@ -29,7 +29,7 @@ export async function processSale(saleData: {
   items: { producto_id: string; cantidad: number; precio_unitario: number }[];
   subtotal: number;
   total: number;
-  metodo_pago: string;
+  pagos: { metodo: string; monto: number }[];
   descuento?: number;
 }) {
   const supabase = await createClient();
@@ -43,21 +43,30 @@ export async function processSale(saleData: {
       throw new Error('No se pudo autenticar al usuario para registrar la venta');
     }
 
-    // 0. Validar que haya caja abierta
-    const { data: cajaAbierta } = await supabase
-      .from('caja')
-      .select('id')
-      .eq('usuario_id', user.id)
-      .eq('estado', 'abierta')
-      .single();
+    // 0. Validar que haya caja abierta si hay pagos en efectivo
+    const hayEfectivo = saleData.pagos.some(p => p.metodo === 'efectivo');
+    let cajaId = null;
 
-    if (!cajaAbierta) {
-      return { success: false, error: 'Debe abrir la caja antes de realizar una venta.' };
+    if (hayEfectivo) {
+      const { data: cajaAbierta } = await supabase
+        .from('caja')
+        .select('id')
+        .eq('usuario_id', user.id)
+        .eq('estado', 'abierta')
+        .single();
+
+      if (!cajaAbierta) {
+        return { success: false, error: 'Debe abrir la caja antes de realizar una venta en efectivo.' };
+      }
+      cajaId = cajaAbierta.id;
     }
 
     // Obtener configuración de notificaciones
     const { getNotificacionesConfig } = await import('@/app/(dashboard)/configuracion/notificaciones/actions');
     const config = await getNotificacionesConfig();
+
+    // Determinar metodo de pago principal para la tabla ventas
+    const metodoPrincipal = saleData.pagos.length > 1 ? 'multiple' : saleData.pagos[0].metodo;
 
     // 1. Crear la venta
     const { data: venta, error: ventaError } = await supabase
@@ -66,10 +75,10 @@ export async function processSale(saleData: {
         cliente_id: saleData.cliente_id,
         subtotal: saleData.subtotal,
         total: saleData.total,
-        metodo_pago: saleData.metodo_pago,
+        metodo_pago: metodoPrincipal,
         descuento: saleData.descuento || 0,
         estado: 'completada',
-        usuario_id: user.id // Asignar explícitamente el usuario
+        usuario_id: user.id
       })
       .select('*, clientes(nombre), usuarios(nombre)')
       .single();
@@ -77,6 +86,22 @@ export async function processSale(saleData: {
     if (ventaError) {
       console.error('Error creating sale:', ventaError);
       throw new Error(`Error al crear venta: ${ventaError.message}`);
+    }
+
+    // 1.5 Registrar Pagos Detallados
+    const pagosData = saleData.pagos.map(p => ({
+      venta_id: venta.id,
+      metodo: p.metodo,
+      monto: p.monto
+    }));
+
+    const { error: pagosError } = await supabase
+      .from('pagos')
+      .insert(pagosData);
+
+    if (pagosError) {
+      console.error('Error creating payments:', pagosError);
+      // No fallamos toda la venta, pero loggeamos
     }
 
     // 2. Insertar items
@@ -99,9 +124,6 @@ export async function processSale(saleData: {
 
     // 3. Registrar movimiento y verificar stock bajo
     for (const item of saleData.items) {
-      // NOTA: El stock se descuenta automáticamente mediante un Trigger en la base de datos al insertar en venta_items.
-      // No debemos descontarlo manualmente aquí para evitar doble descuento.
-
       // Obtener stock actual para registrar el movimiento (referencial)
       const { data: prod } = await supabase
         .from('productos')
@@ -109,14 +131,10 @@ export async function processSale(saleData: {
         .eq('id', item.producto_id)
         .single();
 
-      // Calculamos el nuevo stock restando lo que se acaba de vender, asumiendo que el trigger ya corrió o correrá.
-      // Para el log de kardex esto es una aproximación, lo ideal sería leer el stock post-trigger, 
-      // pero para evitar otra query asumimos la resta.
+      // Calculamos el nuevo stock (aproximado, asumiendo trigger)
       const stockAnterior = prod?.stock_actual || 0;
       const stockNuevo = stockAnterior - item.cantidad;
 
-      // Verificar stock bajo y notificar
-      // Usar stock mínimo del producto o el global de la configuración
       const limiteStock = prod?.stock_minimo ?? config.stock_minimo_global;
 
       if (stockNuevo <= limiteStock) {
@@ -144,54 +162,25 @@ export async function processSale(saleData: {
       });
     }
 
-    // 4. Si es venta en efectivo, registrar movimiento en caja
-    if (saleData.metodo_pago === 'efectivo') {
-      // Buscar caja abierta del usuario
-      const { data: caja } = await supabase
-        .from('caja')
-        .select('id')
-        .eq('usuario_id', user.id)
-        .eq('estado', 'abierta')
-        .single();
-
-      if (caja) {
+    // 4. Procesar Movimientos Financieros (Caja / Cuenta Corriente)
+    for (const pago of saleData.pagos) {
+      if (pago.metodo === 'efectivo' && cajaId) {
         await supabase.from('movimientos_caja').insert({
-          caja_id: caja.id,
+          caja_id: cajaId,
           tipo: 'ingreso',
-          concepto: `Venta Ticket #${venta.nro_ticket}`,
-          monto: saleData.total,
+          concepto: `Venta Ticket #${venta.nro_ticket} (Efectivo)`,
+          monto: pago.monto,
+          venta_id: venta.id
+        });
+      } else if (pago.metodo === 'cuenta_corriente' && saleData.cliente_id) {
+        await supabase.from('movimientos_cuenta_corriente').insert({
+          cliente_id: saleData.cliente_id,
+          tipo: 'debito',
+          monto: pago.monto,
+          descripcion: `Compra Ticket #${venta.nro_ticket}`,
           venta_id: venta.id
         });
       }
-    } else if (saleData.metodo_pago === 'cuenta_corriente' && saleData.cliente_id) {
-      // 5. Si es cuenta corriente, registramos el movimiento.
-      // NOTA: Se presume que existe un Trigger en la base de datos que actualiza el saldo del cliente
-      // al insertar en movimientos_cuenta_corriente. Si no existiera, se debería descomentar la actualización manual.
-
-      /* 
-      // Actualización manual (Comentada porque duplica el saldo si hay trigger)
-      const { data: cliente } = await supabase
-        .from('clientes')
-        .select('saldo_cuenta_corriente')
-        .eq('id', saleData.cliente_id)
-        .single();
-  
-      const nuevoSaldo = (cliente?.saldo_cuenta_corriente || 0) + saleData.total;
-  
-      await supabase
-        .from('clientes')
-        .update({ saldo_cuenta_corriente: nuevoSaldo })
-        .eq('id', saleData.cliente_id);
-      */
-
-      // Solo insertamos el movimiento
-      await supabase.from('movimientos_cuenta_corriente').insert({
-        cliente_id: saleData.cliente_id,
-        tipo: 'debito', // Venta es un débito (aumenta la deuda)
-        monto: saleData.total,
-        descripcion: `Compra Ticket #${venta.nro_ticket}`,
-        venta_id: venta.id
-      });
     }
 
     revalidatePath('/ventas');

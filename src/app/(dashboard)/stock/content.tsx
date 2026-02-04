@@ -172,7 +172,7 @@ export default function StockContent() {
                 </motion.div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-6 gap-3 md:gap-4">
                 {/* Estadísticas (4 items, 1 col each on large screens) */}
                 {estadisticas.map((stat, index) => (
                     <motion.div
@@ -181,23 +181,23 @@ export default function StockContent() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.1 + index * 0.1 }}
-                        className={`${stat.bgColor} rounded-xl p-4 border border-${stat.color}-100 hover:shadow-md transition-all ${stat.clickable ? 'cursor-pointer' : ''} group flex flex-col justify-between lg:col-span-1`}
+                        className={`${stat.bgColor} rounded-xl p-3 md:p-4 border border-${stat.color}-100 hover:shadow-md transition-all ${stat.clickable ? 'cursor-pointer' : ''} group flex flex-col justify-between lg:col-span-1`}
                     >
-                        <div className="flex items-center justify-between mb-2">
-                            <div className={`${stat.bgColor} p-2 rounded-lg group-hover:scale-110 transition-transform`}>
-                                <stat.icon className={`w-5 h-5 ${stat.iconColor}`} />
+                        <div className="flex items-center justify-between mb-1.5 md:mb-2">
+                            <div className={`${stat.bgColor} p-1.5 md:p-2 rounded-lg group-hover:scale-110 transition-transform`}>
+                                <stat.icon className={`w-4 h-4 md:w-5 md:h-5 ${stat.iconColor}`} />
                             </div>
                             {stat.alerta && (
-                                <span className="bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded-full border border-red-200 animate-pulse">
+                                <span className="bg-red-100 text-red-700 text-[10px] md:text-xs font-bold px-1.5 py-0.5 md:px-2 md:py-1 rounded-full border border-red-200 animate-pulse">
                                     !
                                 </span>
                             )}
                         </div>
                         <div>
-                            <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1 truncate">
+                            <p className="text-[10px] md:text-xs font-semibold text-gray-600 uppercase tracking-wide mb-0.5 md:mb-1 truncate">
                                 {stat.titulo}
                             </p>
-                            <p className={`text-2xl font-bold ${stat.valorColor}`}>
+                            <p className={`text-lg md:text-2xl font-bold ${stat.valorColor}`}>
                                 {stat.valor}
                             </p>
                         </div>
@@ -205,7 +205,7 @@ export default function StockContent() {
                 ))}
 
                 {/* Dollar Card (2 cols on large screens) */}
-                <div className="sm:col-span-2 lg:col-span-2">
+                <div className="col-span-2 sm:col-span-2 lg:col-span-2">
                     <DolarRatesCard />
                 </div>
             </div>

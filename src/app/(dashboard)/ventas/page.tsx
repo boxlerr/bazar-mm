@@ -7,8 +7,6 @@ export const metadata: Metadata = {
   title: 'Ventas',
 };
 
-
-
 export default function VentasPage() {
   return (
     <div className="h-full">

@@ -239,13 +239,14 @@ export default function TablaProductosEditable({ items, compraId, total }: Props
   return (
     <>
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-gray-50 to-white">
-          <h2 className="text-xl font-bold text-gray-900 flex items-center gap-3">
+        <div className="p-4 md:p-6 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-gray-50 to-white">
+          <h2 className="text-lg md:text-xl font-bold text-gray-900 flex items-center gap-2 md:gap-3">
             <div className="bg-blue-50 p-2 rounded-lg">
-              <Package className="w-5 h-5 text-blue-600" />
+              <Package className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
             </div>
-            Productos de la Compra
-            <span className="bg-gray-100 text-gray-600 text-sm px-2 py-1 rounded-full font-medium">
+            <span className="hidden md:inline">Productos de la Compra</span>
+            <span className="md:hidden">Productos</span>
+            <span className="bg-gray-100 text-gray-600 text-xs md:text-sm px-2 py-1 rounded-full font-medium">
               {productos.length}
             </span>
           </h2>
@@ -258,9 +259,9 @@ export default function TablaProductosEditable({ items, compraId, total }: Props
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
                 onClick={() => setEditando(true)}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-all font-medium shadow-sm hover:shadow"
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg transition-all font-medium shadow-sm hover:shadow text-sm md:text-base"
               >
-                <Edit2 className="w-4 h-4" />
+                <Edit2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
                 Editar
               </motion.button>
             ) : (
@@ -274,24 +275,24 @@ export default function TablaProductosEditable({ items, compraId, total }: Props
                 <button
                   onClick={handleCancelar}
                   disabled={loading}
-                  className="flex items-center gap-2 bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-all font-medium disabled:opacity-50 shadow-sm"
+                  className="flex items-center gap-2 bg-gray-500 hover:bg-gray-600 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg transition-all font-medium disabled:opacity-50 shadow-sm text-sm md:text-base"
                 >
-                  <X className="w-4 h-4" />
-                  Cancelar
+                  <X className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                  <span className="hidden sm:inline">Cancelar</span>
                 </button>
                 <button
                   onClick={handleGuardar}
                   disabled={loading}
-                  className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-all font-medium disabled:opacity-50 shadow-sm hover:shadow"
+                  className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg transition-all font-medium disabled:opacity-50 shadow-sm hover:shadow text-sm md:text-base"
                 >
                   {loading ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Guardando...
+                      <Loader2 className="w-3.5 h-3.5 md:w-4 md:h-4 animate-spin" />
+                      <span className="hidden sm:inline">Guardando...</span>
                     </>
                   ) : (
                     <>
-                      <Save className="w-4 h-4" />
+                      <Save className="w-3.5 h-3.5 md:w-4 md:h-4" />
                       Guardar
                     </>
                   )}
@@ -301,7 +302,8 @@ export default function TablaProductosEditable({ items, compraId, total }: Props
           </AnimatePresence>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Desktop View (Table) */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50/50 border-b border-gray-100">
               <tr>
@@ -421,29 +423,31 @@ export default function TablaProductosEditable({ items, compraId, total }: Props
                     </td>
                     {editando && (
                       <td className="px-6 py-4 text-center">
-                        <button
-                          onClick={() => setItemToDelete(index)}
-                          className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition-colors"
-                          title="Eliminar producto"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-
-                        {/* Split Button */}
-                        <div className="relative inline-block">
+                        <div className="flex justify-center gap-2">
                           <button
-                            onClick={() => openSplitModal(index, item)}
-                            className={`p-2 rounded-lg transition-colors ${isPackSuspect(item.producto.nombre)
-                              ? 'text-purple-600 bg-purple-50 hover:bg-purple-100 animate-pulse'
-                              : 'text-gray-400 hover:text-purple-600 hover:bg-purple-50'
-                              }`}
-                            title="Desglosar Pack (Split)"
+                            onClick={() => setItemToDelete(index)}
+                            className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition-colors"
+                            title="Eliminar producto"
                           >
-                            <Scissors className="w-5 h-5" />
-                            {isPackSuspect(item.producto.nombre) && (
-                              <span className="absolute -top-1 -right-1 w-2 h-2 bg-purple-500 rounded-full"></span>
-                            )}
+                            <Trash2 className="w-5 h-5" />
                           </button>
+
+                          {/* Split Button */}
+                          <div className="relative inline-block">
+                            <button
+                              onClick={() => openSplitModal(index, item)}
+                              className={`p-2 rounded-lg transition-colors ${isPackSuspect(item.producto.nombre)
+                                ? 'text-purple-600 bg-purple-50 hover:bg-purple-100 animate-pulse'
+                                : 'text-gray-400 hover:text-purple-600 hover:bg-purple-50'
+                                }`}
+                              title="Desglosar Pack (Split)"
+                            >
+                              <Scissors className="w-5 h-5" />
+                              {isPackSuspect(item.producto.nombre) && (
+                                <span className="absolute -top-1 -right-1 w-2 h-2 bg-purple-500 rounded-full"></span>
+                              )}
+                            </button>
+                          </div>
                         </div>
                       </td>
                     )}
@@ -463,6 +467,134 @@ export default function TablaProductosEditable({ items, compraId, total }: Props
               </tr>
             </tfoot>
           </table>
+        </div>
+
+        {/* Mobile View (Cards) */}
+        <div className="md:hidden">
+          <div className={`divide-y divide-gray-100 ${editando ? 'bg-blue-50/10' : ''}`}>
+            <AnimatePresence mode="popLayout">
+              {productos.map((item, index) => (
+                <motion.div
+                  key={item.id}
+                  layout
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className={`p-4 ${editando ? 'bg-blue-50/20' : 'bg-white'}`}
+                >
+                  {editando ? (
+                    <div className="space-y-3">
+                      <textarea
+                        value={item.producto.nombre}
+                        onChange={(e) => handleNombreChange(index, e.target.value)}
+                        className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm font-medium text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y bg-white"
+                        rows={2}
+                        placeholder="Nombre del producto"
+                      />
+                      <div className="grid grid-cols-2 gap-3">
+                        <input
+                          type="text"
+                          value={item.producto.codigo_barra || item.producto.codigo || ''}
+                          onChange={(e) => handleCodigoChange(index, e.target.value)}
+                          className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm font-medium text-gray-900"
+                          placeholder="SKU"
+                        />
+                        <select
+                          value={item.producto.categoria}
+                          onChange={(e) => handleCategoriaChange(index, e.target.value)}
+                          className="w-full px-3 py-2 border border-blue-300 rounded-lg text-xs font-semibold text-gray-900"
+                        >
+                          <option value="Almacén">Almacén</option>
+                          <option value="Bebidas">Bebidas</option>
+                          <option value="Limpieza">Limpieza</option>
+                          <option value="Librería">Librería</option>
+                          <option value="Bazar">Bazar</option>
+                          <option value="Otros">Otros</option>
+                        </select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs text-gray-500 font-semibold uppercase mb-1 block">Cantidad</label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={item.cantidad}
+                            onChange={(e) => handleCantidadChange(index, e.target.value)}
+                            className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm font-bold text-gray-900 text-center"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500 font-semibold uppercase mb-1 block">Precio Unit.</label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-2 text-gray-400">$</span>
+                            <input
+                              type="text"
+                              value={formatNumber(item.precio_unitario)}
+                              onChange={(e) => handlePrecioChange(index, e.target.value)}
+                              className="w-full pl-6 pr-3 py-2 border border-blue-300 rounded-lg text-sm font-bold text-gray-900 text-right"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center pt-2">
+                        <div className="text-sm font-bold text-green-600">
+                          Total: ${formatNumber(item.subtotal)}
+                        </div>
+                        <div className="flex gap-2">
+                          {/* Split Button Mobile */}
+                          <button
+                            onClick={() => openSplitModal(index, item)}
+                            className={`p-2 rounded-lg transition-colors border ${isPackSuspect(item.producto.nombre)
+                              ? 'text-purple-600 bg-purple-50 border-purple-200'
+                              : 'text-gray-400 border-gray-200'
+                              }`}
+                          >
+                            <Scissors className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={() => setItemToDelete(index)}
+                            className="p-2 text-red-600 bg-red-50 border border-red-200 rounded-lg"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h3 className="text-sm font-bold text-gray-900 mb-1">{item.producto.nombre}</h3>
+                          <div className="flex flex-wrap gap-2 mb-1">
+                            <span className="px-2 py-0.5 inline-flex text-[10px] font-bold rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+                              {item.producto.categoria}
+                            </span>
+                            <span className="text-xs text-gray-500 font-mono">
+                              {item.producto.codigo_barra || item.producto.codigo || '-'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-end border-t border-gray-50 pt-2 mt-2">
+                        <div className="text-xs text-gray-500">
+                          {item.cantidad} x ${formatNumber(item.precio_unitario)}
+                        </div>
+                        <div className="text-base font-bold text-green-600">
+                          ${formatNumber(item.subtotal)}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+
+          {/* Mobile Total */}
+          <div className="p-4 bg-gray-50 border-t border-gray-200 flex justify-between items-center sticky bottom-0 z-10">
+            <span className="text-sm font-bold text-gray-500 uppercase">Total:</span>
+            <span className="text-xl font-bold text-green-600">${formatNumber(calcularTotal())}</span>
+          </div>
         </div>
       </div>
 

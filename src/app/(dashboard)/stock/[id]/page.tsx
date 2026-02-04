@@ -217,23 +217,23 @@ export default function ProductoDetallePage({ params }: Props) {
             className="max-w-7xl mx-auto pb-10"
         >
             {/* Header */}
-            <div className="mb-8">
+            <div className="mb-6 md:mb-8">
                 <button
                     onClick={() => router.back()}
-                    className="inline-flex items-center gap-2 text-gray-500 hover:text-blue-600 mb-6 font-medium transition-colors"
+                    className="inline-flex items-center gap-2 text-gray-500 hover:text-blue-600 mb-4 md:mb-6 font-medium transition-colors text-sm md:text-base relative w-fit"
                 >
                     <ArrowLeft className="w-4 h-4" />
                     Volver al Stock
                 </button>
 
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                        <div className="flex items-center gap-3 mb-2">
-                            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+                <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-start">
+                    <div className="space-y-1 md:space-y-0 w-full md:w-auto">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+                            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight break-words">
                                 {producto.nombre}
                             </h1>
                             <span
-                                className={`px-3 py-1 text-sm font-bold rounded-full border ${producto.activo
+                                className={`self-start sm:self-auto px-2.5 py-0.5 md:px-3 md:py-1 text-xs md:text-sm font-bold rounded-full border ${producto.activo
                                     ? 'bg-green-50 text-green-700 border-green-200'
                                     : 'bg-gray-100 text-gray-600 border-gray-200'
                                     }`}
@@ -241,25 +241,26 @@ export default function ProductoDetallePage({ params }: Props) {
                                 {producto.activo ? 'ACTIVO' : 'INACTIVO'}
                             </span>
                         </div>
-                        <p className="text-gray-500">Código: {producto.codigo}</p>
+                        <p className="text-gray-500 text-sm md:text-base">Código: {producto.codigo}</p>
                     </div>
 
-                    <div className="flex gap-3">
+                    <div className="flex flex-wrap gap-2 md:gap-3 w-full md:w-auto">
                         {!editando ? (
                             <>
                                 <button
                                     onClick={() => setEditando(true)}
-                                    className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl transition-all font-medium shadow-sm hover:shadow"
+                                    className="flex-1 md:flex-initial justify-center inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 md:px-5 md:py-2.5 rounded-xl transition-all font-medium shadow-sm hover:shadow text-sm md:text-base"
                                 >
                                     Editar
                                 </button>
                                 {permissions?.productos?.eliminar && (
                                     <button
                                         onClick={() => setShowDeleteModal(true)}
-                                        className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl transition-all font-medium shadow-sm hover:shadow"
+                                        className="flex-1 md:flex-initial justify-center inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 md:px-5 md:py-2.5 rounded-xl transition-all font-medium shadow-sm hover:shadow text-sm md:text-base"
                                     >
                                         <Trash2 className="w-4 h-4" />
-                                        Eliminar
+                                        <span className="hidden sm:inline">Eliminar</span>
+                                        <span className="sm:hidden">Borrar</span>
                                     </button>
                                 )}
                             </>
@@ -271,7 +272,7 @@ export default function ProductoDetallePage({ params }: Props) {
                                         loadProducto();
                                     }}
                                     disabled={saving}
-                                    className="inline-flex items-center gap-2 bg-gray-500 hover:bg-gray-600 text-white px-5 py-2.5 rounded-xl transition-all font-medium shadow-sm disabled:opacity-50"
+                                    className="flex-1 md:flex-initial justify-center inline-flex items-center gap-2 bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 md:px-5 md:py-2.5 rounded-xl transition-all font-medium shadow-sm disabled:opacity-50 text-sm md:text-base"
                                 >
                                     <X className="w-4 h-4" />
                                     Cancelar
@@ -279,7 +280,7 @@ export default function ProductoDetallePage({ params }: Props) {
                                 <button
                                     onClick={handleSave}
                                     disabled={saving}
-                                    className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl transition-all font-medium shadow-sm hover:shadow disabled:opacity-50"
+                                    className="flex-1 md:flex-initial justify-center inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 md:px-5 md:py-2.5 rounded-xl transition-all font-medium shadow-sm hover:shadow disabled:opacity-50 text-sm md:text-base"
                                 >
                                     {saving ? (
                                         <>
@@ -304,7 +305,7 @@ export default function ProductoDetallePage({ params }: Props) {
                                     setSplitUnits(producto.units_per_pack && producto.units_per_pack > 1 ? producto.units_per_pack : 1);
                                     setShowSplitModal(true);
                                 }}
-                                className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-xl transition-all font-medium shadow-sm hover:shadow"
+                                className="flex-1 md:flex-initial justify-center inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 md:px-5 md:py-2.5 rounded-xl transition-all font-medium shadow-sm hover:shadow text-sm md:text-base"
                                 title="Desglosar Pack en Unidades"
                             >
                                 <Scissors className="w-4 h-4" />
@@ -322,13 +323,13 @@ export default function ProductoDetallePage({ params }: Props) {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: 0.1 }}
-                    className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow"
+                    className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 hover:shadow-md transition-shadow"
                 >
-                    <div className="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
-                        <div className="bg-blue-50 p-2.5 rounded-lg">
-                            <Package className="w-5 h-5 text-blue-600" />
+                    <div className="flex items-center gap-3 mb-4 md:mb-6 border-b border-gray-100 pb-3 md:pb-4">
+                        <div className="bg-blue-50 p-2 md:p-2.5 rounded-lg">
+                            <Package className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
                         </div>
-                        <h2 className="text-lg font-bold text-gray-900">Información</h2>
+                        <h2 className="text-base md:text-lg font-bold text-gray-900">Información</h2>
                     </div>
 
                     <div className="space-y-4">
@@ -440,13 +441,13 @@ export default function ProductoDetallePage({ params }: Props) {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: 0.2 }}
-                    className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow"
+                    className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 hover:shadow-md transition-shadow"
                 >
-                    <div className="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
-                        <div className="bg-green-50 p-2.5 rounded-lg">
-                            <DollarSign className="w-5 h-5 text-green-600" />
+                    <div className="flex items-center gap-3 mb-4 md:mb-6 border-b border-gray-100 pb-3 md:pb-4">
+                        <div className="bg-green-50 p-2 md:p-2.5 rounded-lg">
+                            <DollarSign className="w-4 h-4 md:w-5 md:h-5 text-green-600" />
                         </div>
-                        <h2 className="text-lg font-bold text-gray-900">Precios</h2>
+                        <h2 className="text-base md:text-lg font-bold text-gray-900">Precios</h2>
                     </div>
 
                     <div className="space-y-4">
@@ -508,13 +509,13 @@ export default function ProductoDetallePage({ params }: Props) {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: 0.3 }}
-                    className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow"
+                    className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 hover:shadow-md transition-shadow"
                 >
-                    <div className="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
-                        <div className="bg-orange-50 p-2.5 rounded-lg">
-                            <Package className="w-5 h-5 text-orange-600" />
+                    <div className="flex items-center gap-3 mb-4 md:mb-6 border-b border-gray-100 pb-3 md:pb-4">
+                        <div className="bg-orange-50 p-2 md:p-2.5 rounded-lg">
+                            <Package className="w-4 h-4 md:w-5 md:h-5 text-orange-600" />
                         </div>
-                        <h2 className="text-lg font-bold text-gray-900">Stock</h2>
+                        <h2 className="text-base md:text-lg font-bold text-gray-900">Stock</h2>
                     </div>
 
                     <div className="space-y-6">
@@ -524,10 +525,10 @@ export default function ProductoDetallePage({ params }: Props) {
                                 <div className="flex items-center gap-2 w-full">
                                     <button
                                         onClick={() => adjustStock(-1)}
-                                        className="p-3 bg-red-100 hover:bg-red-200 text-red-700 rounded-xl transition-colors shrink-0"
+                                        className="p-2 md:p-3 bg-red-100 hover:bg-red-200 text-red-700 rounded-xl transition-colors shrink-0"
                                         type="button"
                                     >
-                                        <Minus className="w-5 h-5" />
+                                        <Minus className="w-4 h-4 md:w-5 md:h-5" />
                                     </button>
                                     <input
                                         type="number"
@@ -541,18 +542,18 @@ export default function ProductoDetallePage({ params }: Props) {
                                         }}
                                         min="0"
                                         placeholder="0"
-                                        className="flex-1 min-w-0 border border-gray-200 rounded-xl px-2 py-3 text-center text-2xl font-bold focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        className="flex-1 min-w-0 border border-gray-200 rounded-xl px-2 py-2 md:py-3 text-center text-xl md:text-2xl font-bold focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     />
                                     <button
                                         onClick={() => adjustStock(1)}
-                                        className="p-3 bg-green-100 hover:bg-green-200 text-green-700 rounded-xl transition-colors shrink-0"
+                                        className="p-2 md:p-3 bg-green-100 hover:bg-green-200 text-green-700 rounded-xl transition-colors shrink-0"
                                         type="button"
                                     >
-                                        <Plus className="w-5 h-5" />
+                                        <Plus className="w-4 h-4 md:w-5 md:h-5" />
                                     </button>
                                 </div>
                             ) : (
-                                <p className="text-4xl font-bold text-gray-900 text-center">{producto.stock_actual}</p>
+                                <p className="text-3xl md:text-4xl font-bold text-gray-900 text-center">{producto.stock_actual}</p>
                             )}
                         </div>
 
@@ -709,16 +710,17 @@ export default function ProductoDetallePage({ params }: Props) {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: 0.4 }}
-                className="bg-white rounded-xl shadow-sm border border-gray-100 p-6"
+                className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6"
             >
-                <div className="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
-                    <div className="bg-purple-50 p-2.5 rounded-lg">
-                        <TrendingUp className="w-5 h-5 text-purple-600" />
+                <div className="flex items-center gap-3 mb-4 md:mb-6 border-b border-gray-100 pb-3 md:pb-4">
+                    <div className="bg-purple-50 p-2 md:p-2.5 rounded-lg">
+                        <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-purple-600" />
                     </div>
-                    <h2 className="text-lg font-bold text-gray-900">Historial de Movimientos (Kardex)</h2>
+                    <h2 className="text-base md:text-lg font-bold text-gray-900">Historial de Movimientos (Kardex)</h2>
                 </div>
 
-                <div className="overflow-x-auto">
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto">
                     <table className="w-full">
                         <thead>
                             <tr className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100">
@@ -769,6 +771,46 @@ export default function ProductoDetallePage({ params }: Props) {
                             )}
                         </tbody>
                     </table>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="md:hidden space-y-3">
+                    {historial.length === 0 ? (
+                        <p className="py-6 text-center text-gray-500 text-sm">
+                            No hay movimientos registrados recientemente.
+                        </p>
+                    ) : (
+                        historial.map((mov) => (
+                            <div key={mov.id} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                                <div className="flex justify-between items-start mb-2">
+                                    <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${mov.tipo === 'venta' ? 'bg-green-100 text-green-700' :
+                                        mov.tipo === 'compra' ? 'bg-blue-100 text-blue-700' :
+                                            mov.tipo === 'ajuste_manual' ? 'bg-purple-100 text-purple-700' :
+                                                'bg-gray-100 text-gray-700'
+                                        }`}>
+                                        {mov.tipo.replace('_', ' ')}
+                                    </span>
+                                    <span className="text-xs text-gray-400">
+                                        {new Date(mov.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                </div>
+
+                                <div className="flex justify-between items-center mb-1">
+                                    <p className="text-sm font-medium text-gray-700 line-clamp-1" title={mov.motivo}>
+                                        {mov.motivo || 'Sin detalle'}
+                                    </p>
+                                    <span className={`text-base font-bold ${mov.cantidad > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                        {mov.cantidad > 0 ? '+' : ''}{mov.cantidad}
+                                    </span>
+                                </div>
+
+                                <div className="flex justify-between items-center text-xs text-gray-500 border-t border-gray-100 pt-2 mt-2">
+                                    <span>Por: {mov.usuario?.nombre || 'Sistema'}</span>
+                                    <span className="font-mono">Stock: {mov.stock_nuevo}</span>
+                                </div>
+                            </div>
+                        ))
+                    )}
                 </div>
             </motion.div>
         </motion.div>

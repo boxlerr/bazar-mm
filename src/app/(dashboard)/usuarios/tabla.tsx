@@ -189,7 +189,7 @@ export default function TablaUsuarios({
 
       {/* Tabla */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto hidden md:block">
           <table className="w-full">
             <thead className="bg-gray-50/50 border-b border-gray-100">
               <tr>
@@ -227,7 +227,7 @@ export default function TablaUsuarios({
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                   >
-                    <td colSpan={5} className="px-6 py-12 text-center">
+                    <td colSpan={8} className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center justify-center text-gray-400">
                         <UserIcon className="h-12 w-12 mb-3 opacity-20" />
                         <p className="text-lg font-medium text-gray-500">No se encontraron usuarios</p>
@@ -264,11 +264,6 @@ export default function TablaUsuarios({
                             <div className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
                               {usuario.nombre}
                             </div>
-                            {usuario.telefono && (
-                              <div className="text-xs text-gray-500">
-                                {usuario.telefono}
-                              </div>
-                            )}
                           </div>
                         </div>
                       </td>
@@ -338,6 +333,100 @@ export default function TablaUsuarios({
               </AnimatePresence>
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Cards View */}
+        <div className="md:hidden">
+          {usuariosPaginados.length === 0 ? (
+            <div className="flex flex-col items-center justify-center text-gray-400 py-12 px-4 text-center">
+              <UserIcon className="h-12 w-12 mb-3 opacity-20" />
+              <p className="text-lg font-medium text-gray-500">No se encontraron usuarios</p>
+              <p className="text-sm">Intenta ajustar los filtros de búsqueda</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {usuariosPaginados.map((usuario) => (
+                <div key={usuario.id} className="p-4 bg-white flex flex-col gap-3">
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 flex-shrink-0 relative">
+                        {usuario.avatar ? (
+                          <img
+                            className="h-10 w-10 rounded-full object-cover border border-gray-100"
+                            src={usuario.avatar}
+                            alt={usuario.nombre}
+                          />
+                        ) : (
+                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-sm">
+                            {usuario.nombre.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <div className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white ${usuario.activo ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-gray-900">
+                          {usuario.nombre}
+                        </div>
+                        <div className="text-xs text-gray-500 truncate max-w-[180px]">
+                          {usuario.email}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Role Badge */}
+                    <span
+                      className={`px-2 py-0.5 inline-flex items-center text-[10px] font-medium rounded-full border ${getRolBadgeColor(
+                        usuario.rol
+                      )}`}
+                    >
+                      {getRolLabel(usuario.rol)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-gray-50 mt-1">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => onCambiarEstado(usuario.id, !usuario.activo)}
+                        className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${usuario.activo ? 'bg-green-500' : 'bg-gray-200'
+                          }`}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${usuario.activo ? 'translate-x-4' : 'translate-x-0'
+                            }`}
+                        />
+                      </button>
+                      <span className="text-xs text-gray-500">{usuario.activo ? 'Activo' : 'Inactivo'}</span>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => onVerDetalle(usuario)}
+                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Ver detalle"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => onEditar(usuario)}
+                        className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                        title="Editar"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => onEliminar(usuario)}
+                        className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Eliminar"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Paginación */}

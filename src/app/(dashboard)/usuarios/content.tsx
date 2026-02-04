@@ -186,7 +186,7 @@ export default function UsuariosContent() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
-            className="p-6 max-w-7xl mx-auto"
+            className="p-4 md:p-6 max-w-7xl mx-auto"
         >
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">

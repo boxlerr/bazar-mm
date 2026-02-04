@@ -147,7 +147,8 @@ export default function SalesList({ data }: SalesListProps) {
                     </div>
                 </div>
             </div>
-            <div className="overflow-x-auto">
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-sm text-left">
                     <thead className="text-xs text-gray-500 uppercase bg-gray-50">
                         <tr>
@@ -337,6 +338,150 @@ export default function SalesList({ data }: SalesListProps) {
                         )}
                     </tbody>
                 </table>
+            </div>
+
+            {/* Mobile Cards View */}
+            <div className="md:hidden space-y-4 p-4">
+                {currentData.map((venta) => {
+                    const isEditing = editingId === venta.id;
+                    return (
+                        <div key={venta.id} className={`rounded-xl border p-4 transition-colors ${isEditing ? 'bg-blue-50/50 border-blue-200' : 'bg-white border-gray-100 shadow-sm'}`}>
+                            {isEditing ? (
+                                <div className="space-y-4">
+                                    <h4 className="font-bold text-blue-900 mb-2">Editar Venta</h4>
+
+                                    <div className="space-y-3">
+                                        <div>
+                                            <label className="text-xs text-gray-500 block mb-1">Fecha</label>
+                                            <input
+                                                type="datetime-local"
+                                                value={formData.created_at}
+                                                onChange={(e) => setFormData({ ...formData, created_at: e.target.value })}
+                                                className="w-full text-sm rounded-lg border-gray-300"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="text-xs text-gray-500 block mb-1">Cliente</label>
+                                            <select
+                                                value={formData.cliente_id}
+                                                onChange={(e) => setFormData({ ...formData, cliente_id: e.target.value })}
+                                                className="w-full text-sm rounded-lg border-gray-300"
+                                            >
+                                                <option value="">Consumidor Final</option>
+                                                {options.clientes.map(c => (
+                                                    <option key={c.id} value={c.id}>{c.nombre}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="text-xs text-gray-500 block mb-1">Total</label>
+                                                <input
+                                                    type="number"
+                                                    value={formData.total}
+                                                    onChange={(e) => setFormData({ ...formData, total: parseFloat(e.target.value) })}
+                                                    className="w-full text-sm rounded-lg border-gray-300"
+                                                    step="0.01"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-xs text-gray-500 block mb-1">Pago</label>
+                                                <select
+                                                    value={formData.metodo_pago}
+                                                    onChange={(e) => setFormData({ ...formData, metodo_pago: e.target.value })}
+                                                    className="w-full text-sm rounded-lg border-gray-300"
+                                                >
+                                                    <option value="efectivo">Efectivo</option>
+                                                    <option value="tarjeta">Tarjeta</option>
+                                                    <option value="transferencia">Transferencia</option>
+                                                    <option value="mercadopago">Mercado Pago</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-end gap-2 pt-2 border-t border-blue-200/50 mt-2">
+                                        <button
+                                            onClick={handleCancelEdit}
+                                            className="px-3 py-2 text-xs font-medium text-red-600 bg-red-50 rounded-lg"
+                                        >
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            onClick={() => handleSave(venta.id)}
+                                            className="px-3 py-2 text-xs font-medium text-white bg-blue-600 rounded-lg flex items-center gap-1"
+                                        >
+                                            <Check size={14} /> Guardar
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div>
+                                            <span className="text-xs text-gray-500 block">
+                                                {format(new Date(venta.created_at), "d MMM, HH:mm", { locale: es })}
+                                            </span>
+                                            <span className="text-lg font-bold text-gray-900 block mt-0.5">
+                                                ${Number(venta.total).toLocaleString('es-AR')}
+                                            </span>
+                                        </div>
+                                        <div className={`px-2 py-1 rounded text-xs font-medium capitalize flex items-center gap-1.5 ${venta.metodo_pago?.includes('efectivo') ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                                            }`}>
+                                            <CreditCard size={12} />
+                                            {venta.metodo_pago?.replace('_', ' ') || 'Efectivo'}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2.5 mb-4">
+                                        <div className="flex items-center gap-2.5 p-2 bg-gray-50 rounded-lg">
+                                            <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                                                <User size={14} />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-medium text-gray-900">{venta.cliente_nombre}</p>
+                                                <p className="text-xs text-gray-500">Cliente</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-4 px-1">
+                                            <div className="flex items-center gap-1.5 text-xs text-gray-600 font-medium">
+                                                <ShoppingBag size={14} className="text-gray-400" />
+                                                <span>{venta.venta_items?.reduce((acc: number, item: any) => acc + item.cantidad, 0) || 0} items</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                                                <User size={14} className="text-gray-400" />
+                                                <span className="truncate max-w-[100px]">{venta.usuario?.nombre}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
+                                        <button
+                                            onClick={() => handleEditClick(venta)}
+                                            className="flex-1 py-2 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            <Pencil size={14} /> Editar
+                                        </button>
+                                        <button
+                                            onClick={() => setDeleteId(venta.id)}
+                                            className="flex-1 py-2 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            <Trash2 size={14} /> Eliminar
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    );
+                })}
+                {sales.length === 0 && (
+                    <div className="text-center text-gray-400 py-8 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                        No hay ventas registradas recientemente
+                    </div>
+                )}
             </div>
 
             <DeleteConfirmationModal

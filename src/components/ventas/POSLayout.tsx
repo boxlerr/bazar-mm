@@ -53,13 +53,15 @@ export default function POSLayout() {
         fetchRates();
     }, []);
 
-    const handleCheckout = async (method: string) => {
-        const result = await checkout(method);
+    const handleCheckout = async (pagos: { metodo: string; monto: number }[]) => {
+        // @ts-ignore - checkout ahora espera array, aunque en types podria estar desactualizado
+        const result = await checkout(pagos);
         if (result && result.success) {
             setIsPaymentModalOpen(false);
-            // Opcional: Mostrar mensaje de éxito o notificación toast
         } else {
-            toast.error('Error al procesar la venta');
+            // El error ya se muestra en el hook usePOS idealmente o aqui
+            if (result?.error) toast.error(result.error instanceof Error ? result.error.message : String(result.error));
+            else toast.error('Error al procesar la venta');
         }
     };
 

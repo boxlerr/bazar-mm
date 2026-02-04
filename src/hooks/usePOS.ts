@@ -136,7 +136,7 @@ export function usePOS() {
     };
 
     // Procesar venta
-    const checkout = async (paymentMethod: string) => {
+    const checkout = async (pagos: { metodo: string; monto: number }[]) => {
         if (!isCajaOpen) {
             toast.error('Debe abrir la caja antes de realizar una venta');
             return;
@@ -154,7 +154,7 @@ export function usePOS() {
                 })),
                 subtotal, // Pasamos el subtotal calculado
                 total,
-                metodo_pago: paymentMethod
+                pagos
             };
 
             const result = await processSale(saleData);

@@ -38,7 +38,7 @@ export function PurchaseActions({ id }: Props) {
         <>
             <button
                 onClick={() => setShowModal(true)}
-                className="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-lg transition-colors flex items-center gap-2 font-medium border border-red-200"
+                className="w-full md:w-auto justify-center bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-lg transition-colors flex items-center gap-2 font-medium border border-red-200"
             >
                 <Trash2 className="w-4 h-4" />
                 Eliminar Compra
