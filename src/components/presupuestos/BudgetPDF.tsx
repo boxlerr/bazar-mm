@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Presupuesto } from '@/types/presupuesto';
-import { X, Printer, Download, FileText, Edit2, Save, Loader2 } from 'lucide-react';
+import { X, Printer, Download, FileText, Edit2, Save, Loader2, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { updateBudgetObservation } from '@/app/(dashboard)/presupuestos/actions';
 import { toast } from 'sonner';
@@ -19,7 +19,6 @@ export default function BudgetPDF({ budget, isOpen, onClose }: BudgetPDFProps) {
     const [pdfDataUri, setPdfDataUri] = useState<string | null>(null);
     const [pdfDoc, setPdfDoc] = useState<jsPDF | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [isEditingObs, setIsEditingObs] = useState(false);
     const [obs, setObs] = useState('');
     const [isSaving, setIsSaving] = useState(false);
 
@@ -44,7 +43,6 @@ export default function BudgetPDF({ budget, isOpen, onClose }: BudgetPDFProps) {
 
             doc.text(`N° Presupuesto: ${nro}`, 14, 45);
             doc.text(`Fecha: ${fecha}`, 14, 50);
-            // doc.text(`Válido por: 7 días`, 14, 55); // Saca lo de los 7 dias
 
             // Cliente info
             doc.text('Cliente:', 130, 45);
@@ -134,7 +132,6 @@ export default function BudgetPDF({ budget, isOpen, onClose }: BudgetPDFProps) {
             setPdfDataUri(null);
             setPdfDoc(null);
             setError(null);
-            setIsEditingObs(false);
         }
     }, [isOpen, budget, generatePDF]);
 
@@ -145,7 +142,6 @@ export default function BudgetPDF({ budget, isOpen, onClose }: BudgetPDFProps) {
             const result = await updateBudgetObservation(budget.id, obs);
             if (result.success) {
                 toast.success('Observación actualizada');
-                setIsEditingObs(false);
                 generatePDF(obs); // Regenerate with new obs
             } else {
                 toast.error('Error al guardar: ' + result.error);
@@ -166,28 +162,35 @@ export default function BudgetPDF({ budget, isOpen, onClose }: BudgetPDFProps) {
     const handlePrint = () => {
         if (pdfDoc) {
             pdfDoc.autoPrint();
-            window.open(pdfDoc.output('bloburl'), '_blank');
+            const blobUrl = pdfDoc.output('bloburl');
+            window.open(blobUrl, '_blank');
         }
     };
 
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={onClose}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-0 sm:p-4 backdrop-blur-md" onClick={onClose}>
             <div
-                className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl h-[95vh] flex flex-col overflow-hidden"
+                className="bg-white rounded-none sm:rounded-2xl shadow-2xl w-full max-w-6xl h-full sm:h-[95vh] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300"
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="p-4 border-b flex justify-between items-center bg-gray-50/50">
-                    <div>
-                        <h3 className="font-bold text-gray-900">Vista Previa Presupuesto</h3>
-                        <p className="text-xs text-gray-500">#{budget?.nro_presupuesto || '---'}</p>
+                {/* Header */}
+                <div className="p-4 border-b flex justify-between items-center bg-gray-50/80 backdrop-blur-sm z-10">
+                    <div className="flex items-center gap-3">
+                        <div className="bg-blue-600 text-white p-2 rounded-lg hidden sm:block">
+                            <FileText className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h3 className="font-black text-gray-900 text-sm sm:text-base tracking-tight leading-none mb-1">Vista Previa Presupuesto</h3>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Compumundo • #{budget?.nro_presupuesto || '---'}</p>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
                         <button
                             onClick={handlePrint}
                             disabled={!pdfDataUri}
-                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 font-medium text-sm"
+                            className="hidden sm:flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all disabled:opacity-50 font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-500/20 active:scale-95"
                         >
                             <Printer className="w-4 h-4" />
                             Imprimir
@@ -195,59 +198,87 @@ export default function BudgetPDF({ budget, isOpen, onClose }: BudgetPDFProps) {
                         <button
                             onClick={handleDownload}
                             disabled={!pdfDataUri}
-                            className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 font-medium text-sm"
+                            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all disabled:opacity-50 font-black text-[10px] sm:text-xs uppercase tracking-widest active:scale-95"
                         >
                             <Download className="w-4 h-4" />
-                            Descargar
+                            <span className="hidden sm:inline">Descargar</span>
+                            <span className="sm:hidden">PDF</span>
                         </button>
-                        <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors active:scale-95 ml-2">
-                            <X className="w-6 h-6 text-gray-600" />
+                        <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-xl transition-all active:scale-95 ml-1 text-gray-400">
+                            <X className="w-6 h-6" />
                         </button>
                     </div>
                 </div>
 
-                <div className="flex-1 flex overflow-hidden">
-                    {/* PDF Viewer */}
-                    <div className="flex-1 bg-neutral-800 flex items-center justify-center relative bg-[radial-gradient(#333_1px,transparent_1px)] [background-size:20px_20px]">
+                <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+                    {/* PDF Viewer Section */}
+                    <div className="flex-1 bg-neutral-900/95 flex items-center justify-center relative overflow-hidden group">
+                        {/* Background pattern */}
+                        <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:20px_20px]"></div>
+
                         {error ? (
-                            <div className="bg-white p-8 rounded-xl shadow-xl max-w-md text-center">
-                                <div className="text-red-500 mb-4 font-bold">⚠️ Error al cargar la vista previa</div>
-                                <p className="text-gray-600 text-sm mb-6">{error}</p>
-                                <button onClick={() => generatePDF()} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
-                                    Reintentar
+                            <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-sm text-center animate-in zoom-in duration-300 mx-4">
+                                <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <Info className="w-8 h-8" />
+                                </div>
+                                <h4 className="text-gray-900 font-black text-lg mb-2">Error de Generación</h4>
+                                <p className="text-gray-500 text-sm mb-6 leading-relaxed">{error}</p>
+                                <button
+                                    onClick={() => generatePDF()}
+                                    className="w-full bg-blue-600 text-white py-3 rounded-xl font-black uppercase tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-600/20 transition-all"
+                                >
+                                    Reintentar Carga
                                 </button>
                             </div>
                         ) : !pdfDataUri ? (
-                            <div className="flex flex-col items-center gap-3">
-                                <div className="w-10 h-10 border-4 border-white/20 border-t-white rounded-full animate-spin" />
-                                <p className="text-sm text-gray-400 font-medium">Generando vista previa...</p>
+                            <div className="flex flex-col items-center gap-4 animate-pulse">
+                                <div className="w-12 h-12 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin shadow-lg" />
+                                <p className="text-[10px] text-blue-400 font-black uppercase tracking-[0.2em]">Renderizando presupuesto...</p>
                             </div>
                         ) : (
                             <iframe
                                 src={pdfDataUri}
-                                className="w-full h-full border-0"
+                                className="w-full h-full border-0 sm:p-4 lg:p-8"
                                 title="PDF Preview"
                             />
                         )}
+
+                        {/* Mobile Floating Print Button */}
+                        <div className="absolute bottom-4 right-4 sm:hidden">
+                            <button
+                                onClick={handlePrint}
+                                className="bg-blue-600 text-white p-4 rounded-2xl shadow-2xl shadow-blue-500/40 active:scale-90 transition-all"
+                            >
+                                <Printer className="w-6 h-6" />
+                            </button>
+                        </div>
                     </div>
 
-                    {/* Side Panel for Editing */}
-                    <div className="w-80 border-l bg-gray-50 flex flex-col">
-                        <div className="p-4 border-b bg-white">
-                            <div className="flex items-center gap-2 text-gray-900 font-bold text-sm mb-1">
-                                <FileText className="w-4 h-4 text-blue-600" />
-                                Edición de Observación
+                    {/* Editor Panel - Moves to bottom on mobile, side on desktop */}
+                    <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l bg-gray-50 flex flex-col h-auto lg:h-full max-h-[40vh] lg:max-h-none overflow-hidden shrink-0 shadow-2xl z-20">
+                        <div className="p-4 border-b bg-white flex items-center justify-between">
+                            <div>
+                                <div className="flex items-center gap-2 text-gray-900 font-black text-[10px] uppercase tracking-widest mb-0.5">
+                                    <Edit2 className="w-3.5 h-3.5 text-blue-600" />
+                                    Editor Rápido
+                                </div>
+                                <p className="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">Impacta en el documento PDF</p>
                             </div>
-                            <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Aparece en el PDF</p>
+
+                            {/* Mobile expansion indicator/hint */}
+                            <div className="lg:hidden">
+                                <FileText className="w-5 h-5 text-gray-300" />
+                            </div>
                         </div>
 
-                        <div className="p-4 flex-1 flex flex-col gap-4">
-                            <div className="bg-white rounded-xl border p-4 shadow-sm flex-1 flex flex-col">
+                        <div className="p-4 flex-1 flex flex-col gap-3 overflow-y-auto">
+                            <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm flex-1 flex flex-col min-h-[120px] transition-all focus-within:ring-2 focus-within:ring-blue-500/20">
+                                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Observaciones Públicas</label>
                                 <textarea
                                     value={obs}
                                     onChange={(e) => setObs(e.target.value)}
-                                    className="flex-1 w-full resize-none text-sm text-gray-700 outline-none placeholder:text-gray-300"
-                                    placeholder="Escribe aquí las observaciones que saldrán en el presupuesto..."
+                                    className="flex-1 w-full resize-none text-xs sm:text-sm text-gray-800 outline-none placeholder:text-gray-300 bg-transparent leading-relaxed"
+                                    placeholder="Escribe notas, plazos de entrega o formas de pago que deben figurar en el PDF..."
                                 />
                             </div>
 
@@ -255,10 +286,10 @@ export default function BudgetPDF({ budget, isOpen, onClose }: BudgetPDFProps) {
                                 onClick={handleSaveObservation}
                                 disabled={isSaving || obs === budget?.observaciones}
                                 className={cn(
-                                    "w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-lg",
+                                    "w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 transition-all",
                                     isSaving || obs === budget?.observaciones
-                                        ? "bg-gray-100 text-gray-400 shadow-none cursor-not-allowed"
-                                        : "bg-green-600 text-white hover:bg-green-700 shadow-green-500/20 active:scale-[0.98]"
+                                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                        : "bg-gray-900 text-white hover:bg-black shadow-xl shadow-gray-200 active:scale-[0.98]"
                                 )}
                             >
                                 {isSaving ? (
@@ -266,30 +297,34 @@ export default function BudgetPDF({ budget, isOpen, onClose }: BudgetPDFProps) {
                                 ) : (
                                     <Save className="w-4 h-4" />
                                 )}
-                                Guardar y Actualizar PDF
+                                {isSaving ? 'Guardando...' : 'Aplicar al PDF'}
                             </button>
 
                             {obs !== budget?.observaciones && !isSaving && (
-                                <p className="text-[10px] text-amber-600 font-bold text-center">
-                                    ⚠️ Tienes cambios sin guardar
+                                <p className="text-[9px] text-amber-600 font-black uppercase tracking-widest text-center animate-pulse">
+                                    ⚠️ Cambios pendientes de aplicación
                                 </p>
                             )}
                         </div>
 
-                        <div className="p-4 bg-blue-50/50 border-t">
-                            <div className="flex justify-between items-center text-xs mb-1">
-                                <span className="text-gray-500">Descuento aplicado:</span>
-                                <span className="font-bold text-green-600">
-                                    {budget && budget.subtotal > 0
-                                        ? Math.round((budget.descuento / budget.subtotal) * 100)
-                                        : 0}%
-                                </span>
+                        {/* Summary/Stats area in side panel */}
+                        <div className="p-4 bg-gradient-to-br from-blue-600 to-indigo-700 text-white mt-auto">
+                            <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest opacity-70 mb-2">
+                                <span>Resumen del Documento</span>
+                                <Info className="w-3 h-3" />
                             </div>
-                            <div className="flex justify-between items-center text-xs">
-                                <span className="text-gray-500">Total presupuesto:</span>
-                                <span className="font-bold text-blue-600 text-sm">
-                                    ${budget?.total.toLocaleString()}
-                                </span>
+
+                            <div className="flex justify-between items-end">
+                                <div>
+                                    <div className="text-[9px] opacity-60 font-bold uppercase tracking-tighter">Total Final</div>
+                                    <div className="text-xl font-black leading-none">${budget?.total.toLocaleString()}</div>
+                                </div>
+                                {budget && budget.descuento > 0 && (
+                                    <div className="text-right">
+                                        <div className="text-[9px] opacity-60 font-bold uppercase tracking-tighter">Bonificación</div>
+                                        <div className="text-sm font-black text-green-300">-{Math.round((budget.descuento / budget.subtotal) * 100)}%</div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
