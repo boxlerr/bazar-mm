@@ -50,7 +50,7 @@ export default function CartSummary({
             <div className="flex-1 overflow-auto bg-gray-50 border-b border-gray-200">
                 <div className="min-w-[768px]">
                     {/* Header de la Tabla */}
-                    <div className="bg-gray-50 border-b border-gray-200 px-6 py-3 grid grid-cols-12 gap-4 text-xs font-semibold text-gray-500 uppercase tracking-wider sticky top-0 z-10">
+                    <div className="bg-gray-50 border-b border-gray-200 px-3 py-2 md:px-6 md:py-3 grid grid-cols-12 gap-2 md:gap-4 text-xs font-semibold text-gray-500 uppercase tracking-wider sticky top-0 z-10">
                         <div className="col-span-5">Producto</div>
                         <div className="col-span-2 text-right">Precio Unit.</div>
                         <div className="col-span-2 text-center">Cantidad</div>
@@ -69,7 +69,7 @@ export default function CartSummary({
                         ) : (
                             <div className="space-y-2">
                                 {cart.map((item) => (
-                                    <div key={item.id} className="bg-white rounded-xl shadow-sm border border-gray-100 px-6 py-4 grid grid-cols-12 gap-4 items-center hover:shadow-md transition-all group">
+                                    <div key={item.id} className="bg-white rounded-xl shadow-sm border border-gray-100 px-3 py-2 md:px-6 md:py-4 grid grid-cols-12 gap-2 md:gap-4 items-center hover:shadow-md transition-all group">
                                         {/* Producto */}
                                         <div className="col-span-5 pr-4">
                                             <p className="text-base font-bold text-gray-900 truncate" title={item.nombre}>
@@ -128,8 +128,8 @@ export default function CartSummary({
             </div>
 
             {/* Footer de Totales */}
-            <div className="bg-gray-50 border-t border-gray-200 p-4 px-6">
-                <div className="flex flex-col lg:flex-row items-center justify-between gap-4 lg:gap-8">
+            <div className="bg-gray-50 border-t border-gray-200 p-3 px-4 md:p-4 md:px-6">
+                <div className="flex flex-col lg:flex-row items-center justify-between gap-2 md:gap-4 lg:gap-8">
                     <div className="flex items-center gap-2 text-gray-500 w-full lg:w-auto justify-center lg:justify-start">
                         <ShoppingCart className="w-5 h-5" />
                         <span className="font-medium">{cart.reduce((acc, item) => acc + item.cantidad, 0)} artículos</span>
@@ -139,7 +139,7 @@ export default function CartSummary({
                         <div className="flex flex-col items-center sm:items-end gap-1 w-full sm:w-auto text-center sm:text-right">
                             <div>
                                 <p className="text-sm text-gray-500 font-medium uppercase">Total a Pagar</p>
-                                <p className="text-3xl font-black text-gray-900 leading-none mt-1">{formatPrice(total)}</p>
+                                <p className="text-2xl lg:text-3xl font-black text-gray-900 leading-none mt-1">{formatPrice(total)}</p>
                             </div>
                             {(dolarBlue > 0 || dolarOficial > 0) && (
                                 <div className="flex gap-3 text-xs font-medium justify-center sm:justify-end">
@@ -160,7 +160,7 @@ export default function CartSummary({
                         <button
                             onClick={onCheckout}
                             disabled={cart.length === 0}
-                            className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-8 lg:px-12 py-3 lg:py-4 rounded-xl font-bold text-lg lg:text-xl shadow-lg shadow-emerald-600/20 hover:shadow-xl hover:scale-[1.02] transition-all"
+                            className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 lg:px-8 lg:py-3 rounded-xl font-bold text-lg lg:text-xl shadow-lg shadow-emerald-600/20 hover:shadow-xl hover:scale-[1.02] transition-all"
                         >
                             Cobrar
                         </button>

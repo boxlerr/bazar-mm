@@ -66,7 +66,7 @@ export default function POSLayout() {
     };
 
     return (
-        <div className="relative h-[calc(100vh-180px)] flex flex-col gap-4 pb-2">
+        <div className="relative h-[calc(100vh-150px)] md:h-[calc(100vh-180px)] flex flex-col gap-2 md:gap-4 pb-2">
             {/* Buscador Superior */}
             <div className="flex-shrink-0">
                 <ProductSearch
@@ -84,7 +84,7 @@ export default function POSLayout() {
             </div>
 
             {/* Cliente Seleccionado */}
-            <div className="flex-shrink-0 px-1">
+            <div className="flex-shrink-0 px-0 md:px-1">
                 {selectedClient ? (
                     <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg p-3">
                         <div className="flex items-center gap-3">
