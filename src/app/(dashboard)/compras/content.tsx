@@ -67,7 +67,7 @@ export default function ComprasContent() {
             className="p-6 max-w-7xl mx-auto"
         >
             {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Compras</h1>
                     <p className="text-gray-500 mt-1 text-lg">
@@ -80,7 +80,7 @@ export default function ComprasContent() {
                 >
                     <Link
                         href="/compras/nueva"
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl transition-all flex items-center space-x-2 shadow-lg shadow-blue-600/20 font-medium"
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl transition-all flex items-center space-x-2 shadow-lg shadow-blue-600/20 font-medium"
                     >
                         <Plus className="w-5 h-5" />
                         <span>Nueva Compra</span>

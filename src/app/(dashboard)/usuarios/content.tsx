@@ -189,7 +189,7 @@ export default function UsuariosContent() {
             className="p-4 md:p-6 max-w-7xl mx-auto"
         >
             {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Gestión de Usuarios</h1>
                     <p className="text-gray-500 mt-1 text-lg">
@@ -200,7 +200,7 @@ export default function UsuariosContent() {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={handleNuevoUsuario}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl transition-all flex items-center space-x-2 shadow-lg shadow-blue-600/20 font-medium"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl transition-all flex items-center space-x-2 shadow-lg shadow-blue-600/20 font-medium"
                 >
                     <Plus className="w-5 h-5" />
                     <span>Nuevo Usuario</span>
@@ -208,14 +208,14 @@ export default function UsuariosContent() {
             </div>
 
             {/* Estadísticas rápidas */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 {stats.map((stat, index) => (
                     <motion.div
                         key={stat.label}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.3, delay: index * 0.1 }}
-                        className={`bg-white rounded-xl shadow-sm p-6 border ${stat.border} hover:shadow-md transition-shadow`}
+                        className={`bg-white rounded-xl shadow-sm p-4 md:p-5 border ${stat.border} hover:shadow-md transition-shadow`}
                     >
                         <div className="flex items-center justify-between">
                             <div>

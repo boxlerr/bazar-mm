@@ -50,11 +50,11 @@ export default function ProveedoresTable({ proveedores, onEdit, onDelete }: Prov
                         <thead className="bg-gray-50 border-b border-gray-100">
                             <tr>
                                 <th className="w-10"></th>
-                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Proveedor</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Contacto</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Ubicación</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Condición IVA</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Acciones</th>
+                                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Proveedor</th>
+                                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Contacto</th>
+                                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Ubicación</th>
+                                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Condición IVA</th>
+                                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Acciones</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
@@ -69,7 +69,7 @@ export default function ProveedoresTable({ proveedores, onEdit, onDelete }: Prov
                                         <td className="px-4 py-4 text-gray-400">
                                             {expandedId === proveedor.id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-4 py-3">
                                             <div>
                                                 <div className="font-semibold text-gray-900">{proveedor.nombre}</div>
                                                 {proveedor.razon_social && proveedor.razon_social !== proveedor.nombre && (
@@ -78,7 +78,7 @@ export default function ProveedoresTable({ proveedores, onEdit, onDelete }: Prov
                                                 <div className="text-xs text-gray-400 mt-0.5">CUIT: {proveedor.cuit || 'N/A'}</div>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-4 py-3">
                                             <div className="space-y-1">
                                                 {proveedor.email && (
                                                     <div className="flex items-center text-sm text-gray-600">
@@ -94,7 +94,7 @@ export default function ProveedoresTable({ proveedores, onEdit, onDelete }: Prov
                                                 )}
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-4 py-3">
                                             {(proveedor.direccion || proveedor.ciudad) ? (
                                                 <div className="flex items-start text-sm text-gray-600">
                                                     <MapPin size={14} className="mr-2 mt-0.5 text-gray-400 flex-shrink-0" />
@@ -108,7 +108,7 @@ export default function ProveedoresTable({ proveedores, onEdit, onDelete }: Prov
                                                 <span className="text-gray-400 text-sm">-</span>
                                             )}
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-4 py-3">
                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                                                 ${proveedor.condicion_iva === 'RI' ? 'bg-blue-50 text-blue-700' :
                                                     proveedor.condicion_iva === 'Monotributo' ? 'bg-green-50 text-green-700' :
@@ -117,7 +117,7 @@ export default function ProveedoresTable({ proveedores, onEdit, onDelete }: Prov
                                                 {proveedor.condicion_iva || 'S/D'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                                        <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                                             <div className="flex justify-end gap-2">
                                                 <button
                                                     onClick={() => onEdit(proveedor)}
@@ -143,7 +143,7 @@ export default function ProveedoresTable({ proveedores, onEdit, onDelete }: Prov
                                                 animate={{ opacity: 1, height: 'auto' }}
                                                 exit={{ opacity: 0, height: 0 }}
                                             >
-                                                <td colSpan={6} className="bg-gray-50/50 px-6 py-4 border-t border-gray-100">
+                                                <td colSpan={6} className="bg-gray-50/50 px-4 py-3 border-t border-gray-100">
                                                     <div className="pl-10">
                                                         <h4 className="text-sm font-semibold text-gray-900 mb-3">Historial de Compras</h4>
                                                         {loadingCompras[proveedor.id] ? (

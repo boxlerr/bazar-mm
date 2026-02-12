@@ -89,7 +89,7 @@ export default function ProveedoresContent() {
     );
 
     return (
-        <div className="p-6 max-w-7xl mx-auto space-y-8">
+        <div className="p-4 max-w-7xl mx-auto space-y-6">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
@@ -108,7 +108,7 @@ export default function ProveedoresContent() {
                         setProveedorEditar(null);
                         setModalAbierto(true);
                     }}
-                    className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-orange-600/20 font-medium"
+                    className="bg-orange-600 hover:bg-orange-700 text-white px-5 py-2.5 rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-orange-600/20 font-medium"
                 >
                     <Plus size={20} />
                     <span>Nuevo Proveedor</span>

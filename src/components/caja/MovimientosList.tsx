@@ -31,11 +31,11 @@ export default function MovimientosList({ movimientos }: MovimientosListProps) {
                     <table className="hidden md:table w-full">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Tipo</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Descripción</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Usuario</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Hora</th>
-                                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Monto</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Tipo</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Descripción</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Usuario</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Hora</th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Monto</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
@@ -47,7 +47,7 @@ export default function MovimientosList({ movimientos }: MovimientosListProps) {
                                     transition={{ delay: 0.1 * index }}
                                     className="hover:bg-gray-50 transition-colors"
                                 >
-                                    <td className="px-6 py-4 whitespace-nowrap">
+                                    <td className="px-4 py-3 whitespace-nowrap">
                                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${mov.tipo === 'INGRESO'
                                             ? 'bg-green-100 text-green-800'
                                             : 'bg-red-100 text-red-800'
@@ -60,16 +60,16 @@ export default function MovimientosList({ movimientos }: MovimientosListProps) {
                                             {mov.tipo}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 text-sm text-gray-900 font-medium">
+                                    <td className="px-4 py-3 text-sm text-gray-900 font-medium">
                                         {mov.descripcion}
                                     </td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">
+                                    <td className="px-4 py-3 text-sm text-gray-500">
                                         {mov.usuario}
                                     </td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">
+                                    <td className="px-4 py-3 text-sm text-gray-500">
                                         {mov.fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
                                     </td>
-                                    <td className={`px-6 py-4 text-sm font-bold text-right ${mov.tipo === 'INGRESO' ? 'text-green-600' : 'text-red-600'
+                                    <td className={`px-4 py-3 text-sm font-bold text-right ${mov.tipo === 'INGRESO' ? 'text-green-600' : 'text-red-600'
                                         }`}>
                                         {mov.tipo === 'INGRESO' ? '+' : '-'}${mov.monto.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
                                     </td>

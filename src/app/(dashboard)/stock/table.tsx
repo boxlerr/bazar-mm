@@ -402,33 +402,33 @@ export default function TablaStock({ productos, onRefresh }: TablaStockProps) {
           <table className="w-full min-w-[1000px]">
             <thead className="bg-gray-50/50 border-b border-gray-100">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Código
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Producto
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Categoría
                 </th>
-                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">
+                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">
                   Stock
                 </th>
-                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-32">
+                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-32">
                   Costo
                 </th>
-                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">
+                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">
                   Margen %
                 </th>
-                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-40">
+                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-40">
                   Precio Venta (ARS)
                 </th>
                 {!isBulkEditing && (
-                  <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     Estado
                   </th>
                 )}
-                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Acciones
                 </th>
               </tr>
@@ -454,7 +454,7 @@ export default function TablaStock({ productos, onRefresh }: TablaStockProps) {
                       router.push(`/stock/${producto.id}`);
                     }}
                   >
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <div className="text-sm font-mono font-medium text-gray-900">
                         {producto.codigo}
                       </div>
@@ -464,7 +464,7 @@ export default function TablaStock({ productos, onRefresh }: TablaStockProps) {
                         </div>
                       )}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3">
                       <div className="text-sm font-bold text-gray-900">
                         {producto.nombre}
                       </div>
@@ -474,12 +474,12 @@ export default function TablaStock({ productos, onRefresh }: TablaStockProps) {
                         </div>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <span className={`px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full border ${getCategoryColor(producto.categoria)}`}>
                         {producto.categoria}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <td className="px-4 py-3 whitespace-nowrap text-center">
                       {isBulkEditing ? (
                         <input
                           type="number"
@@ -495,7 +495,7 @@ export default function TablaStock({ productos, onRefresh }: TablaStockProps) {
                       )}
                     </td>
 
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                    <td className="px-4 py-3 whitespace-nowrap text-right">
                       {isBulkEditing ? (
                         <div className="relative">
                           <span className="absolute left-2 top-1.5 text-gray-400 text-xs">$</span>
@@ -513,7 +513,7 @@ export default function TablaStock({ productos, onRefresh }: TablaStockProps) {
                         </div>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                    <td className="px-4 py-3 whitespace-nowrap text-right">
                       {isBulkEditing ? (
                         <div className="relative">
                           <input
@@ -535,7 +535,7 @@ export default function TablaStock({ productos, onRefresh }: TablaStockProps) {
                       )}
                     </td>
 
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                    <td className="px-4 py-3 whitespace-nowrap text-right">
                       {isBulkEditing ? (
                         <div className="relative">
                           <span className="absolute left-2 top-1.5 text-gray-400 text-xs">$</span>
@@ -571,7 +571,7 @@ export default function TablaStock({ productos, onRefresh }: TablaStockProps) {
                     </td>
 
                     {!isBulkEditing && (
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <td className="px-4 py-3 whitespace-nowrap text-center">
                         {producto.stock_actual <= producto.stock_minimo ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-50 text-red-700 text-xs font-bold rounded-full border border-red-200">
                             <AlertTriangle className="w-3 h-3" />
@@ -584,7 +584,7 @@ export default function TablaStock({ productos, onRefresh }: TablaStockProps) {
                         )}
                       </td>
                     )}
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                    <td className="px-4 py-3 whitespace-nowrap text-right">
                       <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                         {editingId === producto.id ? (
                           <>
@@ -645,7 +645,7 @@ export default function TablaStock({ productos, onRefresh }: TablaStockProps) {
 
         {/* Paginación */}
         {totalPaginas > 1 && (
-          <div className="bg-gray-50/50 px-6 py-4 border-t border-gray-100 flex items-center justify-between">
+          <div className="bg-gray-50/50 px-4 py-3 border-t border-gray-100 flex items-center justify-between">
             <div className="text-sm text-gray-500">
               Página <span className="font-semibold text-gray-900">{paginaActual}</span> de{' '}
               <span className="font-semibold text-gray-900">{totalPaginas}</span>

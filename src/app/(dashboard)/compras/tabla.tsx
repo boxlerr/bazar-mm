@@ -107,25 +107,25 @@ export default function TablaCompras({ compras }: TablaComprasProps) {
                     <table className="w-full">
                         <thead className="bg-gray-50/50 border-b border-gray-100">
                             <tr>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                                     N° Orden
                                 </th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                                     Proveedor
                                 </th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                                     Fecha
                                 </th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                                     Items
                                 </th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                                     Total
                                 </th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                                     Estado
                                 </th>
-                                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
                                     Acciones
                                 </th>
                             </tr>
@@ -157,7 +157,7 @@ export default function TablaCompras({ compras }: TablaComprasProps) {
                                             onClick={() => window.location.href = `/compras/${compra.id}`}
                                             className="group hover:bg-blue-50/50 transition-colors cursor-pointer"
                                         >
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="px-4 py-3 whitespace-nowrap">
                                                 <div className="flex items-center gap-2">
                                                     <div className="p-2 bg-gray-100 rounded-lg group-hover:bg-white transition-colors">
                                                         <FileText className="w-4 h-4 text-gray-500" />
@@ -167,12 +167,12 @@ export default function TablaCompras({ compras }: TablaComprasProps) {
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="px-4 py-3 whitespace-nowrap">
                                                 <span className="text-sm font-medium text-gray-900">
                                                     {compra.proveedor?.nombre || 'N/A'}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="px-4 py-3 whitespace-nowrap">
                                                 <div className="flex items-center gap-2 text-gray-500">
                                                     <Calendar className="w-4 h-4" />
                                                     <span className="text-sm">
@@ -180,18 +180,18 @@ export default function TablaCompras({ compras }: TablaComprasProps) {
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="px-4 py-3 whitespace-nowrap">
                                                 <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
                                                     {compra.items?.length || 0} productos
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="px-4 py-3 whitespace-nowrap">
                                                 <div className="flex items-center gap-1 text-gray-900 font-semibold">
                                                     <span className="text-xs text-gray-400">$</span>
                                                     {compra.total.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="px-4 py-3 whitespace-nowrap">
                                                 <span
                                                     className={`px-3 py-1 inline-flex text-xs font-medium rounded-full border ${compra.estado === 'completada'
                                                         ? 'bg-green-50 text-green-700 border-green-200'
@@ -206,7 +206,7 @@ export default function TablaCompras({ compras }: TablaComprasProps) {
                                                     {compra.estado.charAt(0).toUpperCase() + compra.estado.slice(1)}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
                                                 <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                                                     {compra.pdf_url && (
                                                         <a
@@ -238,7 +238,7 @@ export default function TablaCompras({ compras }: TablaComprasProps) {
 
                 {/* Paginación Desktop */}
                 {totalPaginas > 1 && (
-                    <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
+                    <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
                         <button
                             onClick={() => setPaginaActual(p => Math.max(1, p - 1))}
                             disabled={paginaActual === 1}

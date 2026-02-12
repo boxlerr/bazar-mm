@@ -89,13 +89,13 @@ export default function ClientsList({ initialClientes, onSelect }: ClientsListPr
     const totalReceivables = initialClientes.reduce((sum, cliente) => sum + (cliente.saldo_cuenta_corriente || 0), 0);
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-6">
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 flex items-center gap-4"
+                    className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-4"
                 >
                     <div className="bg-blue-50 p-3 rounded-lg text-blue-600">
                         <Users size={24} />
@@ -110,7 +110,7 @@ export default function ClientsList({ initialClientes, onSelect }: ClientsListPr
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 flex items-center gap-4"
+                    className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-4"
                 >
                     <div className="bg-red-50 p-3 rounded-lg text-red-600">
                         <Wallet size={24} />
@@ -125,7 +125,7 @@ export default function ClientsList({ initialClientes, onSelect }: ClientsListPr
             {/* Main Content */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 {/* Toolbar */}
-                <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
                     <div className="relative w-full sm:w-96">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                         <input
@@ -157,10 +157,10 @@ export default function ClientsList({ initialClientes, onSelect }: ClientsListPr
                     <table className="w-full">
                         <thead className="bg-gray-50/50">
                             <tr>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Cliente</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Contacto</th>
-                                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Saldo</th>
-                                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Acción</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Cliente</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Contacto</th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Saldo</th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Acción</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
@@ -174,7 +174,7 @@ export default function ClientsList({ initialClientes, onSelect }: ClientsListPr
                                         transition={{ delay: index * 0.05 }}
                                         className="hover:bg-blue-50/30 transition-colors group"
                                     >
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="px-4 py-3 whitespace-nowrap">
                                             <div className="flex items-center gap-4">
                                                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-sm">
                                                     {cliente.nombre.slice(0, 2).toUpperCase()}
@@ -185,13 +185,13 @@ export default function ClientsList({ initialClientes, onSelect }: ClientsListPr
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
                                             <div className="flex flex-col gap-1">
                                                 <span>{cliente.email}</span>
                                                 <span className="text-xs text-gray-400">{cliente.telefono}</span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                                        <td className="px-4 py-3 whitespace-nowrap text-right">
                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${(cliente.saldo_cuenta_corriente || 0) > 0
                                                 ? 'bg-red-50 text-red-700'
                                                 : 'bg-green-50 text-green-700'
@@ -200,7 +200,7 @@ export default function ClientsList({ initialClientes, onSelect }: ClientsListPr
                                                 ${(cliente.saldo_cuenta_corriente || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                                        <td className="px-4 py-3 whitespace-nowrap text-right">
                                             {onSelect ? (
                                                 <Button
                                                     // variant="secondary"
