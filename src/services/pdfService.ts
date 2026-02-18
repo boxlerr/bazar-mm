@@ -29,18 +29,10 @@ export class PDFService {
       const text = data.text;
 
       console.log('📝 Texto extraído, longitud:', text.length);
-      console.log('📝 RAW TEXT START:\n', text.substring(0, 2000), '\nRAW TEXT END');
+      // Limited log to avoid clutter
+      console.log('📝 RAW TEXT START:\n', text.substring(0, 500), '...\nRAW TEXT END');
 
-      // Detectar proveedor
-      const provider = this.detectProvider(text);
-      console.log('🏢 Proveedor detectado:', provider);
-
-      if (provider === 'INFINITY') {
-        return this.extractInfinityData(text);
-      } else {
-        // Por defecto usamos la lógica de D&G (o genérica anterior)
-        return this.extractDGData(text);
-      }
+      return this.parseText(text);
 
     } catch (error) {
       console.error('Error al parsear PDF:', error);
@@ -49,13 +41,35 @@ export class PDFService {
   }
 
   /**
+   * Procesa el texto extraído (público para testing)
+   */
+  static parseText(text: string): PDFParseResult {
+    // Detectar proveedor
+    const provider = this.detectProvider(text);
+    console.log('🏢 Proveedor detectado:', provider);
+
+    if (provider === 'INFINITY') {
+      return this.extractInfinityData(text);
+    } else if (provider === 'FENIX') {
+      return this.extractFenixData(text);
+    } else {
+      // Por defecto usamos la lógica de D&G (o genérica anterior)
+      return this.extractDGData(text);
+    }
+  }
+
+  /**
    * Detecta el proveedor basado en el contenido del texto
    */
-  private static detectProvider(text: string): 'DG' | 'INFINITY' | 'UNKNOWN' {
+  private static detectProvider(text: string): 'DG' | 'INFINITY' | 'FENIX' | 'UNKNOWN' {
     const firstLines = text.split('\n').slice(0, 20).join('\n');
 
     if (firstLines.includes('INFINITY IMPORT S.A.') || text.includes('INFINITY IMPORT S.A.')) {
       return 'INFINITY';
+    }
+
+    if (firstLines.includes('DISTRIBUIDORA FENIX') || text.includes('distribuidorafenixoficinas@gmail.com')) {
+      return 'FENIX';
     }
 
     if (firstLines.includes('D&G') || firstLines.includes('D & G')) {
@@ -91,6 +105,7 @@ export class PDFService {
       /Order\s*#?(\d+)/i,
       /N[°º]\s*(\d+)/i,
       /Pedido\s*#?(\d+)/i,
+      /Nº\s*(\d+)/i,
     ];
 
     for (const pattern of patterns) {
@@ -224,6 +239,142 @@ export class PDFService {
     }
     return undefined;
   }
+
+  // ==========================================
+  // LÓGICA PARA DISTRIBUIDORA FENIX
+  // ==========================================
+
+  private static extractFenixData(text: string): PDFParseResult {
+    const numero_orden = this.extractFenixNumeroOrden(text);
+    const fecha = this.extractFenixFecha(text);
+    const proveedor = 'DISTRIBUIDORA FENIX';
+    const productos = this.extractFenixProductos(text);
+    const total = this.extractFenixTotal(text);
+
+    return {
+      numero_orden,
+      fecha,
+      proveedor,
+      productos,
+      total
+    };
+  }
+
+  private static extractFenixNumeroOrden(text: string): string | undefined {
+    const match = text.match(/PEDIDO\s+Nº\s*0*(\d+)/i);
+    if (match) return '0000' + match[1]; // Keep standard format if preferred
+
+    // User specifically wanted 00008906 in the log request example.
+    const match2 = text.match(/Nº\s*(\d+)/i);
+    if (match2) return match2[1];
+
+    return undefined;
+  }
+
+  private static extractFenixFecha(text: string): string | undefined {
+    const match = text.match(/FECHA:\s*(\d{2}\/\d{2}\/\d{4})/i);
+    if (match) return match[1];
+    return undefined;
+  }
+
+  private static extractFenixProductos(text: string): ProductoExtraido[] {
+    const productos: ProductoExtraido[] = [];
+    const lines = text.split('\n').map(l => l.trim());
+    console.log('🔍 [FENIX] Total líneas:', lines.length);
+
+    // Regex para detectar la línea de números "smashed": 1,0018.500,000,0018.500,00
+    // Asumimos formato AR: 1.000,00
+    // Pattern: 4 bloques de números pegados que terminan en decimales.
+
+    const decimalPattern = /(\d{1,3}(?:\.\d{3})*,\d{2})/g;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // Verificamos si esta línea parece ser la de "números"
+      const matches = [...line.matchAll(decimalPattern)].map(m => m[0]);
+
+      if (matches.length === 4) {
+        // Parece ser una línea de datos numéricos válida
+        // Asumimos que la línea ANTERIOR es la descripción/código
+
+        const prevLine = lines[i - 1];
+        if (!prevLine) continue; // Si no hay línea anterior, saltamos
+
+        // Ignorar headers
+        if (prevLine.includes('CodigoDescripcion') || matches[0] === '0,00') {
+          // A veces match puede ser falso positivo si empieza con 0,00 y no es Cantidad
+          // Pero Cantidad suele ser >= 1.
+          if (matches[0] === '0,00') continue;
+        }
+
+        // Datos
+        const cantidad = this.parsePrice(matches[0]);
+        const precio_unitario = this.parsePrice(matches[1]);
+        // matches[2] es descuento, no lo usamos por ahora
+        const total = this.parsePrice(matches[3]);
+
+        // Descripción y SKU
+        let sku = 'UNKNOWN';
+        let nombre = prevLine;
+
+        // Heurística simple para SKU (Barcode o Codigo al inicio)
+        // Caso Barcode: 779...TEXTO
+        const barcodeMatch = prevLine.match(/^(\d{8,14})(.+)/);
+        if (barcodeMatch) {
+          sku = barcodeMatch[1];
+          nombre = barcodeMatch[2].trim();
+        } else {
+          // Caso texto puro
+          // Dejamos todo en nombre por ahora
+          sku = 'GEN-' + Math.floor(Math.random() * 10000); // Placeholder
+        }
+
+        // Fix: Asegurar que el SKU sea único si es generado? No, mejor dejar vacío o UNKNOWN
+        if (sku.startsWith('GEN-')) sku = '';
+
+        productos.push({
+          nombre: nombre,
+          sku: sku,
+          cantidad,
+          precio_unitario,
+          total
+        });
+
+        console.log(`✅ [FENIX] Producto detectado: ${matches[0]} x $${matches[1]} = $${matches[3]} (${nombre.substring(0, 20)}...)`);
+      }
+    }
+
+    return productos;
+  }
+
+  private static extractFenixTotal(text: string): number | undefined {
+    // Buscar TOTAL: $176.200,00
+    // El texto raw tiene "TOTAL:" y luego en otra linea "$176.200,00"
+
+    // Primero buscamos en la misma linea o con espacios
+    const match = text.match(/TOTAL:\s*\$?\s*([\d.,]+)/i);
+    if (match) return this.parsePrice(match[1]);
+
+    // Iteramos líneas para encontrar TOTAL: y mirar la siguiente
+    const lines = text.split('\n').map(l => l.trim());
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].match(/^TOTAL:?$/i)) {
+        // Check next lines for a price
+        for (let j = 1; j <= 2; j++) {
+          if (lines[i + j]) {
+            const price = this.parsePrice(lines[i + j]);
+            if (price > 0 && lines[i + j].includes('$')) return price;
+            // O si solo es numero
+            if (price > 0 && /[\d.,]/.test(lines[i + j])) return price;
+          }
+        }
+      }
+    }
+
+    return undefined;
+  }
+
 
   // ==========================================
   // LÓGICA PARA INFINITY IMPORT S.A.
@@ -413,8 +564,8 @@ export class PDFService {
    * Maneja formatos: "1.234,56" o "1234.56"
    */
   private static parsePrice(price: string): number {
-    // Remover espacios
-    let cleaned = price.replace(/\s/g, '');
+    // Remover espacios y simbolos de moneda
+    let cleaned = price.replace(/\s/g, '').replace('$', '');
 
     // Si tiene punto y coma, asumir formato argentino (1.234,56)
     if (cleaned.includes('.') && cleaned.includes(',')) {
@@ -461,4 +612,3 @@ export class PDFService {
     };
   }
 }
-

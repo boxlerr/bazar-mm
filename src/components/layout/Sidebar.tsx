@@ -380,22 +380,8 @@ export default function Sidebar() {
         </div>
       </aside>
 
-      {/* Sidebar scrollbar styles */}
-      <style jsx global>{`
-        .sidebar-scrollbar::-webkit-scrollbar {
-          width: 4px;
-        }
-        .sidebar-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .sidebar-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.08);
-          border-radius: 4px;
-        }
-        .sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(255, 255, 255, 0.15);
-        }
-      `}</style>
+      {/* Sidebar scrollbar styles moved to globals.css */}
     </>
+
   );
 }

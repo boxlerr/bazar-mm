@@ -28,7 +28,7 @@ export default function CompraForm() {
     email: '',
     direccion: '',
     ciudad: '',
-    condicion_iva: 'Responsable Inscripto',
+    condicion_iva: 'RI',
     observaciones: ''
   });
 
@@ -133,7 +133,7 @@ export default function CompraForm() {
           email: '',
           direccion: '',
           ciudad: '',
-          condicion_iva: 'Responsable Inscripto',
+          condicion_iva: 'RI',
           observaciones: ''
         });
       }
@@ -931,10 +931,10 @@ export default function CompraForm() {
                       onChange={(e) => setNuevoProveedor({ ...nuevoProveedor, condicion_iva: e.target.value })}
                       className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
-                      <option value="Responsable Inscripto">Responsable Inscripto</option>
+                      <option value="RI">Responsable Inscripto</option>
                       <option value="Monotributo">Monotributo</option>
                       <option value="Exento">Exento</option>
-                      <option value="Consumidor Final">Consumidor Final</option>
+                      <option value="CF">Consumidor Final</option>
                     </select>
                   </div>
                 </div>
