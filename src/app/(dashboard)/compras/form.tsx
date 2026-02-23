@@ -2,10 +2,11 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { CompraItemForm, PDFParseResult } from '@/types/compra';
-import { Upload, FileText, Trash2, Plus, Check, X, AlertCircle, Save, ArrowLeft, Loader2, Search, Scissors, Barcode, Package, ArrowRight, Zap } from 'lucide-react';
+import { Upload, FileText, Trash2, Plus, Check, X, AlertCircle, Save, ArrowLeft, Loader2, Search, Scissors, Barcode, Package, ArrowRight, Zap, Settings } from 'lucide-react';
 import { crearCompra } from './actions';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import QuickTemplateModal from '@/components/configuracion/QuickTemplateModal';
 
 interface Proveedor {
   id: string;
@@ -48,6 +49,10 @@ export default function CompraForm() {
   const [splitUnits, setSplitUnits] = useState(1);
   const [splitBarcode, setSplitBarcode] = useState('');
 
+  // New States for Template configuration
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [failedFile, setFailedFile] = useState<File | null>(null);
+
   const extractPackSize = (name: string): number | null => {
     const regex = /(?:PACK|SET|CAJA).*?X\s*(\d+)|X\s*(\d+)\s*(?:UNIDADES|UNIDS|U\.|U)|\sX\s?(\d+)\b/i;
     const match = name.match(regex);
@@ -70,8 +75,7 @@ export default function CompraForm() {
   const handleSplitConfirm = () => {
     if (!splitState) return;
     if (splitUnits <= 1) {
-      // Si es 1, no hacemos nada o mostramos error? Mejor error.
-      setError('Las unidades por pack deben ser mayores a 1'); // Usando el estado de error general o toast
+      setError('Las unidades por pack deben ser mayores a 1');
       return;
     }
 
@@ -167,6 +171,7 @@ export default function CompraForm() {
     setPdfFile(file);
     setProcessingPDF(true);
     setError(null);
+    setFailedFile(file); // Save for potential template creation
 
     try {
       const formData = new FormData();
@@ -191,6 +196,11 @@ export default function CompraForm() {
       }
 
       const pdfData: PDFParseResult = result.data;
+
+      // Check for empty products (common in unknown formats)
+      if (!pdfData.productos || pdfData.productos.length === 0) {
+        throw new Error('El PDF no tiene el formato esperado: No se encontraron productos en el PDF');
+      }
 
       if (pdfData.numero_orden) {
         setNumeroOrden(pdfData.numero_orden);
@@ -217,10 +227,8 @@ export default function CompraForm() {
       const sumItems = newItems.reduce((acc, item) => acc + (item.cantidad * item.precio_costo), 0);
       if (pdfData.total && sumItems > pdfData.total) {
         const diff = sumItems - pdfData.total;
-        // Si la diferencia es positiva, asumimos que es un descuento global no distribuido
         setDescuento(parseFloat(diff.toFixed(2)));
       } else if (pdfData.total === undefined && pdfData.descuento) {
-        // Si no hay total explícito pero sí descuento, lo seteamos
         setDescuento(pdfData.descuento);
       }
 
@@ -234,16 +242,18 @@ export default function CompraForm() {
       if (err instanceof Error) {
         errorMessage = err.message;
       }
-
-      // Intentar extraer detalles si vienen en el error
-      // Esto depende de cómo el cliente (fetch/axios) maneje el error.
-      // Si el fetch throwea por !response.ok con el mensaje del JSON, bien.
-      // Pero aquí estamos lanzando el error en linea 139 con result.error.
-      // Modificamos linea 139 para incluir detalles en el mensaje o manejarlos diferente.
-
       setError(errorMessage);
     } finally {
       setProcessingPDF(false);
+    }
+  };
+
+  const handleTemplateSuccess = () => {
+    if (failedFile) {
+      setPdfFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      setSuccess(true);
+      alert('Plantilla creada. Por favor, vuelve a cargar el PDF.');
     }
   };
 
@@ -297,21 +307,14 @@ export default function CompraForm() {
 
       const finalTotal = calculateTotal();
 
-      // Distribuir el descuento entre los items para que el total coincida
-      // Esto asegura que el costo de inventario sea real (neto de descuentos globales)
       const itemsConDescuento = items.map(item => {
         if (descuento > 0 && finalTotal > 0) {
-          const subtotalOriginal = item.cantidad * item.precio_costo;
           const sumItems = items.reduce((s, i) => s + (i.cantidad * i.precio_costo), 0);
-          // Factor de descuento = (1 - (Descuento / SumaOriginal))
           const factor = 1 - (descuento / sumItems);
           const nuevoCosto = item.precio_costo * factor;
-          // Redondear a 2 decimales para consistencia? Mejor dejar precision y que la DB maneje o redondear?
-          // Redondeamos para evitar desajustes de centavos locos
           return {
             ...item,
-            precio_costo: parseFloat(nuevoCosto.toFixed(4)), // 4 decimales para precisión en costos
-            // Precio venta se mantiene o se recalcula? Se mantiene el calculado por el usuario en el form
+            precio_costo: parseFloat(nuevoCosto.toFixed(4)),
           };
         }
         return item;
@@ -363,7 +366,19 @@ export default function CompraForm() {
             className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center gap-2 overflow-hidden"
           >
             <AlertCircle className="w-5 h-5 flex-shrink-0" />
-            <span>{error}</span>
+            <div className="flex-1">
+              <p>{error}</p>
+              {(error.includes('formato') || error.includes('productos') || error.includes('no se encontraron')) && (
+                <button
+                  type="button"
+                  onClick={() => setShowTemplateModal(true)}
+                  className="mt-2 text-sm bg-red-100 hover:bg-red-200 text-red-800 px-3 py-1 rounded-lg font-medium transition-colors flex items-center gap-2"
+                >
+                  <Settings className="w-4 h-4" />
+                  Configurar Nuevo Formato
+                </button>
+              )}
+            </div>
             <button type="button" onClick={() => setError(null)} className="ml-auto">
               <X className="w-4 h-4" />
             </button>
@@ -976,15 +991,22 @@ export default function CompraForm() {
                   type="button"
                   onClick={handleCrearProveedor}
                   disabled={!nuevoProveedor.nombre}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed font-bold"
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Crear Proveedor
+                  Guardar Proveedor
                 </button>
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
+
+      <QuickTemplateModal
+        isOpen={showTemplateModal}
+        onClose={() => setShowTemplateModal(false)}
+        onSuccess={handleTemplateSuccess}
+        initialFile={failedFile || undefined}
+      />
     </motion.form>
   );
 }

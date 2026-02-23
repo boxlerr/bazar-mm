@@ -59,6 +59,7 @@ const menuItems: MenuItem[] = [
     submenu: [
       { name: 'General', href: '/configuracion', icon: Sliders },
       { name: 'Negocio', href: '/configuracion/empresa', icon: Building2 },
+      { name: 'Plantillas PDF', href: '/configuracion/pdf-templates', icon: Receipt },
       { name: 'Notificaciones', href: '/configuracion/notificaciones', icon: Bell },
     ]
   },

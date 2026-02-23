@@ -141,6 +141,44 @@ button {
   font-weight: 600 !important;
 }
 
+/* Driver.js Custom Responsive Overrides */
+.driver-popover {
+  max-width: 90vw !important;
+  min-width: 280px !important;
+}
+
+@media (max-width: 640px) {
+  .driver-popover {
+    padding: 12px !important;
+  }
+
+  .driver-popover-title {
+    font-size: 1rem !important;
+    padding-right: 60px !important;
+    /* A bit less space for skip button on mobile */
+  }
+
+  .driver-popover-description {
+    font-size: 0.85rem !important;
+    line-height: 1.4 !important;
+  }
+
+  .driver-popover-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .driver-popover-footer button {
+    width: 100%;
+  }
+
+  .custom-skip-btn {
+    font-size: 0.65rem !important;
+  }
+}
+
+
 /* Headers de tabla siempre legibles */
 th {
   color: #111827 !important;

@@ -32,7 +32,7 @@ export class PDFService {
       // Limited log to avoid clutter
       console.log('📝 RAW TEXT START:\n', text.substring(0, 500), '...\nRAW TEXT END');
 
-      return this.parseText(text);
+      return await this.parseText(text);
 
     } catch (error) {
       console.error('Error al parsear PDF:', error);
@@ -41,22 +41,182 @@ export class PDFService {
   }
 
   /**
+   * Extrae solo el texto del PDF (para testing/preview)
+   */
+  static async extractText(buffer: Buffer): Promise<string> {
+    try {
+      // @ts-ignore
+      const pdf = require('pdf-parse');
+      const data = await pdf(buffer);
+      return data.text;
+    } catch (error) {
+      console.error('Error extracting text from PDF:', error);
+      throw new Error('No se pudo leer el texto del PDF.');
+    }
+  }
+
+  /**
    * Procesa el texto extraído (público para testing)
    */
-  static parseText(text: string): PDFParseResult {
-    // Detectar proveedor
+  // ==========================================
+  // LÓGICA DINÁMICA (TEMPLATES)
+  // ==========================================
+
+  private static async loadTemplates(): Promise<any[]> {
+    try {
+      // Lazy load supabase client to avoid circular deps or server/client issues if called from wrong context
+      const { supabase } = require('../lib/supabaseClient');
+
+      const { data, error } = await supabase
+        .from('pdf_parsing_templates')
+        .select('*')
+        .eq('activo', true);
+
+      if (error) {
+        console.error("Supabase Error fetching templates:", error);
+        throw error;
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error loading PDF templates:', error);
+      return [];
+    }
+  }
+
+  private static extractDynamicData(text: string, template: any): PDFParseResult {
+    console.log(`🚀 Usando Template Dinámico: ${template.nombre}`);
+
+    // 1. Extraer Headers
+    const headerConfig = template.header_config || {};
+    let numero_orden = undefined;
+    let fecha = undefined;
+    let total = undefined;
+
+    if (headerConfig.order_regex) {
+      const match = text.match(new RegExp(headerConfig.order_regex, 'i'));
+      if (match) numero_orden = match[1];
+    }
+
+    if (headerConfig.date_regex) {
+      const match = text.match(new RegExp(headerConfig.date_regex, 'i'));
+      if (match) fecha = match[1];
+    }
+
+    if (headerConfig.total_regex) {
+      const match = text.match(new RegExp(headerConfig.total_regex, 'i'));
+      if (match) total = this.parsePrice(match[1]);
+    }
+
+    // 2. Extraer Productos
+    const productsConfig = template.products_config || {};
+    const productos: ProductoExtraido[] = [];
+    const lines = text.split('\n').map(l => l.trim());
+
+    let inTable = false;
+    const startMarker = productsConfig.table_start_marker;
+    const endMarker = productsConfig.table_end_marker;
+    const lineRegex = productsConfig.line_regex ? new RegExp(productsConfig.line_regex) : null;
+    const mapping = productsConfig.field_mapping || {};
+
+    for (const line of lines) {
+      // Check start
+      if (!inTable && startMarker && line.includes(startMarker)) {
+        inTable = true;
+        continue;
+      }
+
+      // Check end
+      if (inTable && endMarker && line.includes(endMarker)) {
+        break;
+      }
+
+      // If no start marker is defined, we assume table starts immediately or try to match lines anywhere
+      // But usually providing a marker is safer. If not provided, we rely solely on regex match.
+      if (!startMarker) inTable = true;
+
+      if (inTable) {
+        if (!lineRegex) continue;
+
+        const match = line.match(lineRegex);
+        if (match) {
+          const qty = mapping.qty && match[mapping.qty] ? parseFloat(match[mapping.qty]) : 1;
+          const description = mapping.description && match[mapping.description] ? match[mapping.description].trim() : 'Sin nombre';
+          const price = mapping.price && match[mapping.price] ? this.parsePrice(match[mapping.price]) : 0;
+          const sku = mapping.sku && match[mapping.sku] ? match[mapping.sku].trim() : '';
+          const totalItem = mapping.total && match[mapping.total] ? this.parsePrice(match[mapping.total]) : (qty * price);
+
+          if (description && price >= 0) {
+            productos.push({
+              nombre: description,
+              sku,
+              cantidad: qty,
+              precio_unitario: price,
+              total: totalItem
+            });
+          }
+        }
+      }
+    }
+
+    return {
+      numero_orden,
+      fecha,
+      proveedor: template.proveedor_id ? 'PROVEEDOR_ASIGNADO' : (template.nombre || 'Desconocido'), // El ID se resolverá en el frontend o controller
+      productos,
+      total
+    };
+  }
+
+  /**
+   * Procesa el texto extraído (público para testing)
+   * Ahora soporta templates dinámicos
+   */
+  static async parseText(text: string): Promise<PDFParseResult> {
+    // 1. Cargar templates activos
+    const templates = await this.loadTemplates();
+
+    // 2. Intentar matchear con alguno
+    for (const template of templates) {
+      if (template.detect_keywords && Array.isArray(template.detect_keywords)) {
+        const keywords = template.detect_keywords;
+        if (keywords.length > 0) {
+          const textUpper = text.toUpperCase();
+
+          // Requiere que TODOS los keywords (separados por coma) estén presentes (Lógica AND)
+          const match = keywords.every((k: string) => {
+            const term = k.toUpperCase().trim();
+            // 1. Intentar match exacto (case-insensitive)
+            if (textUpper.includes(term)) return true;
+
+            // 2. Fallback: Si el usuario escribió varias palabras sin comas, verificar que todas estén
+            if (term.includes(' ')) {
+              const words = term.split(/\s+/);
+              return words.every(w => textUpper.includes(w));
+            }
+            return false;
+          });
+
+          if (match) {
+            return this.extractDynamicData(text, template);
+          }
+        }
+      }
+    }
+
+    // 3. Fallback a lógica hardcoded
     const provider = this.detectProvider(text);
-    console.log('🏢 Proveedor detectado:', provider);
+    console.log('🏢 Proveedor detectado (Hardcoded):', provider);
 
     if (provider === 'INFINITY') {
       return this.extractInfinityData(text);
     } else if (provider === 'FENIX') {
       return this.extractFenixData(text);
     } else {
-      // Por defecto usamos la lógica de D&G (o genérica anterior)
       return this.extractDGData(text);
     }
   }
+
 
   /**
    * Detecta el proveedor basado en el contenido del texto
@@ -563,7 +723,8 @@ export class PDFService {
    * Convierte string de precio a número
    * Maneja formatos: "1.234,56" o "1234.56"
    */
-  private static parsePrice(price: string): number {
+  private static parsePrice(price: string | undefined | null): number {
+    if (!price) return 0;
     // Remover espacios y simbolos de moneda
     let cleaned = price.replace(/\s/g, '').replace('$', '');
 
@@ -610,5 +771,12 @@ export class PDFService {
       valid: errors.length === 0,
       errors,
     };
+  }
+
+  /**
+   * Helper público para probar parseo dinámico desde la UI
+   */
+  static testDynamicParse(text: string, template: any): PDFParseResult {
+    return this.extractDynamicData(text, template);
   }
 }
