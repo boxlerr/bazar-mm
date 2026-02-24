@@ -328,7 +328,7 @@ export default function PDFTemplateEditor({ initialData, onSave, onCancel, initi
             if (foundStart) {
                 // Skip empty lines or separator lines
                 if (line.match(/^[\s-]*$/)) continue;
-                if (line.includes(productsConfig.table_end_marker)) break;
+                if (productsConfig.table_end_marker && line.includes(productsConfig.table_end_marker)) break;
 
                 candidateLine = line;
                 break;
@@ -336,6 +336,8 @@ export default function PDFTemplateEditor({ initialData, onSave, onCancel, initi
         }
 
         if (!candidateLine) return { status: 'No se encontró ninguna línea de producto después del marcador de inicio.' };
+
+        if (!productsConfig.line_regex) return { status: 'Regla de línea (Regex) no configurada.' };
 
         // Test Regex
         try {
@@ -443,55 +445,7 @@ export default function PDFTemplateEditor({ initialData, onSave, onCancel, initi
         onSave(templateData);
     };
 
-    // --- Custom Joyride Tooltip ---
-    const CustomTooltip = ({
-        continuous,
-        index,
-        step,
-        backProps,
-        closeProps,
-        primaryProps,
-        tooltipProps,
-        isLastStep,
-    }: TooltipRenderProps) => {
-        return (
-            <div {...tooltipProps} className="bg-white rounded-2xl border border-gray-100 p-5 max-w-[320px] font-sans">
-                <div className="flex items-center justify-between mb-3 border-b border-gray-100 pb-2">
-                    <h3 className="font-bold text-gray-900 text-sm flex items-center gap-2">
-                        <Info className="w-4 h-4 text-blue-600" />
-                        Paso {index + 1} de {tourSteps.length}
-                    </h3>
-                    <button {...closeProps} className="text-gray-400 hover:text-gray-700 transition">
-                        <X className="w-4 h-4" />
-                    </button>
-                </div>
 
-                <div className="text-sm text-gray-600 mb-5 leading-relaxed">
-                    {step.content}
-                </div>
-
-                <div className="flex items-center justify-between mt-4">
-                    <div className="flex gap-2">
-                        {index > 0 && (
-                            <button
-                                {...backProps}
-                                className="px-3 py-1.5 text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                            >
-                                Atrás
-                            </button>
-                        )}
-                    </div>
-
-                    <button
-                        {...primaryProps}
-                        className="px-4 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm shadow-blue-500/30"
-                    >
-                        {isLastStep ? 'Terminar' : 'Siguiente'}
-                    </button>
-                </div>
-            </div>
-        );
-    };
 
     // --- Helper Functions for Visual Builder ---
 
