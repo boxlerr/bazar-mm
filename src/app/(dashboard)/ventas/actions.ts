@@ -312,3 +312,141 @@ export async function deleteSale(saleId: string) {
     return { success: false, error: error.message };
   }
 }
+
+export async function cancelSale(saleId: string, motivoCancela: string) {
+  const supabase = await createClient();
+
+  try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      throw new Error('No se pudo autenticar al usuario para anular la venta');
+    }
+
+    // 1. Obtener la venta original con sus pagos e ítems
+    const { data: venta, error: ventaError } = await supabase
+      .from('ventas')
+      .select(`
+        *,
+        pagos (*),
+        venta_items (
+          producto_id,
+          cantidad,
+          precio_unitario,
+          productos ( stock_actual )
+        )
+      `)
+      .eq('id', saleId)
+      .single();
+
+    if (ventaError || !venta) {
+      throw new Error('Venta no encontrada');
+    }
+
+    if (venta.estado === 'cancelada') {
+      return { success: false, error: 'Esta venta ya se encuentra cancelada' };
+    }
+
+    // 2. Revisar si hubo efectivo, y si es así, obligar a tener caja abierta
+    const pagosEfectivo = venta.pagos?.filter((p: any) => p.metodo === 'efectivo') || [];
+    let cajaId = null;
+
+    if (pagosEfectivo.length > 0) {
+      const { data: cajaAbierta } = await supabase
+        .from('caja')
+        .select('id')
+        .eq('usuario_id', user.id)
+        .eq('estado', 'abierta')
+        .single();
+
+      if (!cajaAbierta) {
+        return { success: false, error: 'Debe abrir la caja para poder anular una venta e ingresar la devolución de efectivo.' };
+      }
+      cajaId = cajaAbierta.id;
+    }
+
+    // 3. Actualizar estado de la venta
+    const observacionesActuales = venta.observaciones || '';
+    const nuevaObservacion = observacionesActuales
+      ? `${observacionesActuales} \n(ANULADA: ${motivoCancela})`
+      : `(ANULADA: ${motivoCancela})`;
+
+    const { error: updateError } = await supabase
+      .from('ventas')
+      .update({
+        estado: 'cancelada',
+        observaciones: nuevaObservacion
+      })
+      .eq('id', saleId);
+
+    if (updateError) throw updateError;
+
+    // 4. Revertir movimientos financieros
+    for (const pago of (venta.pagos || [])) {
+      if (pago.metodo === 'efectivo' && cajaId) {
+        await supabase.from('movimientos_caja').insert({
+          caja_id: cajaId,
+          tipo: 'egreso',
+          concepto: `Anulación Venta Ticket #${venta.nro_ticket} (Devolución Efectivo)`,
+          monto: pago.monto,
+          venta_id: venta.id
+        });
+      } else if (pago.metodo === 'cuenta_corriente' && venta.cliente_id) {
+        await supabase.from('movimientos_cuenta_corriente').insert({
+          cliente_id: venta.cliente_id,
+          tipo: 'credito', // Crédito suma a favor del cliente / reduce deuda
+          monto: pago.monto,
+          descripcion: `Nota de Crédito por Anulación Venta Ticket #${venta.nro_ticket}`,
+          venta_id: venta.id
+        });
+      }
+    }
+
+    // 5. Reponer Stock
+    if (venta.venta_items && venta.venta_items.length > 0) {
+      for (const item of venta.venta_items) {
+        const stockAnterior = item.productos?.stock_actual || 0;
+        const nuevoStock = stockAnterior + item.cantidad;
+
+        // Actualizar tabla productos manualmente, ya que el trigger solo actúa en INSERT/DELETE
+        await supabase
+          .from('productos')
+          .update({ stock_actual: nuevoStock })
+          .eq('id', item.producto_id);
+
+        // Registrar el movimiento
+        await supabase.from('movimientos_stock').insert({
+          producto_id: item.producto_id,
+          usuario_id: user.id,
+          tipo: 'ingreso', // Reposición de inventario
+          cantidad: item.cantidad,
+          stock_anterior: stockAnterior,
+          stock_nuevo: nuevoStock,
+          motivo: `Devolución por Anulación Ticket #${venta.nro_ticket}`,
+          referencia_id: venta.id
+        });
+      }
+    }
+
+    revalidatePath('/ventas');
+    revalidatePath('/stock');
+    revalidatePath('/reportes');
+    revalidatePath('/caja');
+
+    // Notificar a Admin y Gerente
+    await notifyUsers(
+      ['admin', 'gerente'],
+      'Venta Anulada (Nota de Crédito)',
+      `Venta #${venta.nro_ticket} por $${venta.total} ha sido anulada.`,
+      'error',
+      'ventas',
+      venta.id,
+      `/ventas`
+    );
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error cancelling sale:', error);
+    return { success: false, error: error.message || 'Error al anular la venta' };
+  }
+}

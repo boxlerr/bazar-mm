@@ -4,10 +4,11 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ShoppingBag, CreditCard, User, ChevronLeft, ChevronRight, Pencil, Trash2, Check, X, Filter, BarChart3, Calendar, Search, RotateCcw } from 'lucide-react';
+import { ShoppingBag, CreditCard, User, ChevronLeft, ChevronRight, Pencil, Trash2, Check, X, Filter, BarChart3, Calendar, Search, RotateCcw, Ban } from 'lucide-react';
 import { toast } from 'sonner';
-import { updateSale, deleteSale, getDataForEditSale } from '@/app/(dashboard)/ventas/actions';
+import { updateSale, deleteSale, getDataForEditSale, cancelSale } from '@/app/(dashboard)/ventas/actions';
 import DeleteConfirmationModal from '@/components/ui/DeleteConfirmationModal';
+import CancelSaleModal from '../ventas/CancelSaleModal';
 
 interface SalesListProps {
     data: any[];
@@ -31,6 +32,7 @@ export default function SalesList({ data }: SalesListProps) {
     // Edit & Delete state
     const [editingId, setEditingId] = useState<string | null>(null);
     const [deleteId, setDeleteId] = useState<string | null>(null);
+    const [cancelId, setCancelId] = useState<string | null>(null);
     const [options, setOptions] = useState<{ clientes: any[], usuarios: any[] }>({ clientes: [], usuarios: [] });
 
     // Form state
@@ -70,11 +72,12 @@ export default function SalesList({ data }: SalesListProps) {
     });
 
     // Calculate Summary based on filtered results
+    const activeSales = filteredSales.filter(s => s.estado !== 'cancelada');
     const summary = {
-        total: filteredSales.reduce((sum, s) => sum + (Number(s.total) || 0), 0),
-        count: filteredSales.length,
-        average: filteredSales.length > 0
-            ? filteredSales.reduce((sum, s) => sum + (Number(s.total) || 0), 0) / filteredSales.length
+        total: activeSales.reduce((sum, s) => sum + (Number(s.total) || 0), 0),
+        count: activeSales.length,
+        average: activeSales.length > 0
+            ? activeSales.reduce((sum, s) => sum + (Number(s.total) || 0), 0) / activeSales.length
             : 0
     };
 
@@ -161,6 +164,24 @@ export default function SalesList({ data }: SalesListProps) {
         } catch (error) {
             console.error(error);
             toast.error('Error al eliminar');
+        }
+    };
+
+    const handleCancelSubmit = async (motivo: string) => {
+        if (!cancelId) return;
+        try {
+            const result = await cancelSale(cancelId, motivo);
+            if (result.success) {
+                toast.success('Venta anulada y stock reingresado');
+                setCancelId(null);
+                setSales(prev => prev.map(s => s.id === cancelId ? { ...s, estado: 'cancelada', observaciones: (s.observaciones ? s.observaciones + '\n' : '') + `(ANULADA: ${motivo})` } : s));
+                router.refresh();
+            } else {
+                toast.error(result.error || 'Error al anular');
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error('Error al anular venta');
         }
     };
 
@@ -376,12 +397,28 @@ export default function SalesList({ data }: SalesListProps) {
                         <tbody className="divide-y divide-gray-100">
                             {currentData.map((venta, index) => {
                                 const isEditing = editingId === venta.id;
+                                const isCancelled = venta.estado === 'cancelada';
 
                                 return (
-                                    <tr key={venta.id} className={`transition-colors ${isEditing ? 'bg-blue-50/50' : 'hover:bg-gray-50'}`}>
+                                    <tr key={venta.id} className={`transition-colors ${isEditing ? 'bg-blue-50/50' : isCancelled ? 'bg-red-50/30 opacity-75' : 'hover:bg-gray-50'}`}>
                                         {/* Ticket # */}
-                                        <td className="px-5 py-4 whitespace-nowrap text-xs font-mono text-gray-400">
-                                            #{venta.id.slice(0, 8).toUpperCase()}
+                                        <td className="px-5 py-4 whitespace-nowrap text-xs font-mono text-gray-400 group/ticket">
+                                            <div className="flex flex-col">
+                                                <span className={isCancelled ? 'line-through' : ''}>
+                                                    #{venta.id.slice(0, 8).toUpperCase()}
+                                                </span>
+                                                {isCancelled && (
+                                                    <div className="relative group/tooltip inline-block mt-1">
+                                                        <span className="text-[10px] uppercase font-bold text-red-600 cursor-help border-b border-dashed border-red-300">Anulada</span>
+                                                        {venta.observaciones && (
+                                                            <div className="absolute left-0 bottom-full mb-2 w-max max-w-xs z-50 bg-gray-900 text-white text-xs rounded px-2 py-1 shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none">
+                                                                <span className="font-semibold text-gray-300">Motivo:</span> {venta.observaciones.split('ANULADA: ')[1]?.replace(')', '') || venta.observaciones}
+                                                                <div className="absolute top-full left-4 -mt-1 w-2 h-2 bg-gray-900 rotate-45"></div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </td>
 
                                         {/* Fecha */}
@@ -524,6 +561,10 @@ export default function SalesList({ data }: SalesListProps) {
                                                         <X size={16} />
                                                     </button>
                                                 </div>
+                                            ) : isCancelled ? (
+                                                <div className="flex items-center justify-end">
+                                                    <span className="text-xs text-red-500 font-medium px-2 py-1 bg-red-100 rounded-full">Cancelada</span>
+                                                </div>
                                             ) : (
                                                 <div className="flex items-center justify-end gap-2">
                                                     <button
@@ -534,11 +575,11 @@ export default function SalesList({ data }: SalesListProps) {
                                                         <Pencil size={14} />
                                                     </button>
                                                     <button
-                                                        onClick={() => setDeleteId(venta.id)}
-                                                        className="text-red-600 hover:text-red-900 p-1 hover:bg-red-50 rounded-full transition-colors"
-                                                        title="Eliminar"
+                                                        onClick={() => setCancelId(venta.id)}
+                                                        className="text-orange-500 hover:text-orange-700 p-1 hover:bg-orange-50 rounded-full transition-colors"
+                                                        title="Anular (Nota de Crédito)"
                                                     >
-                                                        <Trash2 size={14} />
+                                                        <Ban size={14} />
                                                     </button>
                                                 </div>
                                             )}
@@ -563,8 +604,9 @@ export default function SalesList({ data }: SalesListProps) {
                 <div className="md:hidden space-y-4 p-4">
                     {currentData.map((venta) => {
                         const isEditing = editingId === venta.id;
+                        const isCancelled = venta.estado === 'cancelada';
                         return (
-                            <div key={venta.id} className={`rounded-xl border p-4 transition-colors ${isEditing ? 'bg-blue-50/50 border-blue-200' : 'bg-white border-gray-100 shadow-sm'}`}>
+                            <div key={venta.id} className={`rounded-xl border p-4 transition-colors ${isEditing ? 'bg-blue-50/50 border-blue-200' : isCancelled ? 'bg-red-50/30 border-red-100 opacity-75' : 'bg-white border-gray-100 shadow-sm'}`}>
                                 {isEditing ? (
                                     <div className="space-y-4">
                                         <h4 className="font-bold text-blue-900 mb-2">Editar Venta</h4>
@@ -678,18 +720,32 @@ export default function SalesList({ data }: SalesListProps) {
                                         </div>
 
                                         <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
-                                            <button
-                                                onClick={() => handleEditClick(venta)}
-                                                className="flex-1 py-2 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors flex items-center justify-center gap-2"
-                                            >
-                                                <Pencil size={14} /> Editar
-                                            </button>
-                                            <button
-                                                onClick={() => setDeleteId(venta.id)}
-                                                className="flex-1 py-2 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors flex items-center justify-center gap-2"
-                                            >
-                                                <Trash2 size={14} /> Eliminar
-                                            </button>
+                                            {isCancelled ? (
+                                                <div className="flex-1 flex flex-col items-center justify-center p-2 bg-red-50 rounded-lg">
+                                                    <span className="text-xs text-red-600 font-bold uppercase tracking-wider mb-1">Cancelada</span>
+                                                    {venta.observaciones && (
+                                                        <span className="text-[10px] text-red-500 text-center leading-tight">
+                                                            {venta.observaciones.split('ANULADA: ')[1]?.replace(')', '') || venta.observaciones}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <button
+                                                        onClick={() => setCancelId(venta.id)}
+                                                        className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors"
+                                                    >
+                                                        <Ban size={14} />
+                                                        <span>Anular</span>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleEditClick(venta)}
+                                                        className="flex-1 py-2 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors flex items-center justify-center gap-2"
+                                                    >
+                                                        <Pencil size={14} /> Editar
+                                                    </button>
+                                                </>
+                                            )}
                                         </div>
                                     </>
                                 )}
@@ -708,7 +764,13 @@ export default function SalesList({ data }: SalesListProps) {
                     onClose={() => setDeleteId(null)}
                     onConfirm={handleDelete}
                     title="Eliminar Venta"
-                    description="¿Estás seguro de que deseas eliminar esta venta? Esta acción no se puede deshacer."
+                    description="¿Estás seguro de que deseas eliminar permanentemente esta venta? Esta acción no se puede deshacer. Se recomienda usar 'Anular'."
+                />
+
+                <CancelSaleModal
+                    isOpen={!!cancelId}
+                    onClose={() => setCancelId(null)}
+                    onConfirm={handleCancelSubmit}
                 />
             </div>
         </div>

@@ -38,24 +38,24 @@ export default function Modal({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+              transition={{ duration: 0.3 }}
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-md"
               onClick={onClose}
             />
 
             {/* Modal Content */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ duration: 0.2, type: "spring", stiffness: 300, damping: 30 }}
-              className={`relative bg-white rounded-xl shadow-2xl w-full p-6 overflow-hidden ${maxWidth || 'max-w-2xl'}`}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ duration: 0.4, type: "spring", bounce: 0.25 }}
+              className={`relative bg-white/95 backdrop-blur-xl rounded-3xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] border border-white/50 w-full p-8 overflow-hidden ${maxWidth || 'max-w-2xl'}`}
             >
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
+              <div className="flex justify-between items-center mb-8 pb-4 border-b border-gray-100/50">
+                <h2 className="text-2xl font-extrabold text-slate-800 tracking-tight">{title}</h2>
                 <button
                   onClick={onClose}
-                  className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100"
+                  className="group text-gray-400 hover:text-rose-500 transition-all p-2 rounded-full hover:bg-rose-50 border border-transparent hover:border-rose-100"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

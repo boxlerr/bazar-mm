@@ -21,9 +21,17 @@ export default function MovimientosList({ movimientos }: MovimientosListProps) {
             </div>
 
             {movimientos.length === 0 ? (
-                <div className="p-12 text-center text-gray-500">
-                    <Clock className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                    <p>No hay movimientos registrados en esta sesión</p>
+                <div className="p-16 text-center text-gray-500 bg-slate-50/30">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.5 }}
+                        className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-sm border border-slate-100 mx-auto mb-5"
+                    >
+                        <Clock className="w-8 h-8 text-slate-300" />
+                    </motion.div>
+                    <p className="text-lg font-semibold text-slate-700">No hay movimientos registrados</p>
+                    <p className="text-sm text-slate-400 mt-1 max-w-sm mx-auto">Los ingresos y egresos de esta sesión aparecerán aquí.</p>
                 </div>
             ) : (
                 <div className="overflow-x-auto">
@@ -42,34 +50,37 @@ export default function MovimientosList({ movimientos }: MovimientosListProps) {
                             {movimientos.map((mov, index) => (
                                 <motion.tr
                                     key={mov.id}
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: 0.1 * index }}
-                                    className="hover:bg-gray-50 transition-colors"
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.05 * index }}
+                                    className="hover:bg-slate-50/80 transition-all duration-200 group"
                                 >
-                                    <td className="px-4 py-3 whitespace-nowrap">
-                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${mov.tipo === 'INGRESO'
-                                            ? 'bg-green-100 text-green-800'
-                                            : 'bg-red-100 text-red-800'
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-wide shadow-sm border ${mov.tipo === 'INGRESO'
+                                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200/60'
+                                                : 'bg-rose-50 text-rose-700 border-rose-200/60'
                                             }`}>
                                             {mov.tipo === 'INGRESO' ? (
-                                                <ArrowUpRight className="w-3 h-3" />
+                                                <ArrowUpRight className="w-3.5 h-3.5" strokeWidth={2.5} />
                                             ) : (
-                                                <ArrowDownLeft className="w-3 h-3" />
+                                                <ArrowDownLeft className="w-3.5 h-3.5" strokeWidth={2.5} />
                                             )}
                                             {mov.tipo}
                                         </span>
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-gray-900 font-medium">
+                                    <td className="px-6 py-4 text-sm text-slate-800 font-medium group-hover:text-blue-600 transition-colors">
                                         {mov.descripcion}
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-gray-500">
+                                    <td className="px-6 py-4 text-sm text-slate-500 font-medium">
                                         {mov.usuario}
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-gray-500">
-                                        {mov.fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                                    <td className="px-6 py-4 text-sm text-slate-500 font-medium">
+                                        <div className="flex items-center gap-1.5">
+                                            <Clock className="w-3.5 h-3.5 text-slate-400" />
+                                            {mov.fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                                        </div>
                                     </td>
-                                    <td className={`px-4 py-3 text-sm font-bold text-right ${mov.tipo === 'INGRESO' ? 'text-green-600' : 'text-red-600'
+                                    <td className={`px-6 py-4 text-sm font-extrabold text-right tracking-tight ${mov.tipo === 'INGRESO' ? 'text-emerald-600' : 'text-rose-600'
                                         }`}>
                                         {mov.tipo === 'INGRESO' ? '+' : '-'}${mov.monto.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
                                     </td>

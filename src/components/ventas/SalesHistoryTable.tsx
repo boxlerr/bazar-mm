@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Pencil, Trash2, Check, X, AlertCircle } from 'lucide-react';
+import { Pencil, Trash2, Check, X, AlertCircle, Ban } from 'lucide-react';
 import { toast } from 'sonner';
-import { updateSale, deleteSale, getDataForEditSale } from '@/app/(dashboard)/ventas/actions';
+import { updateSale, deleteSale, getDataForEditSale, cancelSale } from '@/app/(dashboard)/ventas/actions';
 import DeleteConfirmationModal from '@/components/ui/DeleteConfirmationModal';
+import CancelSaleModal from './CancelSaleModal';
 
 interface SalesHistoryTableProps {
     initialSales: any[];
@@ -16,6 +17,7 @@ export default function SalesHistoryTable({ initialSales }: SalesHistoryTablePro
     const [sales, setSales] = useState(initialSales);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [deleteId, setDeleteId] = useState<string | null>(null);
+    const [cancelId, setCancelId] = useState<string | null>(null);
     const [options, setOptions] = useState<{ clientes: any[], usuarios: any[] }>({ clientes: [], usuarios: [] });
 
     // Form state for inline editing
@@ -114,6 +116,24 @@ export default function SalesHistoryTable({ initialSales }: SalesHistoryTablePro
         }
     };
 
+    const handleCancelSubmit = async (motivo: string) => {
+        if (!cancelId) return;
+        try {
+            const result = await cancelSale(cancelId, motivo);
+            if (result.success) {
+                toast.success('Venta anulada y stock reingresado');
+                setCancelId(null);
+                setSales(sales.map(s => s.id === cancelId ? { ...s, estado: 'cancelada', observaciones: (s.observaciones ? s.observaciones + '\n' : '') + `(ANULADA: ${motivo})` } : s));
+                router.refresh();
+            } else {
+                toast.error(result.error || 'Error al anular');
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error('Error al anular venta');
+        }
+    };
+
     return (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="overflow-x-auto">
@@ -156,12 +176,30 @@ export default function SalesHistoryTable({ initialSales }: SalesHistoryTablePro
                         ) : (
                             sales.map((sale: any, index: number) => {
                                 const isEditing = editingId === sale.id;
+                                const isCancelled = sale.estado === 'cancelada';
 
                                 return (
-                                    <tr key={sale.id} className={`transition-colors ${isEditing ? 'bg-blue-50/50' : 'hover:bg-gray-50'}`}>
+                                    <tr key={sale.id} className={`transition-colors ${isEditing ? 'bg-blue-50/50' : isCancelled ? 'bg-red-50/30 opacity-75' : 'hover:bg-gray-50'}`}>
                                         {/* Ticket # (Static) */}
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500">
-                                            {sale.id.slice(0, 8)}
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 flex justify-between items-center group/ticket">
+                                            <div className="flex flex-col">
+                                                <span className={isCancelled ? 'line-through text-gray-400' : ''}>
+                                                    #{sale.id.slice(0, 8).toUpperCase()}
+                                                </span>
+                                                {isCancelled && (
+                                                    <div className="relative group/tooltip inline-block mt-1">
+                                                        <span className="text-[10px] uppercase font-bold text-red-600 cursor-help border-b border-dashed border-red-300">Anulada</span>
+                                                        {sale.observaciones && (
+                                                            <div className="absolute left-0 bottom-full mb-2 w-max max-w-xs z-50 bg-gray-900 text-white text-xs rounded px-2 py-1 shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none">
+                                                                {/* Extraemos el motivo asumiendo el formato "(ANULADA: motivo)" */}
+                                                                <span className="font-semibold text-gray-300">Motivo:</span> {sale.observaciones.split('ANULADA: ')[1]?.replace(')', '') || sale.observaciones}
+                                                                {/* Flechita para el tooltip */}
+                                                                <div className="absolute top-full left-4 -mt-1 w-2 h-2 bg-gray-900 rotate-45"></div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </td>
 
                                         {/* Fecha */}
@@ -301,6 +339,10 @@ export default function SalesHistoryTable({ initialSales }: SalesHistoryTablePro
                                                         <X size={18} />
                                                     </button>
                                                 </div>
+                                            ) : isCancelled ? (
+                                                <div className="flex items-center justify-end">
+                                                    <span className="text-xs text-red-500 font-medium px-2 py-1 bg-red-100 rounded-full">Cancelada</span>
+                                                </div>
                                             ) : (
                                                 <div className="flex items-center justify-end gap-2">
                                                     <button
@@ -311,11 +353,11 @@ export default function SalesHistoryTable({ initialSales }: SalesHistoryTablePro
                                                         <Pencil size={18} />
                                                     </button>
                                                     <button
-                                                        onClick={() => setDeleteId(sale.id)}
-                                                        className="text-red-600 hover:text-red-900 p-1 hover:bg-red-50 rounded-full transition-colors"
-                                                        title="Eliminar venta"
+                                                        onClick={() => setCancelId(sale.id)}
+                                                        className="text-orange-500 hover:text-orange-700 p-1 hover:bg-orange-50 rounded-full transition-colors"
+                                                        title="Anular venta (Nota de Crédito)"
                                                     >
-                                                        <Trash2 size={18} />
+                                                        <Ban size={18} />
                                                     </button>
                                                 </div>
                                             )}
@@ -333,7 +375,13 @@ export default function SalesHistoryTable({ initialSales }: SalesHistoryTablePro
                 onClose={() => setDeleteId(null)}
                 onConfirm={handleDelete}
                 title="Eliminar Venta"
-                description="¿Estás seguro de que deseas eliminar esta venta? Esta acción no se puede deshacer."
+                description="¿Estás seguro de que deseas eliminar permanentemente esta venta? Esta acción no se puede deshacer y borrará todo registro histórico de la misma. Si hubo devolución, se recomienda usar 'Anular'."
+            />
+
+            <CancelSaleModal
+                isOpen={!!cancelId}
+                onClose={() => setCancelId(null)}
+                onConfirm={handleCancelSubmit}
             />
         </div>
     );

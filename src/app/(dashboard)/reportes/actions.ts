@@ -85,8 +85,10 @@ export async function getRentabilidadReport(startDate?: Date, endDate?: Date) {
             cantidad,
             subtotal,
             created_at,
-            producto:productos(precio_costo)
-        `);
+            producto:productos(precio_costo),
+            venta:ventas!inner(estado)
+        `)
+        .neq('venta.estado', 'cancelada');
 
     if (startDate) query = query.gte('created_at', startDate.toISOString());
     if (endDate) query = query.lte('created_at', endDate.toISOString());
@@ -247,7 +249,8 @@ export async function getDashboardStats() {
     const { data: ventasMes, error: errorVentas } = await supabase
         .from('ventas')
         .select('total')
-        .gte('created_at', startOfMonth);
+        .gte('created_at', startOfMonth)
+        .neq('estado', 'cancelada');
 
     const totalVentasMes = ventasMes?.reduce((sum, v) => sum + v.total, 0) || 0;
 
@@ -326,7 +329,8 @@ export async function getSalesChartData(range: TimeRange = '7d') {
     const { data: ventas } = await supabase
         .from('ventas')
         .select('created_at, total')
-        .gte('created_at', queryDate.toISOString());
+        .gte('created_at', queryDate.toISOString())
+        .neq('estado', 'cancelada');
 
 
 
@@ -476,6 +480,7 @@ export async function getRecentSales(limit: number = 10) {
             created_at,
             total,
             usuario_id,
+            estado,
             cliente:clientes(nombre),
             metodo_pago,
             venta_items (
