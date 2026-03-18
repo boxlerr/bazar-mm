@@ -27,6 +27,8 @@ export default function PaymentModal({
 }: PaymentModalProps) {
     const [pagos, setPagos] = useState<{ metodo: string; monto: number }[]>([]);
     const [discountPercentage, setDiscountPercentage] = useState<string>('');
+    const [discountAmount, setDiscountAmount] = useState<string>('');
+    const [discountType, setDiscountType] = useState<'percent' | 'fixed'>('percent');
 
     // Estado para la selección actual
     const [currentMethod, setCurrentMethod] = useState<string>('efectivo');
@@ -38,14 +40,18 @@ export default function PaymentModal({
             setPagos([]);
             setCurrentMethod('efectivo');
             setDiscountPercentage('');
+            setDiscountAmount('');
+            setDiscountType('percent');
             setCurrentAmount(total.toFixed(2));
         }
     }, [isOpen, total]);
 
     // Calcular totales
     // Calcular totales con descuento
-    const discountValue = (parseFloat(discountPercentage) || 0);
-    const totalDescuento = (total * discountValue) / 100;
+    const discountValue = parseFloat(discountType === 'percent' ? discountPercentage : discountAmount) || 0;
+    const totalDescuento = discountType === 'percent' 
+        ? (total * discountValue) / 100 
+        : discountValue;
     const finalTotal = total - totalDescuento;
 
     const totalPagado = pagos.reduce((sum, p) => sum + p.monto, 0);
@@ -270,25 +276,50 @@ export default function PaymentModal({
                                         {formatPrice(finalTotal)}
                                     </div>
 
-                                    <div className="flex items-center justify-center gap-2 mb-4">
-                                        <label className="text-sm font-bold text-gray-500">Descuento %</label>
-                                        <div className="relative w-24">
-                                            <input
-                                                type="number"
-                                                min="0"
-                                                max="100"
-                                                value={discountPercentage}
-                                                onChange={(e) => {
-                                                    const val = parseFloat(e.target.value);
-                                                    if (val < 0 || val > 100) return;
-                                                    setDiscountPercentage(e.target.value);
-                                                }}
-                                                className="w-full pl-3 pr-8 py-1.5 border-2 border-gray-200 rounded-lg font-bold text-center text-gray-900 focus:border-blue-500 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                                placeholder="0"
-                                                inputMode="decimal"
-                                                onFocus={(e) => e.target.select()}
-                                            />
-                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">%</span>
+                                    <div className="flex flex-col items-center gap-3 mb-4">
+                                        <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl">
+                                            <button
+                                                onClick={() => { setDiscountType('percent'); setDiscountAmount(''); }}
+                                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${discountType === 'percent' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                            >
+                                                Porcentaje (%)
+                                            </button>
+                                            <button
+                                                onClick={() => { setDiscountType('fixed'); setDiscountPercentage(''); }}
+                                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${discountType === 'fixed' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                            >
+                                                Monto Fijo ($)
+                                            </button>
+                                        </div>
+
+                                        <div className="flex items-center justify-center gap-2">
+                                            <label className="text-sm font-bold text-gray-500">
+                                                {discountType === 'percent' ? 'Descuento' : 'Monto'}
+                                            </label>
+                                            <div className="relative w-28">
+                                                {discountType === 'fixed' && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>}
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    max={discountType === 'percent' ? "100" : total.toString()}
+                                                    value={discountType === 'percent' ? discountPercentage : discountAmount}
+                                                    onChange={(e) => {
+                                                        const val = parseFloat(e.target.value);
+                                                        if (discountType === 'percent') {
+                                                            if (val < 0 || val > 100) return;
+                                                            setDiscountPercentage(e.target.value);
+                                                        } else {
+                                                            if (val < 0 || val > total) return;
+                                                            setDiscountAmount(e.target.value);
+                                                        }
+                                                    }}
+                                                    className={`w-full ${discountType === 'fixed' ? 'pl-7 pr-3' : 'pl-3 pr-8'} py-1.5 border-2 border-gray-200 rounded-lg font-bold text-center text-gray-900 focus:border-blue-500 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+                                                    placeholder="0"
+                                                    inputMode="decimal"
+                                                    onFocus={(e) => e.target.select()}
+                                                />
+                                                {discountType === 'percent' && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">%</span>}
+                                            </div>
                                         </div>
                                     </div>
 
