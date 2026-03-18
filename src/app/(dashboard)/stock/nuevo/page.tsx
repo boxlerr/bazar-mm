@@ -60,9 +60,14 @@ export default function NuevoProductoPage() {
                 return;
             }
 
+            const dataToSubmit = {
+                ...formData,
+                codigo_barra: formData.codigo_barra.trim() === '' ? null : formData.codigo_barra.trim()
+            };
+
             const { data, error } = await supabase
                 .from('productos')
-                .insert([formData])
+                .insert([dataToSubmit])
                 .select()
                 .single();
 
@@ -148,7 +153,7 @@ export default function NuevoProductoPage() {
                                 <button
                                     type="button"
                                     onClick={generateCodigo}
-                                    className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
+                                    className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
                                 >
                                     Auto-generar
                                 </button>
@@ -229,8 +234,8 @@ export default function NuevoProductoPage() {
                                     required
                                     min="0"
                                     step="0.01"
-                                    value={formData.precio_costo}
-                                    onChange={(e) => setFormData({ ...formData, precio_costo: parseFloat(e.target.value) || 0 })}
+                                    value={formData.precio_costo === 0 ? '' : formData.precio_costo}
+                                    onChange={(e) => setFormData({ ...formData, precio_costo: e.target.value === '' ? 0 : parseFloat(e.target.value) })}
                                     className="w-full border border-gray-200 rounded-lg pl-8 pr-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold text-lg"
                                     placeholder="0.00"
                                 />
@@ -248,8 +253,8 @@ export default function NuevoProductoPage() {
                                     required
                                     min="0"
                                     step="0.01"
-                                    value={formData.precio_venta}
-                                    onChange={(e) => setFormData({ ...formData, precio_venta: parseFloat(e.target.value) || 0 })}
+                                    value={formData.precio_venta === 0 ? '' : formData.precio_venta}
+                                    onChange={(e) => setFormData({ ...formData, precio_venta: e.target.value === '' ? 0 : parseFloat(e.target.value) })}
                                     className="w-full border border-gray-200 rounded-lg pl-8 pr-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold text-lg"
                                     placeholder="0.00"
                                 />
@@ -313,8 +318,8 @@ export default function NuevoProductoPage() {
                                 type="number"
                                 required
                                 min="0"
-                                value={formData.stock_actual}
-                                onChange={(e) => setFormData({ ...formData, stock_actual: parseInt(e.target.value) || 0 })}
+                                value={formData.stock_actual === 0 ? '' : formData.stock_actual}
+                                onChange={(e) => setFormData({ ...formData, stock_actual: e.target.value === '' ? 0 : parseInt(e.target.value) })}
                                 className="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold text-lg text-center"
                                 placeholder="0"
                             />
@@ -328,8 +333,8 @@ export default function NuevoProductoPage() {
                                 type="number"
                                 required
                                 min="0"
-                                value={formData.stock_minimo}
-                                onChange={(e) => setFormData({ ...formData, stock_minimo: parseInt(e.target.value) || 0 })}
+                                value={formData.stock_minimo === 0 ? '' : formData.stock_minimo}
+                                onChange={(e) => setFormData({ ...formData, stock_minimo: e.target.value === '' ? 0 : parseInt(e.target.value) })}
                                 className="w-full border border-gray-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold text-lg text-center"
                                 placeholder="5"
                             />

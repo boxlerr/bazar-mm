@@ -458,8 +458,8 @@ export default function ProductoDetallePage({ params }: Props) {
                                     <span className="absolute left-3 top-2 text-gray-400">$</span>
                                     <input
                                         type="number"
-                                        value={producto.precio_costo}
-                                        onChange={(e) => setProducto({ ...producto, precio_costo: parseFloat(e.target.value) })}
+                                        value={producto.precio_costo === 0 ? '' : producto.precio_costo}
+                                        onChange={(e) => setProducto({ ...producto, precio_costo: e.target.value === '' ? 0 : parseFloat(e.target.value) })}
                                         min="0"
                                         step="0.01"
                                         className="w-full border border-gray-200 rounded-lg pl-6 pr-3 py-2 text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -477,8 +477,8 @@ export default function ProductoDetallePage({ params }: Props) {
                                     <span className="absolute left-3 top-2 text-gray-400">$</span>
                                     <input
                                         type="number"
-                                        value={producto.precio_venta}
-                                        onChange={(e) => setProducto({ ...producto, precio_venta: parseFloat(e.target.value) })}
+                                        value={producto.precio_venta === 0 ? '' : producto.precio_venta}
+                                        onChange={(e) => setProducto({ ...producto, precio_venta: e.target.value === '' ? 0 : parseFloat(e.target.value) })}
                                         min="0"
                                         step="0.01"
                                         className="w-full border border-gray-200 rounded-lg pl-6 pr-3 py-2 text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -562,8 +562,8 @@ export default function ProductoDetallePage({ params }: Props) {
                                 <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Stock Mínimo</label>
                                 <input
                                     type="number"
-                                    value={producto.stock_minimo}
-                                    onChange={(e) => setProducto({ ...producto, stock_minimo: parseInt(e.target.value) || 0 })}
+                                    value={producto.stock_minimo === 0 ? '' : producto.stock_minimo}
+                                    onChange={(e) => setProducto({ ...producto, stock_minimo: e.target.value === '' ? 0 : parseInt(e.target.value) })}
                                     min="0"
                                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 />
