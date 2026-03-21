@@ -41,27 +41,57 @@ interface SubMenuItem {
   icon: React.ElementType;
 }
 
-const menuItems: MenuItem[] = [
-  { name: 'Ventas', href: '/ventas', icon: TrendingUp },
-  { name: 'Compras', href: '/compras', icon: ShoppingCart },
-  { name: 'Proveedores', href: '/proveedores', icon: Truck },
-  { name: 'Stock', href: '/stock', icon: Package },
-  { name: 'Clientes', href: '/clientes', icon: Users },
-  { name: 'Caja', href: '/caja', icon: Wallet },
-  { name: 'Presupuestos', href: '/presupuestos', icon: ClipboardList },
-  { name: 'Reportes', href: '/reportes', icon: BarChart3, permission: 'reportes' },
-  { name: 'Usuarios', href: '/usuarios', icon: UserCircle, permission: 'usuarios' },
+interface MenuSection {
+  label: string;
+  items: MenuItem[];
+}
+
+const menuSections: MenuSection[] = [
   {
-    name: 'Configuración',
-    href: '/configuracion',
-    icon: Settings,
-    permission: 'configuracion',
-    submenu: [
-      { name: 'General', href: '/configuracion', icon: Sliders },
-      { name: 'Negocio', href: '/configuracion/empresa', icon: Building2 },
-      { name: 'Plantillas PDF', href: '/configuracion/pdf-templates', icon: Receipt },
-      { name: 'Notificaciones', href: '/configuracion/notificaciones', icon: Bell },
-    ]
+    label: 'Operaciones',
+    items: [
+      { name: 'Ventas', href: '/ventas', icon: TrendingUp },
+      { name: 'Compras', href: '/compras', icon: ShoppingCart },
+      { name: 'Presupuestos', href: '/presupuestos', icon: ClipboardList },
+    ],
+  },
+  {
+    label: 'Inventario',
+    items: [
+      { name: 'Stock', href: '/stock', icon: Package },
+      { name: 'Proveedores', href: '/proveedores', icon: Truck },
+    ],
+  },
+  {
+    label: 'Finanzas',
+    items: [
+      { name: 'Caja', href: '/caja', icon: Wallet },
+      { name: 'Reportes', href: '/reportes', icon: BarChart3, permission: 'reportes' },
+    ],
+  },
+  {
+    label: 'Gestión',
+    items: [
+      { name: 'Clientes', href: '/clientes', icon: Users },
+      { name: 'Usuarios', href: '/usuarios', icon: UserCircle, permission: 'usuarios' },
+    ],
+  },
+  {
+    label: 'Sistema',
+    items: [
+      {
+        name: 'Configuración',
+        href: '/configuracion',
+        icon: Settings,
+        permission: 'configuracion',
+        submenu: [
+          { name: 'General', href: '/configuracion', icon: Sliders },
+          { name: 'Negocio', href: '/configuracion/empresa', icon: Building2 },
+          { name: 'Plantillas PDF', href: '/configuracion/pdf-templates', icon: Receipt },
+          { name: 'Notificaciones', href: '/configuracion/notificaciones', icon: Bell },
+        ],
+      },
+    ],
   },
 ];
 
@@ -101,13 +131,21 @@ export default function Sidebar() {
     return rol || '';
   };
 
-  const filteredMenuItems = menuItems.filter(item => {
+  const hasPermission = (item: MenuItem) => {
     if (!item.permission) return true;
     if (item.permission === 'configuracion') return permissions?.configuracion?.acceder;
     if (item.permission === 'usuarios') return permissions?.usuarios?.ver;
     if (item.permission === 'reportes') return permissions?.reportes?.ver;
     return true;
-  });
+  };
+
+  // Filter sections: remove items without permission, then remove empty sections
+  const filteredSections = menuSections
+    .map(section => ({
+      ...section,
+      items: section.items.filter(item => hasPermission(item)),
+    }))
+    .filter(section => section.items.length > 0);
 
   return (
     <>
@@ -188,156 +226,184 @@ export default function Sidebar() {
         <div className="mx-4 lg:mx-5 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-4 px-3 lg:px-4 space-y-0.5 sidebar-scrollbar">
+        <nav className="flex-1 overflow-y-auto py-3 px-3 lg:px-4 sidebar-scrollbar">
           {loading ? (
             <div className="flex justify-center py-8">
               <div className="w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
             </div>
-          ) : filteredMenuItems.map((item) => {
-            const isActive = pathname === item.href;
-            const hasSubmenu = item.submenu && item.submenu.length > 0;
-            const isExpanded = expandedMenus.includes(item.name);
-            const hasActiveSubmenu = isSubmenuActive(item.submenu);
-            const Icon = item.icon;
-            const isItemActive = isActive || hasActiveSubmenu;
+          ) : filteredSections.map((section, sectionIndex) => (
+            <div key={section.label}>
+              {/* Section divider (between sections, not before the first) */}
+              {sectionIndex > 0 && (
+                <div className="mx-2 my-2 h-px bg-gradient-to-r from-transparent via-white/[0.07] to-transparent" />
+              )}
 
-            return (
-              <div key={item.name}>
-                {/* Main Menu Item */}
-                {hasSubmenu ? (
-                  <button
-                    onClick={() => toggleSubmenu(item.name)}
-                    className={cn(
-                      "w-full flex items-center rounded-lg transition-all duration-200 group relative",
-                      isCollapsed ? "justify-center px-2 py-2.5" : "justify-between px-3 py-2.5",
-                      isItemActive
-                        ? "bg-red-500/15 text-white"
-                        : "text-neutral-400 hover:bg-white/5 hover:text-neutral-200"
-                    )}
-                    title={isCollapsed ? item.name : undefined}
-                  >
-                    {/* Active indicator bar */}
-                    {isItemActive && (
-                      <motion.div
-                        layoutId="activeIndicator"
-                        className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-red-500 rounded-r-full"
-                        transition={{ type: "spring", stiffness: 350, damping: 30 }}
-                      />
-                    )}
+              {/* Section header */}
+              {!isCollapsed && (
+                <div className="px-3 pt-3 pb-1.5">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-neutral-500">
+                    {section.label}
+                  </span>
+                </div>
+              )}
 
-                    <div className={cn("flex items-center gap-3 relative z-10", isCollapsed && "justify-center")}>
-                      <div className={cn(
-                        "flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200 flex-shrink-0",
-                        isItemActive
-                          ? "bg-red-500/20 text-red-400 shadow-sm shadow-red-500/10"
-                          : "text-neutral-400 group-hover:text-neutral-200"
-                      )}>
-                        <Icon className="w-[18px] h-[18px]" />
-                      </div>
+              {/* Collapsed: small dot separator between sections */}
+              {isCollapsed && sectionIndex > 0 && (
+                <div className="flex justify-center py-1">
+                  <div className="w-1 h-1 rounded-full bg-white/10" />
+                </div>
+              )}
+
+              {/* Section items */}
+              <div className="space-y-0.5">
+                {section.items.map((item) => {
+                  const isActive = pathname === item.href;
+                  const hasSubmenu = item.submenu && item.submenu.length > 0;
+                  const isExpanded = expandedMenus.includes(item.name);
+                  const hasActiveSubmenu = isSubmenuActive(item.submenu);
+                  const Icon = item.icon;
+                  const isItemActive = isActive || hasActiveSubmenu;
+
+                  return (
+                    <div key={item.name}>
+                      {/* Main Menu Item */}
+                      {hasSubmenu ? (
+                        <button
+                          onClick={() => toggleSubmenu(item.name)}
+                          className={cn(
+                            "w-full flex items-center rounded-lg transition-all duration-200 group relative",
+                            isCollapsed ? "justify-center px-2 py-2.5" : "justify-between px-3 py-2.5",
+                            isItemActive
+                              ? "bg-red-500/15 text-white"
+                              : "text-neutral-400 hover:bg-white/5 hover:text-neutral-200"
+                          )}
+                          title={isCollapsed ? item.name : undefined}
+                        >
+                          {/* Active indicator bar */}
+                          {isItemActive && (
+                            <motion.div
+                              layoutId="activeIndicator"
+                              className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-red-500 rounded-r-full"
+                              transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                            />
+                          )}
+
+                          <div className={cn("flex items-center gap-3 relative z-10", isCollapsed && "justify-center")}>
+                            <div className={cn(
+                              "flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200 flex-shrink-0",
+                              isItemActive
+                                ? "bg-red-500/20 text-red-400 shadow-sm shadow-red-500/10"
+                                : "text-neutral-400 group-hover:text-neutral-200"
+                            )}>
+                              <Icon className="w-[18px] h-[18px]" />
+                            </div>
+                            {!isCollapsed && (
+                              <span className={cn(
+                                "text-sm font-medium truncate",
+                                isItemActive ? "text-white" : "text-neutral-300 group-hover:text-white"
+                              )}>
+                                {item.name}
+                              </span>
+                            )}
+                          </div>
+                          {!isCollapsed && (
+                            <ChevronDown
+                              className={cn(
+                                "w-4 h-4 flex-shrink-0 transition-transform duration-300 text-neutral-500",
+                                isExpanded && "rotate-180"
+                              )}
+                            />
+                          )}
+                        </button>
+                      ) : (
+                        <Link
+                          href={item.href}
+                          onClick={() => isMobileOpen && closeMobileSidebar()}
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg transition-all duration-200 group relative",
+                            isCollapsed ? "justify-center px-2 py-2.5" : "px-3 py-2.5",
+                            isActive
+                              ? "bg-red-500/15 text-white"
+                              : "text-neutral-400 hover:bg-white/5 hover:text-neutral-200"
+                          )}
+                          title={isCollapsed ? item.name : undefined}
+                        >
+                          {/* Active indicator bar */}
+                          {isActive && (
+                            <motion.div
+                              layoutId="activeIndicator"
+                              className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-red-500 rounded-r-full"
+                              transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                            />
+                          )}
+
+                          <div className={cn(
+                            "flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200 flex-shrink-0",
+                            isActive
+                              ? "bg-red-500/20 text-red-400 shadow-sm shadow-red-500/10"
+                              : "text-neutral-400 group-hover:text-neutral-200"
+                          )}>
+                            <Icon className="w-[18px] h-[18px]" />
+                          </div>
+                          {!isCollapsed && (
+                            <span className={cn(
+                              "text-sm font-medium truncate",
+                              isActive ? "text-white" : "text-neutral-300 group-hover:text-white"
+                            )}>
+                              {item.name}
+                            </span>
+                          )}
+                        </Link>
+                      )}
+
+                      {/* Submenu */}
                       {!isCollapsed && (
-                        <span className={cn(
-                          "text-sm font-medium truncate",
-                          isItemActive ? "text-white" : "text-neutral-300 group-hover:text-white"
-                        )}>
-                          {item.name}
-                        </span>
+                        <AnimatePresence>
+                          {hasSubmenu && isExpanded && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.2, ease: 'easeOut' }}
+                              className="overflow-hidden"
+                            >
+                              <div className="ml-6 pl-3 border-l border-white/5 space-y-0.5 py-1">
+                                {item.submenu!.map((subItem) => {
+                                  const isSubActive = pathname === subItem.href;
+                                  const SubIcon = subItem.icon;
+
+                                  return (
+                                    <Link
+                                      key={subItem.href}
+                                      href={subItem.href}
+                                      onClick={() => isMobileOpen && closeMobileSidebar()}
+                                      className={cn(
+                                        "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 group",
+                                        isSubActive
+                                          ? "text-red-400 bg-red-500/10"
+                                          : "text-neutral-500 hover:text-neutral-300 hover:bg-white/5"
+                                      )}
+                                    >
+                                      {/* Active dot */}
+                                      {isSubActive && (
+                                        <div className="absolute -left-[3px] w-1.5 h-1.5 bg-red-500 rounded-full" />
+                                      )}
+                                      <SubIcon className="w-4 h-4 flex-shrink-0" />
+                                      <span className="text-[13px] font-medium truncate">{subItem.name}</span>
+                                    </Link>
+                                  );
+                                })}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       )}
                     </div>
-                    {!isCollapsed && (
-                      <ChevronDown
-                        className={cn(
-                          "w-4 h-4 flex-shrink-0 transition-transform duration-300 text-neutral-500",
-                          isExpanded && "rotate-180"
-                        )}
-                      />
-                    )}
-                  </button>
-                ) : (
-                  <Link
-                    href={item.href}
-                    onClick={() => isMobileOpen && closeMobileSidebar()}
-                    className={cn(
-                      "flex items-center gap-3 rounded-lg transition-all duration-200 group relative",
-                      isCollapsed ? "justify-center px-2 py-2.5" : "px-3 py-2.5",
-                      isActive
-                        ? "bg-red-500/15 text-white"
-                        : "text-neutral-400 hover:bg-white/5 hover:text-neutral-200"
-                    )}
-                    title={isCollapsed ? item.name : undefined}
-                  >
-                    {/* Active indicator bar */}
-                    {isActive && (
-                      <motion.div
-                        layoutId="activeIndicator"
-                        className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-red-500 rounded-r-full"
-                        transition={{ type: "spring", stiffness: 350, damping: 30 }}
-                      />
-                    )}
-
-                    <div className={cn(
-                      "flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200 flex-shrink-0",
-                      isActive
-                        ? "bg-red-500/20 text-red-400 shadow-sm shadow-red-500/10"
-                        : "text-neutral-400 group-hover:text-neutral-200"
-                    )}>
-                      <Icon className="w-[18px] h-[18px]" />
-                    </div>
-                    {!isCollapsed && (
-                      <span className={cn(
-                        "text-sm font-medium truncate",
-                        isActive ? "text-white" : "text-neutral-300 group-hover:text-white"
-                      )}>
-                        {item.name}
-                      </span>
-                    )}
-                  </Link>
-                )}
-
-                {/* Submenu */}
-                {!isCollapsed && (
-                  <AnimatePresence>
-                    {hasSubmenu && isExpanded && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2, ease: 'easeOut' }}
-                        className="overflow-hidden"
-                      >
-                        <div className="ml-6 pl-3 border-l border-white/5 space-y-0.5 py-1">
-                          {item.submenu!.map((subItem) => {
-                            const isSubActive = pathname === subItem.href;
-                            const SubIcon = subItem.icon;
-
-                            return (
-                              <Link
-                                key={subItem.href}
-                                href={subItem.href}
-                                onClick={() => isMobileOpen && closeMobileSidebar()}
-                                className={cn(
-                                  "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 group",
-                                  isSubActive
-                                    ? "text-red-400 bg-red-500/10"
-                                    : "text-neutral-500 hover:text-neutral-300 hover:bg-white/5"
-                                )}
-                              >
-                                {/* Active dot */}
-                                {isSubActive && (
-                                  <div className="absolute -left-[3px] w-1.5 h-1.5 bg-red-500 rounded-full" />
-                                )}
-                                <SubIcon className="w-4 h-4 flex-shrink-0" />
-                                <span className="text-[13px] font-medium truncate">{subItem.name}</span>
-                              </Link>
-                            );
-                          })}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                )}
+                  );
+                })}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </nav>
 
         {/* Footer - User Info */}
