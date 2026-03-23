@@ -48,9 +48,9 @@ export default function CartSummary({
         <div className="h-full flex flex-col">
             {/* Header de la Tabla */}
             <div className="flex-1 overflow-auto bg-gray-50 border-b border-gray-200">
-                <div className="min-w-[768px]">
+                <div className="min-w-[640px] md:min-w-[768px]">
                     {/* Header de la Tabla */}
-                    <div className="bg-gray-50 border-b border-gray-200 px-3 py-2 md:px-6 md:py-3 grid grid-cols-12 gap-2 md:gap-4 text-xs font-semibold text-gray-500 uppercase tracking-wider sticky top-0 z-10">
+                    <div className="bg-gray-50 border-b border-gray-200 px-2 py-1.5 md:px-4 md:py-2 grid grid-cols-12 gap-2 md:gap-4 text-[10px] md:text-xs font-semibold text-gray-500 uppercase tracking-wider sticky top-0 z-10">
                         <div className="col-span-5">Producto</div>
                         <div className="col-span-2 text-right">Precio Unit.</div>
                         <div className="col-span-2 text-center">Cantidad</div>
@@ -59,7 +59,7 @@ export default function CartSummary({
                     </div>
 
                     {/* Cuerpo de la Tabla */}
-                    <div className="p-4">
+                    <div className="p-2 md:p-3">
                         {cart.length === 0 ? (
                             <div className="h-64 flex flex-col items-center justify-center text-gray-400">
                                 <ShoppingCart className="w-16 h-16 mb-4 opacity-20" />
@@ -69,19 +69,19 @@ export default function CartSummary({
                         ) : (
                             <div className="space-y-2">
                                 {cart.map((item) => (
-                                    <div key={item.id} className="bg-white rounded-xl shadow-sm border border-gray-100 px-3 py-2 md:px-6 md:py-4 grid grid-cols-12 gap-2 md:gap-4 items-center hover:shadow-md transition-all group">
+                                    <div key={item.id} className="bg-white rounded-xl shadow-sm border border-gray-100 px-2 py-1.5 md:px-4 md:py-2.5 grid grid-cols-12 gap-2 md:gap-4 items-center hover:shadow-md transition-all group">
                                         {/* Producto */}
-                                        <div className="col-span-5 pr-4">
-                                            <p className="text-base font-bold text-gray-900 truncate" title={item.nombre}>
+                                        <div className="col-span-5 pr-2 md:pr-4">
+                                            <p className="text-sm md:text-base font-bold text-gray-900 truncate" title={item.nombre}>
                                                 {capitalize(item.nombre)}
                                             </p>
-                                            <p className="text-xs text-gray-500 font-mono mt-0.5">
+                                            <p className="text-[10px] md:text-xs text-gray-500 font-mono mt-0.5">
                                                 {item.codigo_barra || item.codigo}
                                             </p>
                                         </div>
 
                                         {/* Precio Unitario */}
-                                        <div className="col-span-2 text-right font-medium text-gray-600">
+                                        <div className="col-span-2 text-right text-sm md:text-base font-medium text-gray-600">
                                             {formatPrice(item.precio_venta)}
                                         </div>
 
@@ -90,22 +90,22 @@ export default function CartSummary({
                                             <div className="flex items-center bg-gray-50 rounded-lg border border-gray-200">
                                                 <button
                                                     onClick={() => onUpdateQuantity(item.id, item.cantidad - 1)}
-                                                    className="p-2 hover:bg-gray-200 text-gray-600 rounded-l-lg transition-colors"
+                                                    className="p-1 md:p-1.5 hover:bg-gray-200 text-gray-600 rounded-l-lg transition-colors"
                                                 >
-                                                    <Minus className="w-4 h-4" />
+                                                    <Minus className="w-3 h-3 md:w-4 md:h-4" />
                                                 </button>
-                                                <span className="w-12 text-center font-bold text-gray-900">{item.cantidad}</span>
+                                                <span className="w-8 md:w-10 text-sm md:text-base text-center font-bold text-gray-900">{item.cantidad}</span>
                                                 <button
                                                     onClick={() => onUpdateQuantity(item.id, item.cantidad + 1)}
-                                                    className="p-2 hover:bg-gray-200 text-gray-600 rounded-r-lg transition-colors"
+                                                    className="p-1 md:p-1.5 hover:bg-gray-200 text-gray-600 rounded-r-lg transition-colors"
                                                 >
-                                                    <Plus className="w-4 h-4" />
+                                                    <Plus className="w-3 h-3 md:w-4 md:h-4" />
                                                 </button>
                                             </div>
                                         </div>
 
                                         {/* Subtotal */}
-                                        <div className="col-span-2 text-right font-bold text-gray-900 text-lg">
+                                        <div className="col-span-2 text-right font-bold text-gray-900 text-base md:text-lg">
                                             {formatPrice(item.subtotal)}
                                         </div>
 
@@ -113,10 +113,10 @@ export default function CartSummary({
                                         <div className="col-span-1 text-center">
                                             <button
                                                 onClick={() => onRemove(item.id)}
-                                                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                className="p-1.5 md:p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                                 title="Eliminar"
                                             >
-                                                <Trash2 className="w-5 h-5" />
+                                                <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
                                             </button>
                                         </div>
                                     </div>
@@ -128,21 +128,21 @@ export default function CartSummary({
             </div>
 
             {/* Footer de Totales */}
-            <div className="bg-gray-50 border-t border-gray-200 p-3 px-4 md:p-4 md:px-6">
+            <div className="bg-gray-50 border-t border-gray-200 p-2 px-3 md:p-3 md:px-4">
                 <div className="flex flex-col lg:flex-row items-center justify-between gap-2 md:gap-4 lg:gap-8">
                     <div className="flex items-center gap-2 text-gray-500 w-full lg:w-auto justify-center lg:justify-start">
-                        <ShoppingCart className="w-5 h-5" />
-                        <span className="font-medium">{cart.reduce((acc, item) => acc + item.cantidad, 0)} artículos</span>
+                        <ShoppingCart className="w-4 h-4 md:w-5 md:h-5" />
+                        <span className="text-sm md:text-base font-medium">{cart.reduce((acc, item) => acc + item.cantidad, 0)} artículos</span>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row items-center gap-4 lg:gap-6 w-full lg:w-auto justify-end">
+                    <div className="flex flex-col sm:flex-row items-center gap-2 lg:gap-4 w-full lg:w-auto justify-end">
                         <div className="flex flex-col items-center sm:items-end gap-1 w-full sm:w-auto text-center sm:text-right">
                             <div>
-                                <p className="text-sm text-gray-500 font-medium uppercase">Total a Pagar</p>
-                                <p className="text-2xl lg:text-3xl font-black text-gray-900 leading-none mt-1">{formatPrice(total)}</p>
+                                <p className="text-xs md:text-sm text-gray-500 font-medium uppercase">Total a Pagar</p>
+                                <p className="text-xl lg:text-2xl font-black text-gray-900 leading-none mt-1">{formatPrice(total)}</p>
                             </div>
                             {(dolarBlue > 0 || dolarOficial > 0) && (
-                                <div className="flex gap-3 text-xs font-medium justify-center sm:justify-end">
+                                <div className="flex gap-2 mt-1 text-[10px] md:text-xs font-medium justify-center sm:justify-end">
                                     {dolarBlue > 0 && (
                                         <span className="text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
                                             Blue: {formatUSD(total / dolarBlue)}
@@ -160,7 +160,7 @@ export default function CartSummary({
                         <button
                             onClick={onCheckout}
                             disabled={cart.length === 0}
-                            className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 lg:px-8 lg:py-3 rounded-xl font-bold text-lg lg:text-xl shadow-lg shadow-emerald-600/20 hover:shadow-xl hover:scale-[1.02] transition-all"
+                            className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-3 py-1.5 lg:px-6 lg:py-2 rounded-xl font-bold text-base lg:text-lg shadow-lg shadow-emerald-600/20 hover:shadow-xl hover:scale-[1.02] transition-all"
                         >
                             Cobrar
                         </button>

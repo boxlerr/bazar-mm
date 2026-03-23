@@ -119,6 +119,12 @@ export default function PaymentModal({
         : (totalPagado > finalTotal ? totalPagado - finalTotal : 0);
 
     const isComplete = faltante <= 0.05; // Tolerancia pequeña
+    
+    const isTotalZero = finalTotal <= 0;
+    const isFullyPaid = isComplete && finalTotal > 0;
+    const amountVal = parseFloat(currentAmount || '0');
+    const isFullPaymentInInput = !isFullyPaid && amountVal >= faltante && amountVal > 0;
+    const missingClient = currentMethod === 'cuenta_corriente' && !selectedClient;
 
     return (
         <AnimatePresence>
@@ -136,17 +142,17 @@ export default function PaymentModal({
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="bg-white rounded-3xl shadow-2xl w-full max-w-6xl pointer-events-auto overflow-hidden flex flex-col md:flex-row max-h-[90vh] border border-white/20"
+                            className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl pointer-events-auto overflow-hidden flex flex-col lg:flex-row max-h-[95vh] lg:max-h-[90vh] border border-white/20"
                         >
                             {/* COLUMNA IZQUIERDA: Selección y Detalles */}
-                            <div className="w-full md:w-7/12 p-8 bg-gray-50 flex flex-col overflow-y-auto">
+                            <div className="w-full lg:w-7/12 p-4 lg:p-6 bg-gray-50 flex flex-col overflow-y-auto">
                                 <div className="mb-6">
                                     <h3 className="text-2xl font-bold text-gray-900 mb-1">Seleccionar Método</h3>
                                     <p className="text-gray-500 text-sm">Elija cómo desea abonar el saldo pendiente</p>
                                 </div>
 
                                 {/* Grid de Métodos */}
-                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
+                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4 lg:mb-6">
                                     {methods.map((m) => (
                                         <button
                                             key={m.id}
@@ -252,27 +258,77 @@ export default function PaymentModal({
                                     </div>
 
                                     <button
-                                        onClick={handleAddPayment}
-                                        disabled={isComplete || !currentAmount || parseFloat(currentAmount) <= 0 || (currentMethod === 'cuenta_corriente' && !selectedClient)}
-                                        className="w-full mt-6 bg-gray-900 hover:bg-black disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-white py-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl active:scale-[0.98]"
-                                        title="Agregar este monto a la lista de pagos"
+                                        onClick={async () => {
+                                            if (isTotalZero) {
+                                                await onConfirm([], totalDescuento);
+                                                return;
+                                            }
+                                            if (isFullyPaid) {
+                                                await onConfirm(pagos, totalDescuento);
+                                                return;
+                                            }
+                                            if (missingClient || amountVal <= 0 || isNaN(amountVal)) return;
+
+                                            if (isFullPaymentInInput) {
+                                                const nuevoPago = { metodo: currentMethod, monto: amountVal };
+                                                let pagosFinales = [...pagos, nuevoPago];
+                                                if (pagosFinales.length === 1 && pagosFinales[0].metodo === 'efectivo' && pagosFinales[0].monto > finalTotal) {
+                                                    pagosFinales[0].monto = finalTotal;
+                                                }
+                                                setPagos(pagosFinales);
+                                                await onConfirm(pagosFinales, totalDescuento);
+                                            } else {
+                                                handleAddPayment();
+                                            }
+                                        }}
+                                        disabled={loading || (!isTotalZero && !isFullyPaid && (missingClient || amountVal <= 0 || isNaN(amountVal)))}
+                                        className={`w-full mt-6 text-white py-3 lg:py-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl active:scale-[0.98] ${
+                                            (isTotalZero || isFullyPaid || isFullPaymentInInput) 
+                                                ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-200' 
+                                                : 'bg-gray-900 hover:bg-black disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed'
+                                        }`}
+                                        title={(isTotalZero || isFullyPaid || isFullPaymentInInput) ? "Completar la venta" : "Agregar este monto a la lista de pagos"}
                                     >
-                                        <Plus className="w-5 h-5" />
-                                        <span>Agregar Pago</span>
+                                        {loading ? (
+                                            <>
+                                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                <span>Procesando...</span>
+                                            </>
+                                        ) : isTotalZero ? (
+                                            <>
+                                                <CheckCircle2 className="w-5 h-5" />
+                                                <span>Confirmar Venta Gratuita</span>
+                                            </>
+                                        ) : isFullyPaid ? (
+                                            <>
+                                                <CheckCircle2 className="w-5 h-5" />
+                                                <span>Reintentar Confirmación</span>
+                                            </>
+                                        ) : isFullPaymentInInput ? (
+                                            <>
+                                                <CheckCircle2 className="w-5 h-5" />
+                                                <span>Cobrar e Imprimir</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Plus className="w-5 h-5" />
+                                                <span>Agregar Pago</span>
+                                            </>
+                                        )}
                                     </button>
                                 </div>
                             </div>
 
                             {/* COLUMNA DERECHA: Resumen */}
-                            <div className="w-full md:w-5/12 bg-white flex flex-col border-l border-gray-100 relative">
-                                <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                            <div className="w-full lg:w-5/12 bg-white flex flex-col border-t lg:border-t-0 lg:border-l border-gray-100 relative min-h-0">
+                                <div className="p-3 lg:p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                                     <h3 className="font-bold text-gray-900">Resumen de la Venta</h3>
                                     <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors"><X className="w-5 h-5 text-gray-500" /></button>
                                 </div>
 
-                                <div className="p-8 text-center flex-shrink-0">
-                                    <p className="text-gray-500 text-sm font-medium uppercase tracking-wide mb-2">Total a Pagar</p>
-                                    <div className="text-5xl font-black text-gray-900 tracking-tight mb-4">
+                                <div className="p-4 lg:p-5 text-center flex-shrink-0">
+                                    <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Total a Pagar</p>
+                                    <div className="text-4xl xl:text-5xl font-black text-gray-900 tracking-tight mb-3 lg:mb-4">
                                         {formatPrice(finalTotal)}
                                     </div>
 
@@ -345,7 +401,7 @@ export default function PaymentModal({
                                     )}
                                 </div>
 
-                                <div className="flex-1 overflow-y-auto px-6 py-2">
+                                <div className="flex-1 overflow-y-auto px-3 lg:px-6 py-2 min-h-0">
                                     <div className="space-y-3">
                                         {pagos.length === 0 ? (
                                             <div className="flex flex-col items-center justify-center h-40 text-gray-400 border-2 border-dashed border-gray-100 rounded-2xl bg-gray-50/50">
@@ -362,10 +418,10 @@ export default function PaymentModal({
                                                         initial={{ opacity: 0, x: -20 }}
                                                         animate={{ opacity: 1, x: 0 }}
                                                         exit={{ opacity: 0, height: 0 }}
-                                                        className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-100 shadow-sm group hover:border-blue-200 transition-colors"
+                                                        className="flex items-center justify-between p-3 lg:p-4 bg-white rounded-xl border border-gray-100 shadow-sm group hover:border-blue-200 transition-colors"
                                                     >
-                                                        <div className="flex items-center gap-3">
-                                                            <div className={`p-2.5 rounded-lg ${methods.find(m => m.id === p.metodo)?.bg}`}>
+                                                        <div className="flex items-center gap-2 lg:gap-3 min-w-0 pr-2">
+                                                            <div className={`p-2.5 rounded-lg flex-shrink-0 ${methods.find(m => m.id === p.metodo)?.bg}`}>
                                                                 {(() => {
                                                                     const Icon = methods.find(m => m.id === p.metodo)?.icon || Banknote;
                                                                     return <Icon className={`w-5 h-5 ${methods.find(m => m.id === p.metodo)?.color}`} />;
@@ -376,8 +432,8 @@ export default function PaymentModal({
                                                                 <p className="text-xs text-gray-500">Pago Registrado</p>
                                                             </div>
                                                         </div>
-                                                        <div className="flex items-center gap-3">
-                                                            <span className="font-bold text-gray-900 text-lg">{formatPrice(p.monto)}</span>
+                                                        <div className="flex items-center gap-2 lg:gap-3 flex-shrink-0">
+                                                            <span className="font-bold text-gray-900 text-base lg:text-lg whitespace-nowrap">{formatPrice(p.monto)}</span>
                                                             <button
                                                                 onClick={() => removePayment(idx)}
                                                                 className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
@@ -393,42 +449,24 @@ export default function PaymentModal({
                                     </div>
                                 </div>
 
-                                <div className="p-6 bg-gray-50 border-t border-gray-200 mt-auto">
-                                    <div className="space-y-3 mb-6">
-                                        <div className="flex justify-between items-center text-gray-600">
-                                            <span>Pagado:</span>
-                                            <span className="font-semibold">{formatPrice(totalPagado)}</span>
+                                <div className="p-4 flex-shrink-0 bg-gray-50 border-t border-gray-200 mt-auto">
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between items-center text-gray-600 text-sm">
+                                            <span>Monto Pagado:</span>
+                                            <span className="font-bold">{formatPrice(totalPagado)}</span>
                                         </div>
                                         {isComplete ? (
-                                            <div className="flex justify-between items-center text-green-600 bg-green-100/50 p-3 rounded-xl border border-green-200">
-                                                <span className="font-bold flex items-center gap-2"><CheckCircle2 className="w-5 h-5" /> ¡Pago Completado!</span>
+                                            <div className="flex justify-between items-center text-green-700 bg-green-100/50 p-3 rounded-xl border border-green-200 shadow-sm">
+                                                <span className="font-bold flex items-center gap-2"><CheckCircle2 className="w-5 h-5 text-green-600" /> ¡Pago Completado!</span>
                                                 {vuelto > 0 && <span className="font-bold text-sm">Vuelto: {formatPrice(vuelto)}</span>}
                                             </div>
                                         ) : (
-                                            <div className="flex justify-between items-center text-red-600 text-lg font-bold">
+                                            <div className="flex justify-between items-center text-red-700 bg-red-50/80 p-3 rounded-xl border border-red-100 shadow-sm text-base md:text-lg font-bold">
                                                 <span>Faltante:</span>
                                                 <span>{formatPrice(faltante)}</span>
                                             </div>
                                         )}
                                     </div>
-
-                                    <button
-                                        onClick={handleConfirm}
-                                        disabled={loading || !isComplete}
-                                        className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-4 rounded-xl font-bold text-lg shadow-lg shadow-blue-200 hover:shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"
-                                    >
-                                        {loading ? (
-                                            <>
-                                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                <span>Procesando...</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <CheckCircle2 className="w-6 h-6" />
-                                                <span>Confirmar e Imprimir</span>
-                                            </>
-                                        )}
-                                    </button>
                                 </div>
                             </div>
                         </motion.div>
